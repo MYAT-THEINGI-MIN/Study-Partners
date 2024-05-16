@@ -142,7 +142,7 @@ class _LoginPgState extends State<LoginPg> {
         SnackBar(
           content: Text('Password reset email sent to $email'),
           duration: const Duration(seconds: 3),
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.red,
         ),
       );
     } catch (error) {
