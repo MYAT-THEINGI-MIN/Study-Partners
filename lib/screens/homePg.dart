@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:sp_test/screens/plannerPg.dart';
 import 'loginPg.dart'; // Assuming you have a LoginPg class
 import 'chatRoom.dart'; // Assuming you have a ChatRoom class
 
@@ -12,7 +13,7 @@ class _homePgState extends State<homePg> {
   int _selectedIndex = 0;
 
   static const List<Widget> _widgetOptions = <Widget>[
-    NewsFeed(), // NewsFeed page
+    PlannerPage(), // PlannerPage
     ChatRoom(), // ChatRoom page
     Notifications(), // Notifications page
   ];
@@ -72,7 +73,7 @@ class _homePgState extends State<homePg> {
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
-            label: 'NewsFeed',
+            label: 'PlannerPage',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.chat),
@@ -88,15 +89,6 @@ class _homePgState extends State<homePg> {
         onTap: _onItemTapped,
       ),
     );
-  }
-}
-
-class NewsFeed extends StatelessWidget {
-  const NewsFeed({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(body: Text("This is newfeed Section"));
   }
 }
 
