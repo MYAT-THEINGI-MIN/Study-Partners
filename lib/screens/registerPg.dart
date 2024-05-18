@@ -198,7 +198,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
               const SizedBox(height: 16.0),
               ElevatedButton(
                 onPressed: _verifyEmail,
-                child: Text('I have verified my email'),
+                child: const Text('I have verified my email'),
               ),
             ],
           ),
