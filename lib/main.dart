@@ -5,6 +5,9 @@ import 'package:sp_test/routes/router.dart';
 import 'package:sp_test/screens/homePg.dart';
 import 'package:sp_test/screens/loginPg.dart';
 
+import 'screens/homePg.dart';
+import 'screens/loginPg.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
