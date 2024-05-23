@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:sp_test/screens/plannerPg.dart';
-import 'loginPg.dart'; // Assuming you have a LoginPg class
-import 'chatRoom.dart'; // Assuming you have a ChatRoom class
+import 'package:sp_test/screens/PlannerPg.dart';
+import 'loginPg.dart';
+import 'chatUserListPg.dart';
 
 class homePg extends StatefulWidget {
   @override
-  _homePgState createState() => _homePgState();
+  _HomePgState createState() => _HomePgState();
 }
 
-class _homePgState extends State<homePg> {
+class _HomePgState extends State<homePg> {
   int _selectedIndex = 0;
 
-  static const List<Widget> _widgetOptions = <Widget>[
-    PlannerPage(), // PlannerPage
-    ChatRoom(), // ChatRoom page
-    Notifications(), // Notifications page
+  static List<Widget> _widgetOptions = <Widget>[
+    PlannerPage(),
+    ChatUserListPg(),
+    Notifications(),
   ];
 
   void _onItemTapped(int index) {
@@ -73,11 +73,11 @@ class _homePgState extends State<homePg> {
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
-            label: 'PlannerPage',
+            label: 'Planner',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.chat),
-            label: 'ChatRoom',
+            label: 'Chat',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.notifications),
@@ -85,7 +85,7 @@ class _homePgState extends State<homePg> {
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Color.fromARGB(255, 176, 95, 227),
+        selectedItemColor: const Color.fromARGB(255, 176, 95, 227),
         onTap: _onItemTapped,
       ),
     );
@@ -93,10 +93,10 @@ class _homePgState extends State<homePg> {
 }
 
 class Notifications extends StatelessWidget {
-  const Notifications({super.key});
+  const Notifications({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: Text("This is notification Section"));
+    return const Scaffold(body: const Text("This is notification Section"));
   }
 }

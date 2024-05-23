@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sp_test/Service/isStrongPswd.dart';
@@ -6,6 +7,7 @@ import 'registerState.dart';
 
 class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
   final FirebaseAuth _auth;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   RegisterBloc({required FirebaseAuth auth})
       : _auth = auth,
@@ -37,6 +39,14 @@ class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
       if (userCredential.user != null) {
         // Send email verification
         await userCredential.user!.sendEmailVerification();
+
+        // Add a new document for the user in users collection if it doesn't already exist
+        await _firestore.collection('users').doc(userCredential.user!.uid).set({
+          'uid': userCredential.user!.uid,
+          'email': event.email,
+          'username': event.username,
+        }, SetOptions(merge: true));
+
         emit(RegisterSuccess());
       } else {
         emit(const RegisterFailure(error: 'Registration failed'));

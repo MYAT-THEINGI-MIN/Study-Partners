@@ -1,83 +1,135 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:sp_test/Service/chatService.dart';
 
-class ChatRoom extends StatelessWidget {
-  const ChatRoom({super.key});
+class ChatRoom extends StatefulWidget {
+  final String receiverUserName;
+  final String receiverUserId;
+
+  ChatRoom({required this.receiverUserName, required this.receiverUserId});
+
+  @override
+  _ChatRoomState createState() => _ChatRoomState();
+}
+
+class _ChatRoomState extends State<ChatRoom> {
+  final TextEditingController _messageController = TextEditingController();
+  final Chatservice _chatservice = Chatservice();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  void sendMessage() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      print("User not authenticated.");
+      return;
+    }
+
+    if (_messageController.text.isNotEmpty) {
+      print("Sending message: ${_messageController.text}");
+      try {
+        await _chatservice.sendMessage(
+            widget.receiverUserId, _messageController.text);
+        _messageController.clear();
+        print("Message sent successfully");
+      } catch (e) {
+        print("Error sending message: $e");
+      }
+    } else {
+      print("Message is empty");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return Scaffold(
       appBar: AppBar(
-        title: Text("Name"),
+        title: Text(widget.receiverUserName),
       ),
       body: Column(
         children: [
+          // Messages
           Expanded(
-            child: ListView(
-              children: [
-                _buildMessage('Hello!', true),
-                _buildMessage('Hi there!', false),
-                _buildMessage('How are you?', true),
-                _buildMessage('I am fine, thank you.', false),
-              ],
-            ),
+            child: _buildMessageList(),
           ),
-          _buildInputArea(size),
+          // User input
+          _buildMessageInput(),
         ],
       ),
     );
   }
 
-  Widget _buildMessage(String message, bool isMe) {
-    return Align(
-      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-        decoration: BoxDecoration(
-          color: isMe ? Colors.blueAccent : Colors.grey[300],
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Text(
-          message,
-          style: TextStyle(
-            color: isMe ? Colors.white : Colors.black,
+  Widget _buildMessageList() {
+    return StreamBuilder(
+      stream: _chatservice.getMessages(
+          _auth.currentUser!.uid, widget.receiverUserId),
+      builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+        if (snapshot.hasError) {
+          return Text('Error: ${snapshot.error}');
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Text('Loading...');
+        }
+
+        return ListView(
+          children: snapshot.data!.docs
+              .map((document) => _buildMessageItem(document))
+              .toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildMessageItem(DocumentSnapshot document) {
+    Map<String, dynamic> data = document.data() as Map<String, dynamic>;
+
+    var alignment = (data['senderId'] == _auth.currentUser!.uid)
+        ? Alignment.centerRight
+        : Alignment.centerLeft;
+
+    return Container(
+      alignment: alignment,
+      padding: EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+      child: Column(
+        crossAxisAlignment: alignment == Alignment.centerRight
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
+        children: [
+          Text(
+            data['message'],
+            style: TextStyle(fontSize: 16),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildInputArea(Size size) {
-    return Container(
-      height: size.height / 10,
-      width: size.width,
-      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      color: Colors.white,
+  Widget _buildMessageInput() {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
       child: Row(
         children: [
           Expanded(
-            child: Container(
-              height: size.height / 12,
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Type a message',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
+            child: TextField(
+              controller: _messageController,
+              decoration: InputDecoration(
+                hintText: 'Enter Message',
               ),
             ),
           ),
           IconButton(
-            icon: Icon(Icons.send, color: Colors.blue),
-            onPressed: () {
-              // Implement send functionality here
-            },
+            onPressed: sendMessage,
+            icon: Icon(Icons.send),
           ),
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    super.dispose();
   }
 }

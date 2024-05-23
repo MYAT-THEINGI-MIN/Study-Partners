@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sp_test/controllers/register/registerBloc.dart';
 import 'package:sp_test/controllers/register/registerEvent.dart';
 import 'package:sp_test/controllers/register/registerState.dart';
+import 'package:sp_test/screens/emailVerifyPg.dart';
 import 'package:sp_test/widgets/textfield.dart';
 
 class RegisterPg extends StatefulWidget {
@@ -14,6 +15,8 @@ class RegisterPg extends StatefulWidget {
 class _RegisterPgState extends State<RegisterPg> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _usernameController =
+      TextEditingController(); // Add this line
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool _obscureText = true; // State variable for password visibility
 
@@ -74,6 +77,22 @@ class _RegisterPgState extends State<RegisterPg> {
                         child: Column(
                           children: [
                             CustomTextField(
+                              // Use CustomTextField for username
+                              controller: _usernameController, // Add this line
+                              labelText: 'Username', // Add this line
+                              showSuffixIcon: false, // Add this line
+                              validator: (value) {
+                                // Add this line
+                                if (value == null || value.isEmpty) {
+                                  // Add this line
+                                  return 'Please enter your username'; // Add this line
+                                }
+                                return null; // Add this line
+                              },
+                              onSuffixIconPressed: () {}, // Add this line
+                            ),
+                            const SizedBox(height: 16.0),
+                            CustomTextField(
                               // Use CustomTextField for email
                               controller: _emailController,
                               labelText: 'Email',
@@ -110,10 +129,13 @@ class _RegisterPgState extends State<RegisterPg> {
                                 if (_formKey.currentState!.validate()) {
                                   final email = _emailController.text;
                                   final password = _passwordController.text;
+                                  final username =
+                                      _usernameController.text; // Add this line
                                   context.read<RegisterBloc>().add(
                                         RegisterButtonPressed(
                                           email: email,
                                           password: password,
+                                          username: username, // Add this line
                                         ),
                                       );
                                 }
@@ -131,76 +153,6 @@ class _RegisterPgState extends State<RegisterPg> {
                 ],
               ),
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class EmailVerificationScreen extends StatefulWidget {
-  final String email;
-
-  EmailVerificationScreen({required this.email});
-
-  @override
-  _EmailVerificationScreenState createState() =>
-      _EmailVerificationScreenState();
-}
-
-class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
-  final TextEditingController _verificationCodeController =
-      TextEditingController();
-  bool _isVerified = false;
-  String _verificationMessage = '';
-
-  void _verifyEmail() async {
-    User? user = FirebaseAuth.instance.currentUser;
-
-    if (user != null) {
-      await user.reload();
-      if (user.emailVerified) {
-        setState(() {
-          _isVerified = true;
-          _verificationMessage = 'Email verified successfully!';
-        });
-      } else {
-        setState(() {
-          _verificationMessage =
-              'Email not verified yet. Please check your inbox.';
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'A verification link has been sent to ${widget.email}. Please verify your email.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16.0),
-              ),
-              const SizedBox(height: 16.0),
-              if (_verificationMessage.isNotEmpty)
-                Text(
-                  _verificationMessage,
-                  style:
-                      TextStyle(color: _isVerified ? Colors.green : Colors.red),
-                ),
-              const SizedBox(height: 16.0),
-              ElevatedButton(
-                onPressed: _verifyEmail,
-                child: const Text('I have verified my email'),
-              ),
-            ],
           ),
         ),
       ),
