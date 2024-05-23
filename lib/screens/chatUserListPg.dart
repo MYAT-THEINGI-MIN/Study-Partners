@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:sp_test/screens/chatRoom.dart';
+import 'package:sp_test/Service/chatService.dart'; // Import your Chatservice file
 
 class ChatUserListPg extends StatefulWidget {
   ChatUserListPg({Key? key}) : super(key: key);
@@ -12,18 +13,20 @@ class ChatUserListPg extends StatefulWidget {
 
 class _ChatUserListPgState extends State<ChatUserListPg> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  late Stream<QuerySnapshot> _userStream;
+  final Chatservice _chatService = Chatservice(); // Initialize Chatservice
 
   @override
   void initState() {
     super.initState();
     checkAuthentication();
+    _userStream = FirebaseFirestore.instance.collection('users').snapshots();
   }
 
   void checkAuthentication() async {
     User? user = _auth.currentUser;
     if (user == null) {
-      await _auth
-          .signInAnonymously(); // Example: sign in anonymously for testing
+      await _auth.signInAnonymously();
     }
   }
 
@@ -31,7 +34,7 @@ class _ChatUserListPgState extends State<ChatUserListPg> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Friends"),
+        title: Text("Friends"),
       ),
       body: _buildUserList(),
     );
@@ -39,57 +42,89 @@ class _ChatUserListPgState extends State<ChatUserListPg> {
 
   Widget _buildUserList() {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('users').snapshots(),
+      stream: _userStream,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           print("Error: ${snapshot.error}");
-          return const Text("Error");
+          return Text("Error");
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return Center(child: CircularProgressIndicator());
         }
 
-        print("Snapshot updated");
+        return ListView.builder(
+          itemCount: snapshot.data!.docs.length,
+          itemBuilder: (context, index) {
+            DocumentSnapshot doc = snapshot.data!.docs[index];
+            Map<String, dynamic> data = doc.data()! as Map<String, dynamic>;
 
-        return ListView(
-          children: snapshot.data!.docs
-              .map<Widget>((doc) => _buildUserListItem(context, doc))
-              .toList(),
+            if (data.containsKey('email') &&
+                data.containsKey('username') &&
+                data.containsKey('uid')) {
+              String username = data['username'];
+              String uid = data['uid'];
+
+              if (_auth.currentUser!.email != data['email']) {
+                return Column(
+                  children: [
+                    ListTile(
+                      title: Text(username),
+                      subtitle: FutureBuilder<String>(
+                        future: _getRecentMessage(uid),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return Text('Loading...');
+                          }
+                          return Text(snapshot.data ?? '');
+                        },
+                      ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ChatRoom(
+                              receiverUserName: username,
+                              receiverUserId: uid,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    Divider(
+                      color: Colors.purple,
+                      thickness: 1,
+                      height: 0,
+                    ),
+                  ],
+                );
+              }
+            }
+
+            return Container();
+          },
         );
       },
     );
   }
 
-  Widget _buildUserListItem(BuildContext context, DocumentSnapshot document) {
-    Map<String, dynamic> data = document.data()! as Map<String, dynamic>;
+  Future<String> _getRecentMessage(String userId) async {
+    // Fetch recent message using Chatservice
+    // Replace this with your actual call to Chatservice
+    Stream<QuerySnapshot> messageStream =
+        _chatService.getMessages(_auth.currentUser!.uid, userId);
+    List<DocumentSnapshot> messageDocs =
+        await messageStream.first.then((snapshot) => snapshot.docs);
 
-    // Check if 'email', 'username', and 'uid' are not null
-    if (data.containsKey('email') &&
-        data['email'] != null &&
-        data.containsKey('username') &&
-        data['username'] != null &&
-        data.containsKey('uid') &&
-        data['uid'] != null) {
-      // Display users except the current logged-in user
-      if (_auth.currentUser!.email != data['email']) {
-        return ListTile(
-          title: Text(data['username']),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ChatRoom(
-                  receiverUserName: data['username'],
-                  receiverUserId: data['uid'],
-                ),
-              ),
-            );
-          },
-        );
-      }
+    if (messageDocs.isNotEmpty) {
+      // Get the most recent message
+      DocumentSnapshot recentMessage = messageDocs.last;
+      Map<String, dynamic> messageData =
+          recentMessage.data()! as Map<String, dynamic>;
+      return messageData['message'] ?? '';
+    } else {
+      return '';
     }
-
-    return Container();
   }
 }

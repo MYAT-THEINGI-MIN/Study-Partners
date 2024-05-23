@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sp_test/screens/PlannerPg.dart';
+import 'package:sp_test/screens/aboutMe.dart';
 import 'loginPg.dart';
 import 'chatUserListPg.dart';
 
@@ -15,7 +16,7 @@ class _HomePgState extends State<homePg> {
   static List<Widget> _widgetOptions = <Widget>[
     PlannerPage(),
     ChatUserListPg(),
-    Notifications(),
+    ProfilePg(),
   ];
 
   void _onItemTapped(int index) {
@@ -48,7 +49,7 @@ class _HomePgState extends State<homePg> {
           children: <Widget>[
             const DrawerHeader(
               decoration: BoxDecoration(
-                color: Colors.blue,
+                color: Color.fromARGB(255, 114, 70, 226),
               ),
               child: Text(
                 'Menu',
@@ -63,6 +64,16 @@ class _HomePgState extends State<homePg> {
               title: const Text('Logout'),
               onTap: () => _logout(context),
             ),
+            ListTile(
+              leading: const Icon(Icons.info),
+              title: const Text('AboutMe'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => AboutMePg()),
+                );
+              },
+            )
           ],
         ),
       ),
@@ -72,7 +83,7 @@ class _HomePgState extends State<homePg> {
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
+            icon: Icon(Icons.calendar_view_day_rounded),
             label: 'Planner',
           ),
           BottomNavigationBarItem(
@@ -80,8 +91,8 @@ class _HomePgState extends State<homePg> {
             label: 'Chat',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
-            label: 'Notifications',
+            icon: Icon(Icons.person),
+            label: 'Profile',
           ),
         ],
         currentIndex: _selectedIndex,
@@ -92,11 +103,11 @@ class _HomePgState extends State<homePg> {
   }
 }
 
-class Notifications extends StatelessWidget {
-  const Notifications({Key? key}) : super(key: key);
+class ProfilePg extends StatelessWidget {
+  const ProfilePg({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: const Text("This is notification Section"));
+    return const Scaffold(body: const Text("This is Profile Section"));
   }
 }

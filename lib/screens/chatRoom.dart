@@ -88,19 +88,23 @@ class _ChatRoomState extends State<ChatRoom> {
         ? Alignment.centerRight
         : Alignment.centerLeft;
 
-    return Container(
-      alignment: alignment,
-      padding: EdgeInsets.symmetric(vertical: 10, horizontal: 14),
-      child: Column(
-        crossAxisAlignment: alignment == Alignment.centerRight
-            ? CrossAxisAlignment.end
-            : CrossAxisAlignment.start,
-        children: [
-          Text(
-            data['message'],
-            style: TextStyle(fontSize: 16),
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      child: Align(
+        alignment: alignment,
+        child: Container(
+          padding: EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.blue, // Set the background color to blue
+            borderRadius:
+                BorderRadius.circular(20), // Increase the border radius
           ),
-        ],
+          child: Text(
+            data['message'],
+            style: TextStyle(
+                fontSize: 16, color: Colors.white), // Set text color to white
+          ),
+        ),
       ),
     );
   }
