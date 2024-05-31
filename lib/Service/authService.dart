@@ -40,16 +40,3 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     });
   }
 }
-
-
-//add a new document for the user in users collection if the it dosen't already exist
-// _firestore.collection('users').doc(UserCredential.user!.uid).set({
-//   'uid':UserCredential.user!.uid,
-//   'email':email,
-// },SetOptions(merge:true));
-
-// //after creating new user create a new document for the user
-// _firestore.collection('users').doc(UserCredential.user!.uid).set({
-//   'uid':UserCredential.user!.uid,
-//   'email':email,
-// });

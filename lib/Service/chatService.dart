@@ -4,18 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:sp_test/widgets/message.dart';
 
 class Chatservice extends ChangeNotifier {
-  // Get instance of auth
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firebaseFirestore = FirebaseFirestore.instance;
 
   // Send message
   Future<void> sendMessage(String receiverId, String message) async {
-    // Get current user info
     final String currentUserId = _auth.currentUser!.uid;
     final String currentUserEmail = _auth.currentUser!.email.toString();
     final Timestamp timestamp = Timestamp.now();
 
-    // Create a new message
     Message newMessage = Message(
       senderId: currentUserId,
       senderEmail: currentUserEmail,
@@ -24,13 +21,10 @@ class Chatservice extends ChangeNotifier {
       timestamp: timestamp,
     );
 
-    // Construct chat room ID from current user ID and receiver ID
     List<String> ids = [currentUserId, receiverId];
     ids.sort();
-    String chatRoomId =
-        ids.join("_"); // Combine the IDs into a single string to use
+    String chatRoomId = ids.join("_");
 
-    // Add new message to database
     await _firebaseFirestore
         .collection('chat_rooms')
         .doc(chatRoomId)
@@ -38,15 +32,46 @@ class Chatservice extends ChangeNotifier {
         .add(newMessage.toMap());
   }
 
+  // Send group message
+  Future<void> sendGroupMessage(String groupId, String message) async {
+    final String currentUserId = _auth.currentUser!.uid;
+    final String currentUserEmail = _auth.currentUser!.email.toString();
+    final Timestamp timestamp = Timestamp.now();
+
+    Message newMessage = Message(
+      senderId: currentUserId,
+      senderEmail: currentUserEmail,
+      receiverId: groupId,
+      message: message,
+      timestamp: timestamp,
+    );
+
+    await _firebaseFirestore
+        .collection('groups')
+        .doc(groupId)
+        .collection('messages')
+        .add(newMessage.toMap());
+  }
+
   // Get messages
   Stream<QuerySnapshot> getMessages(String userId, String otherUserId) {
-    // Construct chat room ID from user to ensure
     List<String> ids = [userId, otherUserId];
     ids.sort();
     String chatRoomId = ids.join("_");
+
     return _firebaseFirestore
         .collection('chat_rooms')
         .doc(chatRoomId)
+        .collection('messages')
+        .orderBy('timestamp', descending: false)
+        .snapshots();
+  }
+
+  // Get group messages
+  Stream<QuerySnapshot> getGroupMessages(String groupId) {
+    return _firebaseFirestore
+        .collection('groups')
+        .doc(groupId)
         .collection('messages')
         .orderBy('timestamp', descending: false)
         .snapshots();

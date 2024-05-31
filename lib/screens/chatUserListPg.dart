@@ -1,8 +1,9 @@
+import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import 'package:sp_test/screens/chatRoom.dart';
-import 'package:sp_test/Service/chatService.dart'; // Import your Chatservice file
+import 'package:sp_test/Service/chatService.dart';
+import 'package:sp_test/widgets/user_title.dart';
 
 class ChatUserListPg extends StatefulWidget {
   ChatUserListPg({Key? key}) : super(key: key);
@@ -14,13 +15,22 @@ class ChatUserListPg extends StatefulWidget {
 class _ChatUserListPgState extends State<ChatUserListPg> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   late Stream<QuerySnapshot> _userStream;
-  final Chatservice _chatService = Chatservice(); // Initialize Chatservice
+  final Chatservice _chatService = Chatservice();
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     checkAuthentication();
     _userStream = FirebaseFirestore.instance.collection('users').snapshots();
+
+    // Listen to the refresh stream and call setState when a refresh is triggered
+
+    // Add a listener to the scroll controller to handle refreshing
+    _scrollController.addListener(() {
+      if (_scrollController.position.atEdge &&
+          _scrollController.position.pixels != 0) {}
+    });
   }
 
   void checkAuthentication() async {
@@ -36,95 +46,109 @@ class _ChatUserListPgState extends State<ChatUserListPg> {
       appBar: AppBar(
         title: Text("Friends"),
       ),
-      body: _buildUserList(),
+      body: RefreshIndicator(
+        onRefresh: _refreshUsers, // Method to call when refreshing
+        child: _buildUserList(),
+      ),
     );
+  }
+
+  Future<void> _refreshUsers() async {
+    // You can add any refreshing logic here, like fetching new data from Firestore
+    setState(() {});
   }
 
   Widget _buildUserList() {
     return StreamBuilder<QuerySnapshot>(
       stream: _userStream,
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          print("Error: ${snapshot.error}");
+      builder: (context, userSnapshot) {
+        if (userSnapshot.hasError) {
+          print("Error: ${userSnapshot.error}");
           return Text("Error");
         }
 
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (userSnapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
         }
 
+        // Filter out the current user's account
+        var filteredDocs = userSnapshot.data!.docs
+            .where((doc) => doc['email'] != _auth.currentUser!.email);
+
         return ListView.builder(
-          itemCount: snapshot.data!.docs.length,
+          controller: _scrollController, // Set the scroll controller
+          itemCount: filteredDocs.length,
           itemBuilder: (context, index) {
-            DocumentSnapshot doc = snapshot.data!.docs[index];
-            Map<String, dynamic> data = doc.data()! as Map<String, dynamic>;
-
-            if (data.containsKey('email') &&
-                data.containsKey('username') &&
-                data.containsKey('uid')) {
-              String username = data['username'];
-              String uid = data['uid'];
-
-              if (_auth.currentUser!.email != data['email']) {
-                return Column(
-                  children: [
-                    ListTile(
-                      title: Text(username),
-                      subtitle: FutureBuilder<String>(
-                        future: _getRecentMessage(uid),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return Text('Loading...');
-                          }
-                          return Text(snapshot.data ?? '');
-                        },
-                      ),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ChatRoom(
-                              receiverUserName: username,
-                              receiverUserId: uid,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    Divider(
-                      color: Colors.purple,
-                      thickness: 1,
-                      height: 0,
-                    ),
-                  ],
-                );
-              }
-            }
-
-            return Container();
+            var doc = filteredDocs.elementAt(index);
+            return UserTile(
+              userDoc: doc,
+              currentUserId: _auth.currentUser!.uid,
+              chatService: _chatService,
+              onDelete: _confirmDeleteChat,
+            );
           },
         );
       },
     );
   }
 
-  Future<String> _getRecentMessage(String userId) async {
-    // Fetch recent message using Chatservice
-    // Replace this with your actual call to Chatservice
-    Stream<QuerySnapshot> messageStream =
-        _chatService.getMessages(_auth.currentUser!.uid, userId);
-    List<DocumentSnapshot> messageDocs =
-        await messageStream.first.then((snapshot) => snapshot.docs);
+  void _confirmDeleteChat(String uid) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete Chat'),
+        content: Text('Are you sure you want to delete this chat?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              _deleteChat(uid);
+              Navigator.of(context).pop();
+            },
+            child: Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
 
-    if (messageDocs.isNotEmpty) {
-      // Get the most recent message
-      DocumentSnapshot recentMessage = messageDocs.last;
-      Map<String, dynamic> messageData =
-          recentMessage.data()! as Map<String, dynamic>;
-      return messageData['message'] ?? '';
-    } else {
-      return '';
+  Future<void> _deleteChat(String uid) async {
+    // Get the current user's ID
+    final currentUserId = _auth.currentUser!.uid;
+
+    // Fetch and delete messages where the current user is the sender and the other user is the receiver
+    QuerySnapshot sentMessages = await FirebaseFirestore.instance
+        .collection('messages')
+        .where('senderId', isEqualTo: currentUserId)
+        .where('receiverId', isEqualTo: uid)
+        .get();
+
+    // Fetch and delete messages where the other user is the sender and the current user is the receiver
+    QuerySnapshot receivedMessages = await FirebaseFirestore.instance
+        .collection('messages')
+        .where('senderId', isEqualTo: uid)
+        .where('receiverId', isEqualTo: currentUserId)
+        .get();
+
+    WriteBatch batch = FirebaseFirestore.instance.batch();
+
+    for (var doc in sentMessages.docs) {
+      batch.delete(doc.reference);
     }
+
+    for (var doc in receivedMessages.docs) {
+      batch.delete(doc.reference);
+    }
+
+    await batch.commit();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose(); // Dispose the ScrollController
+    super.dispose();
   }
 }

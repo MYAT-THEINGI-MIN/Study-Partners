@@ -1,7 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; // Add this import for date formatting
 import 'package:sp_test/Service/chatService.dart';
+import 'package:sp_test/widgets/messageInput.dart';
+import 'package:sp_test/widgets/messageItem.dart';
 
 class ChatRoom extends StatefulWidget {
   final String receiverUserName;
@@ -29,7 +32,9 @@ class _ChatRoomState extends State<ChatRoom> {
       print("Sending message: ${_messageController.text}");
       try {
         await _chatservice.sendMessage(
-            widget.receiverUserId, _messageController.text);
+          widget.receiverUserId,
+          _messageController.text,
+        );
         _messageController.clear();
         print("Message sent successfully");
       } catch (e) {
@@ -37,6 +42,15 @@ class _ChatRoomState extends State<ChatRoom> {
       }
     } else {
       print("Message is empty");
+    }
+  }
+
+  void _deleteMessage(DocumentReference messageRef) async {
+    try {
+      await messageRef.delete();
+      print("Message deleted successfully");
+    } catch (e) {
+      print("Error deleting message: $e");
     }
   }
 
@@ -53,7 +67,10 @@ class _ChatRoomState extends State<ChatRoom> {
             child: _buildMessageList(),
           ),
           // User input
-          _buildMessageInput(),
+          MessageInput(
+            messageController: _messageController,
+            onSend: sendMessage,
+          ),
         ],
       ),
     );
@@ -72,62 +89,46 @@ class _ChatRoomState extends State<ChatRoom> {
           return const Text('Loading...');
         }
 
+        final messages = snapshot.data!.docs;
+        List<Widget> messageWidgets = [];
+        String? lastDate;
+
+        for (var i = 0; i < messages.length; i++) {
+          var message = messages[i];
+          var messageDate = (message['timestamp'] as Timestamp).toDate();
+          var formattedDate = DateFormat('yMMMd').format(messageDate);
+
+          if (lastDate != formattedDate) {
+            lastDate = formattedDate;
+            messageWidgets.add(
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Center(
+                  child: Text(
+                    formattedDate,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }
+
+          messageWidgets.add(
+            MessageItem(
+              document: message,
+              auth: _auth,
+              onDelete: _deleteMessage,
+            ),
+          );
+        }
+
         return ListView(
-          children: snapshot.data!.docs
-              .map((document) => _buildMessageItem(document))
-              .toList(),
+          children: messageWidgets,
         );
       },
-    );
-  }
-
-  Widget _buildMessageItem(DocumentSnapshot document) {
-    Map<String, dynamic> data = document.data() as Map<String, dynamic>;
-
-    var alignment = (data['senderId'] == _auth.currentUser!.uid)
-        ? Alignment.centerRight
-        : Alignment.centerLeft;
-
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-      child: Align(
-        alignment: alignment,
-        child: Container(
-          padding: EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.blue, // Set the background color to blue
-            borderRadius:
-                BorderRadius.circular(20), // Increase the border radius
-          ),
-          child: Text(
-            data['message'],
-            style: TextStyle(
-                fontSize: 16, color: Colors.white), // Set text color to white
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMessageInput() {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _messageController,
-              decoration: InputDecoration(
-                hintText: 'Enter Message',
-              ),
-            ),
-          ),
-          IconButton(
-            onPressed: sendMessage,
-            icon: Icon(Icons.send),
-          ),
-        ],
-      ),
     );
   }
 
