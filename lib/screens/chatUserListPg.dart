@@ -17,6 +17,8 @@ class _ChatUserListPgState extends State<ChatUserListPg> {
   late Stream<QuerySnapshot> _userStream;
   final Chatservice _chatService = Chatservice();
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
+  String _searchText = '';
 
   @override
   void initState() {
@@ -24,12 +26,17 @@ class _ChatUserListPgState extends State<ChatUserListPg> {
     checkAuthentication();
     _userStream = FirebaseFirestore.instance.collection('users').snapshots();
 
-    // Listen to the refresh stream and call setState when a refresh is triggered
-
     // Add a listener to the scroll controller to handle refreshing
     _scrollController.addListener(() {
       if (_scrollController.position.atEdge &&
           _scrollController.position.pixels != 0) {}
+    });
+
+    // Add a listener to the search controller to update the search text
+    _searchController.addListener(() {
+      setState(() {
+        _searchText = _searchController.text;
+      });
     });
   }
 
@@ -44,7 +51,25 @@ class _ChatUserListPgState extends State<ChatUserListPg> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Friends"),
+        title: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search...',
+                  border: InputBorder.none,
+                ),
+              ),
+            ),
+            IconButton(
+              icon: Icon(Icons.search),
+              onPressed: () {
+                // Optionally handle search button press if needed
+              },
+            ),
+          ],
+        ),
       ),
       body: RefreshIndicator(
         onRefresh: _refreshUsers, // Method to call when refreshing
@@ -73,7 +98,11 @@ class _ChatUserListPgState extends State<ChatUserListPg> {
 
         // Filter out the current user's account
         var filteredDocs = userSnapshot.data!.docs
-            .where((doc) => doc['email'] != _auth.currentUser!.email);
+            .where((doc) => doc['email'] != _auth.currentUser!.email)
+            .where((doc) => doc['username']
+                .toString()
+                .toLowerCase()
+                .contains(_searchText.toLowerCase()));
 
         return ListView.builder(
           controller: _scrollController, // Set the scroll controller
@@ -149,6 +178,7 @@ class _ChatUserListPgState extends State<ChatUserListPg> {
   @override
   void dispose() {
     _scrollController.dispose(); // Dispose the ScrollController
+    _searchController.dispose(); // Dispose the TextEditingController
     super.dispose();
   }
 }
