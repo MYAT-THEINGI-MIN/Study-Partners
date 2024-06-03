@@ -3,32 +3,35 @@ import 'package:flutter/material.dart';
 class MessageInput extends StatelessWidget {
   final TextEditingController messageController;
   final VoidCallback onSend;
+  final VoidCallback onPickImage;
 
   MessageInput({
     required this.messageController,
     required this.onSend,
+    required this.onPickImage,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: messageController,
-              decoration: const InputDecoration(
-                hintText: 'Enter Message',
-              ),
+    return Row(
+      children: [
+        IconButton(
+          icon: Icon(Icons.image),
+          onPressed: onPickImage,
+        ),
+        Expanded(
+          child: TextField(
+            controller: messageController,
+            decoration: InputDecoration(
+              hintText: 'Enter your message...',
             ),
           ),
-          IconButton(
-            onPressed: onSend,
-            icon: const Icon(Icons.send),
-          ),
-        ],
-      ),
+        ),
+        IconButton(
+          icon: Icon(Icons.send),
+          onPressed: onSend,
+        ),
+      ],
     );
   }
 }

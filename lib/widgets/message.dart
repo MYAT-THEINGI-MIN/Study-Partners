@@ -6,6 +6,7 @@ class Message {
   final String senderEmail;
   final String receiverId;
   final String message;
+  final String? imageUrl; // Make this field nullable
   final Timestamp timestamp;
 
   Message({
@@ -13,17 +14,29 @@ class Message {
     required this.senderEmail,
     required this.receiverId,
     required this.message,
+    this.imageUrl, // Accept null value for non-image messages
     required this.timestamp,
   });
 
-  //conver to a map
   Map<String, dynamic> toMap() {
     return {
       'senderId': senderId,
       'senderEmail': senderEmail,
       'receiverId': receiverId,
       'message': message,
-      'timestamp': timestamp
+      'imageUrl': imageUrl, // Include imageUrl in the map
+      'timestamp': timestamp,
     };
+  }
+
+  factory Message.fromMap(Map<String, dynamic> map) {
+    return Message(
+      senderId: map['senderId'],
+      senderEmail: map['senderEmail'],
+      receiverId: map['receiverId'],
+      message: map['message'],
+      imageUrl: map['imageUrl'], // Include imageUrl in the factory
+      timestamp: map['timestamp'],
+    );
   }
 }

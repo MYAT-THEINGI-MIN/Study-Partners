@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // Add this import for date formatting
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:sp_test/Service/chatService.dart';
 import 'package:sp_test/widgets/messageInput.dart';
 import 'package:sp_test/widgets/messageItem.dart';
@@ -20,6 +23,26 @@ class _ChatRoomState extends State<ChatRoom> {
   final TextEditingController _messageController = TextEditingController();
   final Chatservice _chatservice = Chatservice();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final ScrollController _scrollController = ScrollController();
+  List<File>? _imageFiles;
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedImages = await picker.getMultiImage(
+      maxHeight: 800,
+      maxWidth: 800,
+      imageQuality: 80,
+    );
+
+    if (pickedImages != null && pickedImages.isNotEmpty) {
+      setState(() {
+        _imageFiles =
+            pickedImages.map((pickedImage) => File(pickedImage.path)).toList();
+      });
+      print(
+          'Images selected: ${_imageFiles!.map((image) => image.path).toList()}');
+    }
+  }
 
   void sendMessage() async {
     final user = _auth.currentUser;
@@ -28,20 +51,40 @@ class _ChatRoomState extends State<ChatRoom> {
       return;
     }
 
-    if (_messageController.text.isNotEmpty) {
-      print("Sending message: ${_messageController.text}");
+    if (_messageController.text.isNotEmpty || _imageFiles != null) {
       try {
-        await _chatservice.sendMessage(
-          widget.receiverUserId,
-          _messageController.text,
-        );
+        if (_imageFiles != null) {
+          for (var imageFile in _imageFiles!) {
+            await _chatservice.sendImageMessage(
+                widget.receiverUserId, imageFile);
+          }
+          setState(() {
+            _imageFiles = null; // Reset the image files after sending
+          });
+        } else {
+          await _chatservice.sendMessage(
+              widget.receiverUserId, _messageController.text);
+        }
         _messageController.clear();
         print("Message sent successfully");
+
+        // Scroll to bottom after sending a message
+        _scrollToBottom();
       } catch (e) {
         print("Error sending message: $e");
       }
     } else {
       print("Message is empty");
+    }
+  }
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
     }
   }
 
@@ -62,14 +105,35 @@ class _ChatRoomState extends State<ChatRoom> {
       ),
       body: Column(
         children: [
-          // Messages
           Expanded(
             child: _buildMessageList(),
           ),
-          // User input
+          if (_imageFiles != null)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                children: [
+                  Text('Images selected:'),
+                  SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _imageFiles!.map((imageFile) {
+                      return Image.file(
+                        imageFile,
+                        width: 100,
+                        height: 100,
+                        fit: BoxFit.cover,
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
           MessageInput(
             messageController: _messageController,
             onSend: sendMessage,
+            onPickImage: _pickImage,
           ),
         ],
       ),
@@ -125,7 +189,11 @@ class _ChatRoomState extends State<ChatRoom> {
           );
         }
 
+        // Scroll to bottom whenever messages update
+        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+
         return ListView(
+          controller: _scrollController,
           children: messageWidgets,
         );
       },
@@ -135,6 +203,7 @@ class _ChatRoomState extends State<ChatRoom> {
   @override
   void dispose() {
     _messageController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 }
