@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:sp_test/Service/chatService.dart';
+import 'package:sp_test/Service/messageItem.dart';
 import 'package:sp_test/widgets/messageInput.dart';
-import 'package:sp_test/widgets/messageItem.dart';
 
 class ChatRoom extends StatefulWidget {
   final String receiverUserName;
@@ -24,11 +24,24 @@ class _ChatRoomState extends State<ChatRoom> {
   final Chatservice _chatservice = Chatservice();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final ScrollController _scrollController = ScrollController();
-  List<File>? _imageFiles;
+  List<File> _imageFiles = [];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final pickedImages = await picker.getMultiImage(
+    final pickedImages = await picker.pickMultiImage(
       maxHeight: 800,
       maxWidth: 800,
       imageQuality: 80,
@@ -36,11 +49,24 @@ class _ChatRoomState extends State<ChatRoom> {
 
     if (pickedImages != null && pickedImages.isNotEmpty) {
       setState(() {
-        _imageFiles =
-            pickedImages.map((pickedImage) => File(pickedImage.path)).toList();
+        _imageFiles.addAll(
+          pickedImages.map((pickedImage) => File(pickedImage.path)).toList(),
+        );
       });
       print(
-          'Images selected: ${_imageFiles!.map((image) => image.path).toList()}');
+          'Images selected: ${_imageFiles.map((image) => image.path).toList()}');
+    }
+  }
+
+  Future<void> _takePhoto() async {
+    final picker = ImagePicker();
+    final pickedImage = await picker.pickImage(source: ImageSource.camera);
+
+    if (pickedImage != null) {
+      setState(() {
+        _imageFiles.add(File(pickedImage.path));
+      });
+      print('Photo taken: ${pickedImage.path}');
     }
   }
 
@@ -51,15 +77,15 @@ class _ChatRoomState extends State<ChatRoom> {
       return;
     }
 
-    if (_messageController.text.isNotEmpty || _imageFiles != null) {
+    if (_messageController.text.isNotEmpty || _imageFiles.isNotEmpty) {
       try {
-        if (_imageFiles != null) {
-          for (var imageFile in _imageFiles!) {
+        if (_imageFiles.isNotEmpty) {
+          for (var imageFile in _imageFiles) {
             await _chatservice.sendImageMessage(
                 widget.receiverUserId, imageFile);
           }
           setState(() {
-            _imageFiles = null; // Reset the image files after sending
+            _imageFiles = []; // Reset the image files after sending
           });
         } else {
           await _chatservice.sendMessage(
@@ -67,8 +93,6 @@ class _ChatRoomState extends State<ChatRoom> {
         }
         _messageController.clear();
         print("Message sent successfully");
-
-        // Scroll to bottom after sending a message
         _scrollToBottom();
       } catch (e) {
         print("Error sending message: $e");
@@ -78,6 +102,21 @@ class _ChatRoomState extends State<ChatRoom> {
     }
   }
 
+  void _deleteMessage(DocumentReference messageRef) async {
+    try {
+      await messageRef.delete();
+      print("Message deleted successfully");
+    } catch (e) {
+      print("Error deleting message: $e");
+    }
+  }
+
+  void _removeImage(int index) {
+    setState(() {
+      _imageFiles.removeAt(index);
+    });
+  }
+
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
@@ -85,15 +124,6 @@ class _ChatRoomState extends State<ChatRoom> {
         duration: Duration(milliseconds: 300),
         curve: Curves.easeOut,
       );
-    }
-  }
-
-  void _deleteMessage(DocumentReference messageRef) async {
-    try {
-      await messageRef.delete();
-      print("Message deleted successfully");
-    } catch (e) {
-      print("Error deleting message: $e");
     }
   }
 
@@ -108,7 +138,7 @@ class _ChatRoomState extends State<ChatRoom> {
           Expanded(
             child: _buildMessageList(),
           ),
-          if (_imageFiles != null)
+          if (_imageFiles.isNotEmpty)
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Column(
@@ -118,14 +148,32 @@ class _ChatRoomState extends State<ChatRoom> {
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: _imageFiles!.map((imageFile) {
-                      return Image.file(
-                        imageFile,
-                        width: 100,
-                        height: 100,
-                        fit: BoxFit.cover,
+                    children: _imageFiles.asMap().entries.map((entry) {
+                      int index = entry.key;
+                      File imageFile = entry.value;
+                      return Stack(
+                        children: [
+                          Image.file(
+                            imageFile,
+                            width: 100,
+                            height: 100,
+                            fit: BoxFit.cover,
+                          ),
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            child: IconButton(
+                              icon: Icon(Icons.close, color: Colors.red),
+                              onPressed: () => _removeImage(index),
+                            ),
+                          ),
+                        ],
                       );
                     }).toList(),
+                  ),
+                  TextButton(
+                    onPressed: _pickImage,
+                    child: Text('Add More'),
                   ),
                 ],
               ),
@@ -134,6 +182,7 @@ class _ChatRoomState extends State<ChatRoom> {
             messageController: _messageController,
             onSend: sendMessage,
             onPickImage: _pickImage,
+            onTakePhoto: _takePhoto,
           ),
         ],
       ),
@@ -189,21 +238,11 @@ class _ChatRoomState extends State<ChatRoom> {
           );
         }
 
-        // Scroll to bottom whenever messages update
-        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-
         return ListView(
           controller: _scrollController,
           children: messageWidgets,
         );
       },
     );
-  }
-
-  @override
-  void dispose() {
-    _messageController.dispose();
-    _scrollController.dispose();
-    super.dispose();
   }
 }
