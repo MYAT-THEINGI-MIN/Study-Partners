@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -25,10 +24,12 @@ class _ChatRoomState extends State<ChatRoom> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final ScrollController _scrollController = ScrollController();
   List<File> _imageFiles = [];
+  String? _receiverProfileUrl;
 
   @override
   void initState() {
     super.initState();
+    _fetchReceiverProfile();
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
 
@@ -37,6 +38,16 @@ class _ChatRoomState extends State<ChatRoom> {
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchReceiverProfile() async {
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.receiverUserId)
+        .get();
+    setState(() {
+      _receiverProfileUrl = userDoc['profileImageUrl'];
+    });
   }
 
   Future<void> _pickImage() async {
@@ -131,7 +142,16 @@ class _ChatRoomState extends State<ChatRoom> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.receiverUserName),
+        title: Row(
+          children: [
+            if (_receiverProfileUrl != null)
+              CircleAvatar(
+                backgroundImage: NetworkImage(_receiverProfileUrl!),
+              ),
+            SizedBox(width: 10),
+            Text(widget.receiverUserName),
+          ],
+        ),
       ),
       body: Column(
         children: [
@@ -229,11 +249,28 @@ class _ChatRoomState extends State<ChatRoom> {
             );
           }
 
+          bool isCurrentUser = message['senderId'] == _auth.currentUser!.uid;
+
           messageWidgets.add(
-            MessageItem(
-              document: message,
-              auth: _auth,
-              onDelete: _deleteMessage,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: isCurrentUser
+                  ? MainAxisAlignment.end
+                  : MainAxisAlignment.start,
+              children: [
+                if (!isCurrentUser && _receiverProfileUrl != null)
+                  CircleAvatar(
+                    backgroundImage: NetworkImage(_receiverProfileUrl!),
+                  ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: MessageItem(
+                    document: message,
+                    auth: _auth,
+                    onDelete: _deleteMessage,
+                  ),
+                ),
+              ],
             ),
           );
         }

@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:sp_test/screens/chatRoom.dart';
 import 'package:sp_test/Service/chatService.dart';
@@ -22,6 +21,7 @@ class UserTile extends StatelessWidget {
     Map<String, dynamic> data = userDoc.data()! as Map<String, dynamic>;
     String username = data['username'];
     String uid = data['uid'];
+    String? profileUrl = data['profileImageUrl'];
 
     return StreamBuilder<QuerySnapshot>(
       stream: chatService.getMessages(currentUserId, uid),
@@ -39,6 +39,11 @@ class UserTile extends StatelessWidget {
             messages.isNotEmpty ? messages.last['message'] ?? '' : '';
 
         return ListTile(
+          leading: CircleAvatar(
+            backgroundImage: profileUrl != null && profileUrl.isNotEmpty
+                ? NetworkImage(profileUrl)
+                : AssetImage('assets/default_profile.png') as ImageProvider,
+          ),
           title: Text(username),
           subtitle: Text(recentMessage),
           onTap: () {

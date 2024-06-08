@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sp_test/Service/isStrongPswd.dart';
 import 'registerEvent.dart';
 import 'registerState.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:io';
 
 class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
   final FirebaseAuth _auth;
@@ -12,17 +14,27 @@ class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
   RegisterBloc({required FirebaseAuth auth})
       : _auth = auth,
         super(RegisterInitial()) {
-    // Register the event handler
     on<RegisterButtonPressed>(_onRegisterButtonPressed);
   }
 
-  // Event handler for RegisterButtonPressed event
+  Future<String?> _uploadProfileImage(File? imageFile) async {
+    if (imageFile == null) return null;
+    try {
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('profile_images/${_auth.currentUser!.uid}.jpg');
+      await storageRef.putFile(imageFile);
+      return await storageRef.getDownloadURL();
+    } catch (e) {
+      return null;
+    }
+  }
+
   void _onRegisterButtonPressed(
       RegisterButtonPressed event, Emitter<RegisterState> emit) async {
     emit(RegisterLoading());
 
     try {
-      // Check password strength first
       if (!isStrongPassword(event.password)) {
         emit(const RegisterFailure(
             error:
@@ -30,21 +42,22 @@ class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
         return;
       }
 
-      // If the password is strong, proceed with user registration
       final userCredential = await _auth.createUserWithEmailAndPassword(
         email: event.email,
         password: event.password,
       );
 
       if (userCredential.user != null) {
-        // Send email verification
+        final profileImageUrl = await _uploadProfileImage(event.profileImage);
+
         await userCredential.user!.sendEmailVerification();
 
-        // Add a new document for the user in users collection if it doesn't already exist
         await _firestore.collection('users').doc(userCredential.user!.uid).set({
           'uid': userCredential.user!.uid,
           'email': event.email,
           'username': event.username,
+          'subjects': event.subjects,
+          'profileImageUrl': profileImageUrl,
         }, SetOptions(merge: true));
 
         emit(RegisterSuccess());

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sp_test/screens/PlannerPg.dart';
+import 'package:sp_test/screens/ProfilePg.dart';
 import 'package:sp_test/screens/aboutMe.dart';
-import 'loginPg.dart';
-import 'chatUserListPg.dart';
+import 'package:sp_test/screens/loginPg.dart';
+import 'package:sp_test/screens/chatUserListPg.dart';
 
 class homePg extends StatefulWidget {
   @override
@@ -13,7 +14,7 @@ class homePg extends StatefulWidget {
 class _HomePgState extends State<homePg> {
   int _selectedIndex = 0;
 
-  static List<Widget> _widgetOptions = <Widget>[
+  static final List<Widget> _widgetOptions = <Widget>[
     PlannerPage(),
     ChatUserListPg(),
     ProfilePg(),
@@ -100,14 +101,5 @@ class _HomePgState extends State<homePg> {
         onTap: _onItemTapped,
       ),
     );
-  }
-}
-
-class ProfilePg extends StatelessWidget {
-  const ProfilePg({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(body: const Text("This is Profile Section"));
   }
 }

@@ -6,6 +6,9 @@ import 'package:sp_test/controllers/register/registerEvent.dart';
 import 'package:sp_test/controllers/register/registerState.dart';
 import 'package:sp_test/screens/emailVerifyPg.dart';
 import 'package:sp_test/widgets/textfield.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:sp_test/widgets/topSnackBar.dart';
 
 class RegisterPg extends StatefulWidget {
   @override
@@ -15,10 +18,23 @@ class RegisterPg extends StatefulWidget {
 class _RegisterPgState extends State<RegisterPg> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _usernameController =
-      TextEditingController(); // Add this line
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _subjectsController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  bool _obscureText = true; // State variable for password visibility
+  bool _obscureText = true;
+  File? _profileImage;
+
+  Future<void> _pickImage() async {
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _profileImage = File(pickedFile.path);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,40 +46,37 @@ class _RegisterPgState extends State<RegisterPg> {
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Center(
             child: SingleChildScrollView(
-              // Wrap the content in SingleChildScrollView
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Image.network(
-                    'https://i.pinimg.com/564x/84/17/9e/84179edf09d79962b0c68c1642dbc1b8.jpg', // image URL
-                    height: 100,
-                    width: 100,
-                  ),
+                  _profileImage != null
+                      ? CircleAvatar(
+                          radius: 50,
+                          backgroundImage: FileImage(_profileImage!),
+                        )
+                      : CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Colors.grey.shade200,
+                          child: IconButton(
+                            icon: Icon(Icons.camera_alt),
+                            onPressed: _pickImage,
+                          ),
+                        ),
                   const SizedBox(height: 24.0),
                   BlocConsumer<RegisterBloc, RegisterState>(
                     listener: (context, state) {
                       if (state is RegisterFailure) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Failed to register: ${state.error}'),
-                            duration: Duration(seconds: 3),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
+                        showTopSnackBar(
+                            context, 'Failed to register: ${state.error}');
                       } else if (state is RegisterSuccess) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                'Registration successful. Please verify your email.'),
-                            duration: Duration(seconds: 3),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
+                        showTopSnackBar(context,
+                            'Registration successful. Please verify your email.');
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => EmailVerificationScreen(
-                                  email: _emailController.text)),
+                            builder: (context) => EmailVerificationScreen(
+                                email: _emailController.text),
+                          ),
                         );
                       }
                     },
@@ -77,23 +90,19 @@ class _RegisterPgState extends State<RegisterPg> {
                         child: Column(
                           children: [
                             CustomTextField(
-                              // Use CustomTextField for username
-                              controller: _usernameController, // Add this line
-                              labelText: 'Username', // Add this line
-                              showSuffixIcon: false, // Add this line
+                              controller: _usernameController,
+                              labelText: 'Username',
+                              showSuffixIcon: false,
                               validator: (value) {
-                                // Add this line
                                 if (value == null || value.isEmpty) {
-                                  // Add this line
-                                  return 'Please enter your username'; // Add this line
+                                  return 'Please enter your username';
                                 }
-                                return null; // Add this line
+                                return null;
                               },
-                              onSuffixIconPressed: () {}, // Add this line
+                              onSuffixIconPressed: () {},
                             ),
                             const SizedBox(height: 16.0),
                             CustomTextField(
-                              // Use CustomTextField for email
                               controller: _emailController,
                               labelText: 'Email',
                               showSuffixIcon: false,
@@ -107,7 +116,6 @@ class _RegisterPgState extends State<RegisterPg> {
                             ),
                             const SizedBox(height: 16.0),
                             CustomTextField(
-                              // Use CustomTextField for password
                               controller: _passwordController,
                               labelText: 'Password',
                               obscureText: _obscureText,
@@ -124,18 +132,52 @@ class _RegisterPgState extends State<RegisterPg> {
                               },
                             ),
                             const SizedBox(height: 16.0),
+                            CustomTextField(
+                              controller: _confirmPasswordController,
+                              labelText: 'Confirm Password',
+                              obscureText: _obscureText,
+                              onSuffixIconPressed: () {
+                                setState(() {
+                                  _obscureText = !_obscureText;
+                                });
+                              },
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please confirm your password';
+                                } else if (value != _passwordController.text) {
+                                  return 'Passwords do not match';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16.0),
+                            CustomTextField(
+                              controller: _subjectsController,
+                              labelText: 'Subjects',
+                              showSuffixIcon: false,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter your subjects';
+                                }
+                                return null;
+                              },
+                              onSuffixIconPressed: () {},
+                            ),
+                            const SizedBox(height: 16.0),
                             ElevatedButton(
                               onPressed: () {
                                 if (_formKey.currentState!.validate()) {
                                   final email = _emailController.text;
                                   final password = _passwordController.text;
-                                  final username =
-                                      _usernameController.text; // Add this line
+                                  final username = _usernameController.text;
+                                  final subjects = _subjectsController.text;
                                   context.read<RegisterBloc>().add(
                                         RegisterButtonPressed(
                                           email: email,
                                           password: password,
-                                          username: username, // Add this line
+                                          username: username,
+                                          subjects: subjects,
+                                          profileImage: _profileImage,
                                         ),
                                       );
                                 }
