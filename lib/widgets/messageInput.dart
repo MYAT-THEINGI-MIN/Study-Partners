@@ -5,20 +5,18 @@ class MessageInput extends StatelessWidget {
   final VoidCallback onSend;
   final VoidCallback onPickImage;
   final VoidCallback onTakePhoto;
-  final bool isLoading;
 
   MessageInput({
     required this.messageController,
     required this.onSend,
     required this.onPickImage,
     required this.onTakePhoto,
-    required this.isLoading,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
       child: Row(
         children: [
           IconButton(
@@ -34,16 +32,13 @@ class MessageInput extends StatelessWidget {
               controller: messageController,
               decoration: InputDecoration(
                 hintText: 'Type a message',
-                border: InputBorder.none,
               ),
             ),
           ),
-          isLoading
-              ? CircularProgressIndicator() // Show loading indicator
-              : IconButton(
-                  icon: Icon(Icons.send),
-                  onPressed: onSend,
-                ),
+          IconButton(
+            icon: Icon(Icons.send),
+            onPressed: onSend,
+          ),
         ],
       ),
     );
