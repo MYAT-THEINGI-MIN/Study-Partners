@@ -5,12 +5,14 @@ class MessageInput extends StatelessWidget {
   final VoidCallback onSend;
   final VoidCallback onPickImage;
   final VoidCallback onTakePhoto;
+  final bool isLoading;
 
   MessageInput({
     required this.messageController,
     required this.onSend,
     required this.onPickImage,
     required this.onTakePhoto,
+    required this.isLoading,
   });
 
   @override
@@ -36,10 +38,12 @@ class MessageInput extends StatelessWidget {
               ),
             ),
           ),
-          IconButton(
-            icon: Icon(Icons.send),
-            onPressed: onSend,
-          ),
+          isLoading
+              ? CircularProgressIndicator() // Show loading indicator
+              : IconButton(
+                  icon: Icon(Icons.send),
+                  onPressed: onSend,
+                ),
         ],
       ),
     );

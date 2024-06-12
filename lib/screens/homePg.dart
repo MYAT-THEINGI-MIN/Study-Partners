@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sp_test/screens/PlannerPg.dart';
 import 'package:sp_test/screens/ProfilePg.dart';
-import 'package:sp_test/screens/aboutMe.dart';
-import 'package:sp_test/screens/loginPg.dart';
 import 'package:sp_test/screens/chatUserListPg.dart';
+import 'package:sp_test/screens/searchPartner.dart';
+import 'package:sp_test/widgets/drawer.dart';
 
-class homePg extends StatefulWidget {
+class HomePg extends StatefulWidget {
   @override
   _HomePgState createState() => _HomePgState();
 }
 
-class _HomePgState extends State<homePg> {
+class _HomePgState extends State<HomePg> {
   int _selectedIndex = 0;
 
   static final List<Widget> _widgetOptions = <Widget>[
     PlannerPage(),
     ChatUserListPg(),
+    SearchPartnerPg(),
     ProfilePg(),
   ];
 
@@ -26,58 +26,13 @@ class _HomePgState extends State<homePg> {
     });
   }
 
-  Future<void> _logout(BuildContext context) async {
-    try {
-      await FirebaseAuth.instance.signOut();
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => LoginPg()),
-      );
-    } catch (e) {
-      print('Failed to sign out: $e');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Home Page"),
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            const DrawerHeader(
-              decoration: BoxDecoration(
-                color: Color.fromARGB(255, 114, 70, 226),
-              ),
-              child: Text(
-                'Menu',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Logout'),
-              onTap: () => _logout(context),
-            ),
-            ListTile(
-              leading: const Icon(Icons.info),
-              title: const Text('AboutMe'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => AboutMePg()),
-                );
-              },
-            )
-          ],
-        ),
-      ),
+      drawer: const AppDrawer(),
       body: Center(
         child: _widgetOptions.elementAt(_selectedIndex),
       ),
@@ -92,12 +47,18 @@ class _HomePgState extends State<homePg> {
             label: 'Chat',
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.search),
+            label: 'Search',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: 'Profile',
           ),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: const Color.fromARGB(255, 176, 95, 227),
+        unselectedItemColor:
+            Colors.grey, // Set the unselected item color to grey
         onTap: _onItemTapped,
       ),
     );

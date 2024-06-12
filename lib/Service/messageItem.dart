@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
+import 'package:gallery_saver/gallery_saver.dart';
 
 class MessageItem extends StatelessWidget {
   final DocumentSnapshot document;
@@ -63,7 +64,13 @@ class MessageItem extends StatelessWidget {
         await imageFile.writeAsBytes(response.bodyBytes);
         print("Image saved to $filePath");
 
-        showTopSnackBar(context, 'Saved Image');
+        // Save the image to the device gallery
+        final result = await GallerySaver.saveImage(imageFile.path);
+        if (result != null && result is bool && result == true) {
+          showTopSnackBar(context, 'Image saved to gallery');
+        } else {
+          showTopSnackBar(context, 'Failed to save image to gallery');
+        }
       } else {
         print("Failed to download image.");
       }

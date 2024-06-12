@@ -50,7 +50,7 @@ class _LoginPgState extends State<LoginPg> {
                       } else if (state is LoginSuccess) {
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (context) => homePg()),
+                          MaterialPageRoute(builder: (context) => HomePg()),
                         );
                       }
                     },

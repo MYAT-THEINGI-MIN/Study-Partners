@@ -25,6 +25,7 @@ class _ChatRoomState extends State<ChatRoom> {
   final ScrollController _scrollController = ScrollController();
   List<File> _imageFiles = [];
   String? _receiverProfileUrl;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -81,7 +82,7 @@ class _ChatRoomState extends State<ChatRoom> {
     }
   }
 
-  void sendMessage() async {
+  Future<void> sendMessage() async {
     final user = _auth.currentUser;
     if (user == null) {
       print("User not authenticated.");
@@ -89,6 +90,10 @@ class _ChatRoomState extends State<ChatRoom> {
     }
 
     if (_messageController.text.isNotEmpty || _imageFiles.isNotEmpty) {
+      setState(() {
+        _isLoading = true; // Start loading
+      });
+
       try {
         if (_imageFiles.isNotEmpty) {
           for (var imageFile in _imageFiles) {
@@ -107,6 +112,10 @@ class _ChatRoomState extends State<ChatRoom> {
         _scrollToBottom();
       } catch (e) {
         print("Error sending message: $e");
+      } finally {
+        setState(() {
+          _isLoading = false; // Stop loading
+        });
       }
     } else {
       print("Message is empty");
@@ -203,6 +212,7 @@ class _ChatRoomState extends State<ChatRoom> {
             onSend: sendMessage,
             onPickImage: _pickImage,
             onTakePhoto: _takePhoto,
+            isLoading: _isLoading, // Pass the loading state
           ),
         ],
       ),

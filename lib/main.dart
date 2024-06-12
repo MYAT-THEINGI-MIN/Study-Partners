@@ -41,7 +41,7 @@ class BlockAuthFlow extends StatelessWidget {
         } else {
           // If user is authenticated, navigate to home page
           if (snapshot.hasData && snapshot.data != null) {
-            return homePg();
+            return HomePg();
           }
           // If user is not authenticated, navigate to login page
           return LoginPg();

@@ -38,7 +38,7 @@ Route<dynamic>? router(RouteSettings settings) {
   // Handle other routes
   switch (incomingRoute) {
     case RouteNames.home:
-      return MaterialPageRoute(builder: (_) => homePg());
+      return MaterialPageRoute(builder: (_) => HomePg());
 
     case RouteNames.login:
       return MaterialPageRoute(builder: (_) => LoginPg());
@@ -60,7 +60,7 @@ Route<dynamic>? router(RouteSettings settings) {
 Widget _getRouteWidget(String? routeName) {
   switch (routeName) {
     case RouteNames.home:
-      return homePg();
+      return HomePg();
     case RouteNames.register:
       return RegisterPg();
     // Add other cases for additional routes if needed
