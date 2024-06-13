@@ -25,7 +25,7 @@ class _ChatRoomState extends State<ChatRoom> {
   final ScrollController _scrollController = ScrollController();
   List<File> _imageFiles = [];
   String? _receiverProfileUrl;
-  List<Map<String, dynamic>> _temporaryMessages = [];
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -90,42 +90,31 @@ class _ChatRoomState extends State<ChatRoom> {
     }
 
     if (_messageController.text.isNotEmpty || _imageFiles.isNotEmpty) {
-      // Capture current message and images
-      String messageText = _messageController.text;
-      List<File> imageFiles = List.from(_imageFiles);
-
-      // Add temporary message
       setState(() {
-        _temporaryMessages.add({
-          'senderId': user.uid,
-          'text': messageText,
-          'images': imageFiles,
-          'timestamp': Timestamp.now(),
-          'isSending': true,
-        });
-
-        // Clear the text field and image files immediately
-        _messageController.clear();
-        _imageFiles = [];
+        _isLoading = true; // Start loading
       });
 
       try {
-        if (imageFiles.isNotEmpty) {
-          for (var imageFile in imageFiles) {
+        if (_imageFiles.isNotEmpty) {
+          for (var imageFile in _imageFiles) {
             await _chatservice.sendImageMessage(
                 widget.receiverUserId, imageFile);
           }
+          setState(() {
+            _imageFiles = []; // Reset the image files after sending
+          });
         } else {
-          await _chatservice.sendMessage(widget.receiverUserId, messageText);
+          await _chatservice.sendMessage(
+              widget.receiverUserId, _messageController.text);
         }
+        _messageController.clear();
         print("Message sent successfully");
         _scrollToBottom();
       } catch (e) {
         print("Error sending message: $e");
       } finally {
-        // Remove temporary message
         setState(() {
-          _temporaryMessages.removeWhere((message) => message['isSending']);
+          _isLoading = false; // Stop loading
         });
       }
     } else {
@@ -223,6 +212,7 @@ class _ChatRoomState extends State<ChatRoom> {
             onSend: sendMessage,
             onPickImage: _pickImage,
             onTakePhoto: _takePhoto,
+            isLoading: _isLoading, // Pass the loading state
           ),
         ],
       ),
@@ -288,75 +278,6 @@ class _ChatRoomState extends State<ChatRoom> {
                     document: message,
                     auth: _auth,
                     onDelete: _deleteMessage,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        // Add temporary messages
-        for (var tempMessage in _temporaryMessages) {
-          bool isCurrentUser =
-              tempMessage['senderId'] == _auth.currentUser!.uid;
-          messageWidgets.add(
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: isCurrentUser
-                  ? MainAxisAlignment.end
-                  : MainAxisAlignment.start,
-              children: [
-                if (!isCurrentUser && _receiverProfileUrl != null)
-                  CircleAvatar(
-                    backgroundImage: NetworkImage(_receiverProfileUrl!),
-                  ),
-                SizedBox(width: 5),
-                Expanded(
-                  child: Container(
-                    padding: EdgeInsets.all(8.0),
-                    decoration: BoxDecoration(
-                      color: isCurrentUser
-                          ? Colors.blueAccent.withOpacity(0.2)
-                          : Colors.grey.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                    child: tempMessage['images'].isNotEmpty
-                        ? Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children:
-                                tempMessage['images'].map<Widget>((imageFile) {
-                              return Image.file(
-                                imageFile,
-                                width: 100,
-                                height: 100,
-                                fit: BoxFit.cover,
-                              );
-                            }).toList(),
-                          )
-                        : Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (tempMessage['text'].isNotEmpty)
-                                Text(tempMessage['text']),
-                              if (tempMessage['isSending'])
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 4.0),
-                                  child: Row(
-                                    children: [
-                                      SizedBox(
-                                        width: 14,
-                                        height: 14,
-                                        child: CircularProgressIndicator(
-                                            strokeWidth: 2),
-                                      ),
-                                      SizedBox(width: 8),
-                                      Text("Sending..."),
-                                    ],
-                                  ),
-                                ),
-                            ],
-                          ),
                   ),
                 ),
               ],
