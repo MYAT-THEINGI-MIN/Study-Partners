@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 
 class MessageInput extends StatelessWidget {
   final TextEditingController messageController;
-  final VoidCallback onSend;
-  final VoidCallback onPickImage;
-  final VoidCallback onTakePhoto;
+  final Function() onSend;
+  final Function() onPickImage;
+  final Function() onTakePhoto;
   final bool isLoading;
+  final double uploadProgress;
 
   MessageInput({
     required this.messageController,
@@ -13,39 +14,43 @@ class MessageInput extends StatelessWidget {
     required this.onPickImage,
     required this.onTakePhoto,
     required this.isLoading,
+    this.uploadProgress = 0.0,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-      child: Row(
-        children: [
-          IconButton(
-            icon: Icon(Icons.photo),
-            onPressed: onPickImage,
+    return Column(
+      children: [
+        if (isLoading)
+          LinearProgressIndicator(
+            value: uploadProgress,
           ),
-          IconButton(
-            icon: Icon(Icons.camera_alt),
-            onPressed: onTakePhoto,
-          ),
-          Expanded(
-            child: TextField(
-              controller: messageController,
-              decoration: InputDecoration(
-                hintText: 'Type a message',
-                border: InputBorder.none,
+        Row(
+          children: [
+            IconButton(
+              icon: Icon(Icons.photo),
+              onPressed: onPickImage,
+            ),
+            IconButton(
+              icon: Icon(Icons.camera_alt),
+              onPressed: onTakePhoto,
+            ),
+            Expanded(
+              child: TextField(
+                controller: messageController,
+                decoration: InputDecoration(
+                  hintText: 'Enter your message...',
+                ),
               ),
             ),
-          ),
-          isLoading
-              ? CircularProgressIndicator() // Show loading indicator
-              : IconButton(
-                  icon: Icon(Icons.send),
-                  onPressed: onSend,
-                ),
-        ],
-      ),
+            IconButton(
+              icon: Icon(Icons.send),
+              onPressed:
+                  isLoading ? null : onSend, // Disable the button when loading
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

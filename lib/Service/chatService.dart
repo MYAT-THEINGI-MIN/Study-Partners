@@ -91,4 +91,79 @@ class Chatservice extends ChangeNotifier {
         .orderBy('timestamp', descending: false)
         .snapshots();
   }
+
+  // Group Chat Methods
+
+  Future<void> sendGroupMessage(String groupId, String message) async {
+    final String currentUserId = _auth.currentUser!.uid;
+    final String currentUserEmail = _auth.currentUser!.email.toString();
+    final Timestamp timestamp = Timestamp.now();
+
+    Message newMessage = Message(
+      senderId: currentUserId,
+      senderEmail: currentUserEmail,
+      receiverId: groupId,
+      message: message,
+      timestamp: timestamp,
+    );
+
+    await _firebaseFirestore
+        .collection('group_chat_rooms')
+        .doc(groupId)
+        .collection('messages')
+        .add(newMessage.toMap());
+  }
+
+  Future<void> sendGroupImageMessage(String groupId, File file) async {
+    final String currentUserId = _auth.currentUser!.uid;
+    final String currentUserEmail = _auth.currentUser!.email.toString();
+    final Timestamp timestamp = Timestamp.now();
+
+    final fileName = DateTime.now().millisecondsSinceEpoch.toString();
+    final firebaseStorageRef = FirebaseStorage.instance
+        .ref()
+        .child('group_images')
+        .child("$fileName.jpg");
+
+    try {
+      final uploadTask = firebaseStorageRef.putFile(file);
+      final snapshot = await uploadTask.whenComplete(() => {});
+      if (snapshot.state == TaskState.success) {
+        final imageUrl = await snapshot.ref.getDownloadURL();
+
+        print('Group image uploaded successfully: $imageUrl');
+
+        Message newMessage = Message(
+          senderId: currentUserId,
+          senderEmail: currentUserEmail,
+          receiverId: groupId,
+          message: '',
+          imageUrl: imageUrl,
+          timestamp: timestamp,
+        );
+
+        await _firebaseFirestore
+            .collection('group_chat_rooms')
+            .doc(groupId)
+            .collection('messages')
+            .add(newMessage.toMap());
+      } else {
+        print('Error uploading group image: ${snapshot.state.toString()}');
+        throw FirebaseException(
+            plugin: 'firebase_storage', message: 'Upload failed');
+      }
+    } catch (error) {
+      print('Error uploading group image: $error');
+      throw error;
+    }
+  }
+
+  Stream<QuerySnapshot> getMessagesForGroup(String groupId) {
+    return _firebaseFirestore
+        .collection('group_chat_rooms')
+        .doc(groupId)
+        .collection('messages')
+        .orderBy('timestamp', descending: false)
+        .snapshots();
+  }
 }

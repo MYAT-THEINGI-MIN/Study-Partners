@@ -90,11 +90,11 @@ class GroupTile extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => GpChatroom(
+            builder: (context) => GpChatRoom(
               groupId: groupId,
               groupName: groupName,
               gpProfileUrl: profileUrl,
-              adminId: '', // You need to provide adminId if available
+              adminId: '',
             ),
           ),
         );

@@ -1,41 +1,37 @@
 import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:sp_test/screens/GpChat/GpChatService.dart';
+import 'package:sp_test/Service/chatService.dart';
+import 'package:sp_test/Service/messageItem.dart';
+import 'package:sp_test/widgets/messageInput.dart';
 
-class GpChatroom extends StatefulWidget {
+class GpChatRoom extends StatefulWidget {
   final String groupId;
   final String groupName;
+  final String gpProfileUrl; // Add this line
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  GpChatroom({
+  GpChatRoom({
     required this.groupId,
     required this.groupName,
-    required String gpProfileUrl,
-    required String adminId,
+    required this.gpProfileUrl,
+    required String adminId, // Modify constructor to include gpProfileUrl
   });
 
   @override
-  _GpChatroomState createState() => _GpChatroomState();
+  _GpChatRoomState createState() => _GpChatRoomState();
 }
 
-class _GpChatroomState extends State<GpChatroom> {
+class _GpChatRoomState extends State<GpChatRoom> {
   final TextEditingController _messageController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
+  final Chatservice _chatservice = Chatservice();
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GpChatService _gpChatService =
-      GpChatService(); // Instance of GpChatService
+  final ScrollController _scrollController = ScrollController();
   List<File> _imageFiles = [];
   bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance!.addPostFrameCallback((_) => _scrollToBottom());
-  }
 
   @override
   void dispose() {
@@ -90,15 +86,14 @@ class _GpChatroomState extends State<GpChatroom> {
       try {
         if (_imageFiles.isNotEmpty) {
           for (var imageFile in _imageFiles) {
-            await _gpChatService.sendImageMessageToGroup(
-                widget.groupId, imageFile);
+            await _chatservice.sendGroupImageMessage(widget.groupId, imageFile);
           }
           setState(() {
             _imageFiles = []; // Reset the image files after sending
           });
         } else {
-          await _gpChatService.sendMessageToGroup(
-              widget.groupId, _messageController.text, user.uid);
+          await _chatservice.sendGroupMessage(
+              widget.groupId, _messageController.text);
         }
         _messageController.clear();
         print("Message sent successfully");
@@ -112,6 +107,15 @@ class _GpChatroomState extends State<GpChatroom> {
       }
     } else {
       print("Message is empty");
+    }
+  }
+
+  void _deleteMessage(DocumentReference messageRef) async {
+    try {
+      await messageRef.delete();
+      print("Message deleted successfully");
+    } catch (e) {
+      print("Error deleting message: $e");
     }
   }
 
@@ -131,83 +135,86 @@ class _GpChatroomState extends State<GpChatroom> {
     }
   }
 
-  void _showGroupDetails() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text("Group Details"),
-          content: Text(
-              "Group ID: ${widget.groupId}\nGroup Name: ${widget.groupName}"),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text("Close"),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  Future<Map<String, dynamic>> fetchGroupDetails() async {
+    try {
+      DocumentSnapshot groupSnapshot = await widget._firestore
+          .collection('groups')
+          .doc(widget.groupId)
+          .get();
 
-  void _showGroupMembers() async {
-    final members = await _gpChatService.getGroupMembers(widget.groupId);
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text("Group Members"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: members
-                .map((member) => ListTile(
-                      title: Text(member['name'] ?? member['email']),
-                    ))
-                .toList(),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text("Close"),
-            ),
-          ],
-        );
-      },
-    );
+      if (groupSnapshot.exists) {
+        return groupSnapshot.data() as Map<String, dynamic>;
+      } else {
+        throw 'Group not found';
+      }
+    } catch (e) {
+      print('Error fetching group details: $e');
+      return {};
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.groupName),
+        title: Row(
+          children: [
+            widget.gpProfileUrl.isNotEmpty
+                ? CircleAvatar(
+                    backgroundImage: NetworkImage(widget.gpProfileUrl),
+                  )
+                : CircleAvatar(
+                    child: Icon(Icons.group),
+                  ),
+            SizedBox(width: 8),
+            Text(widget.groupName),
+          ],
+        ),
         actions: [
-          PopupMenuButton<String>(
+          // Popup menu button for details and leave group and add partners
+          PopupMenuButton(
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                child: Row(
+                  children: [
+                    Icon(Icons.info),
+                    SizedBox(width: 8),
+                    Text('Details'),
+                  ],
+                ),
+                value: 'details',
+              ),
+              PopupMenuItem(
+                child: Row(
+                  children: [
+                    Icon(Icons.person_add),
+                    SizedBox(width: 8),
+                    Text('Add Partner'),
+                  ],
+                ),
+                value: 'Add Partner',
+              ),
+              PopupMenuItem(
+                child: Row(
+                  children: [
+                    Icon(Icons.exit_to_app),
+                    SizedBox(width: 8),
+                    Text('Leave Group'),
+                  ],
+                ),
+                value: 'leave',
+              ),
+            ],
             onSelected: (value) {
               if (value == 'details') {
                 _showGroupDetails();
-              } else if (value == 'members') {
-                _showGroupMembers();
+              } else if (value == 'Add Partner') {
+                // Handle leave group action
+              } else if (value == 'Leave Group') {
+                // Handle leave group action
               }
             },
-            itemBuilder: (BuildContext context) {
-              return [
-                PopupMenuItem(
-                  value: 'details',
-                  child: Text('Group Details'),
-                ),
-                PopupMenuItem(
-                  value: 'members',
-                  child: Text('Members'),
-                ),
-              ];
-            },
-          ),
+          )
         ],
       ),
       body: Column(
@@ -255,25 +262,12 @@ class _GpChatroomState extends State<GpChatroom> {
                 ],
               ),
             ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    decoration: InputDecoration(
-                      hintText: 'Enter message...',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(Icons.send),
-                  onPressed: sendMessage,
-                ),
-              ],
-            ),
+          MessageInput(
+            messageController: _messageController,
+            onSend: sendMessage,
+            onPickImage: _pickImage,
+            onTakePhoto: _takePhoto,
+            isLoading: _isLoading,
           ),
         ],
       ),
@@ -282,14 +276,14 @@ class _GpChatroomState extends State<GpChatroom> {
 
   Widget _buildMessageList() {
     return StreamBuilder(
-      stream: _gpChatService.getGroupMessages(widget.groupId),
+      stream: _chatservice.getMessagesForGroup(widget.groupId),
       builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
         if (snapshot.hasError) {
           return Text('Error: ${snapshot.error}');
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Text('Loading...');
         }
 
         final messages = snapshot.data!.docs;
@@ -298,8 +292,7 @@ class _GpChatroomState extends State<GpChatroom> {
 
         for (var i = 0; i < messages.length; i++) {
           var message = messages[i];
-          var messageData = message.data() as Map<String, dynamic>;
-          var messageDate = (messageData['timestamp'] as Timestamp).toDate();
+          var messageDate = (message['timestamp'] as Timestamp).toDate();
           var formattedDate = DateFormat('yMMMd').format(messageDate);
 
           if (lastDate != formattedDate) {
@@ -320,8 +313,7 @@ class _GpChatroomState extends State<GpChatroom> {
             );
           }
 
-          bool isCurrentUser =
-              messageData['senderId'] == _auth.currentUser!.uid;
+          bool isCurrentUser = message['senderId'] == _auth.currentUser!.uid;
 
           messageWidgets.add(
             Row(
@@ -332,49 +324,15 @@ class _GpChatroomState extends State<GpChatroom> {
               children: [
                 if (!isCurrentUser)
                   CircleAvatar(
-                    child: Text(messageData['senderId'][0].toUpperCase()),
+                    backgroundImage:
+                        NetworkImage(message['profileImageUrl'] ?? ''),
                   ),
                 SizedBox(width: 10),
                 Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(8.0),
-                    decoration: BoxDecoration(
-                      color: isCurrentUser ? Colors.blue : Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (messageData.containsKey('imageUrl') &&
-                            messageData['imageUrl'] != null)
-                          Image.network(
-                            messageData['imageUrl'],
-                            width: 200,
-                            height: 200,
-                            fit: BoxFit.cover,
-                          ),
-                        if (messageData.containsKey('message') &&
-                            messageData['message'] != null &&
-                            messageData['message'].isNotEmpty)
-                          Text(
-                            messageData['message'],
-                            style: TextStyle(
-                              color:
-                                  isCurrentUser ? Colors.white : Colors.black,
-                            ),
-                          ),
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
-                          child: Text(
-                            DateFormat('hh:mm a').format(messageDate),
-                            style: TextStyle(
-                              color: Colors.black54,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                  child: MessageItem(
+                    document: message,
+                    auth: _auth,
+                    onDelete: _deleteMessage,
                   ),
                 ),
               ],
@@ -388,5 +346,47 @@ class _GpChatroomState extends State<GpChatroom> {
         );
       },
     );
+  }
+
+  void _showGroupDetails() async {
+    Map<String, dynamic> groupDetails = await fetchGroupDetails();
+
+    if (groupDetails.isNotEmpty) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Group Details'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Group Name: ${groupDetails['groupName']}'),
+                SizedBox(height: 8),
+                Text('Subject: ${groupDetails['subject']}'),
+                SizedBox(height: 8),
+                Text('Admin Name: ${groupDetails['adminId']}'),
+                SizedBox(height: 8),
+                Text(
+                    'Timestamp: ${DateFormat('yMMMd').format(groupDetails['timestamp'].toDate())}'),
+                SizedBox(height: 8),
+                Text('Member Count: ${groupDetails['members'].length}'),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text('Close'),
+              ),
+            ],
+          );
+        },
+      );
+    } else {
+      // Handle case where group details couldn't be fetched
+      print('Failed to fetch group details.');
+    }
   }
 }

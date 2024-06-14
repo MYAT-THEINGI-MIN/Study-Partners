@@ -17,6 +17,7 @@ class _CreateGroupState extends State<CreateGroup> {
   final TextEditingController _subjectController = TextEditingController();
   File? _imageFile; // Variable to store the selected image file
   final ImagePicker _picker = ImagePicker(); // Image picker instance
+
   void _createGroup() async {
     String groupName = _groupNameController.text.trim();
     String subject = _subjectController.text.trim();
@@ -59,8 +60,9 @@ class _CreateGroupState extends State<CreateGroup> {
         'members': FieldValue.arrayUnion([adminId]),
       });
 
-      // Navigate back or perform any post-create actions
-      Navigator.pop(context);
+      // Show snackbar and navigate back
+      showTopSnackBar(context, 'Group created successfully');
+      Navigator.pop(context); // Navigate back to previous screen
     } catch (e) {
       // Handle errors
       print("Error creating group: $e");
@@ -126,4 +128,35 @@ class _CreateGroupState extends State<CreateGroup> {
     _subjectController.dispose();
     super.dispose();
   }
+}
+
+void showTopSnackBar(BuildContext context, String message) {
+  final overlay = Overlay.of(context);
+  final overlayEntry = OverlayEntry(
+    builder: (context) => Positioned(
+      top: 50.0,
+      left: MediaQuery.of(context).size.width * 0.1,
+      right: MediaQuery.of(context).size.width * 0.1,
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          padding: EdgeInsets.all(10.0),
+          decoration: BoxDecoration(
+            color: Color.fromARGB(221, 210, 210, 210),
+            borderRadius: BorderRadius.circular(10.0),
+          ),
+          child: Text(
+            message,
+            style: TextStyle(color: Colors.white),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    ),
+  );
+
+  overlay?.insert(overlayEntry);
+  Future.delayed(Duration(seconds: 3), () {
+    overlayEntry.remove();
+  });
 }
