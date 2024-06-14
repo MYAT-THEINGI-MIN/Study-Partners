@@ -25,7 +25,8 @@ class MessageItem extends StatelessWidget {
 
   void showTopSnackBar(BuildContext context, String message) {
     final overlay = Overlay.of(context);
-    final overlayEntry = OverlayEntry(
+    OverlayEntry? overlayEntry;
+    overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
         top: 50.0,
         left: MediaQuery.of(context).size.width * 0.1,
@@ -49,9 +50,13 @@ class MessageItem extends StatelessWidget {
     );
 
     overlay?.insert(overlayEntry);
-    Future.delayed(Duration(seconds: 3), () {
-      overlayEntry.remove();
-    });
+
+    // Ensure overlayEntry is not null before calling remove
+    if (overlayEntry != null) {
+      Future.delayed(Duration(seconds: 3), () {
+        overlayEntry!.remove();
+      });
+    }
   }
 
   Future<void> _saveImage(BuildContext context, String imageUrl) async {
@@ -65,17 +70,18 @@ class MessageItem extends StatelessWidget {
         print("Image saved to $filePath");
 
         // Save the image to the device gallery
-        final result = await GallerySaver.saveImage(imageFile.path);
-        if (result != null && result is bool && result == true) {
+        bool? isSuccess = await GallerySaver.saveImage(imageFile.path);
+        if (isSuccess == true) {
           showTopSnackBar(context, 'Image saved to gallery');
         } else {
           showTopSnackBar(context, 'Failed to save image to gallery');
         }
       } else {
-        print("Failed to download image.");
+        print("Failed to download image: ${response.statusCode}");
       }
     } catch (e) {
       print("Error saving image: $e");
+      showTopSnackBar(context, 'Error saving image');
     }
   }
 
@@ -132,7 +138,7 @@ class MessageItem extends StatelessWidget {
                         data['imageUrl'],
                         width: 200,
                         height: 200,
-                        fit: BoxFit.cover,
+                        fit: BoxFit.contain, // Adjusted fit to contain
                       ),
                     ),
                     Positioned(
@@ -144,7 +150,8 @@ class MessageItem extends StatelessWidget {
                       ),
                     ),
                   ],
-                ),
+                ), // End of Stack widget for displaying the image
+
               if (data['message'] != null &&
                   data['message'].isNotEmpty) // Check if message contains text
                 Column(

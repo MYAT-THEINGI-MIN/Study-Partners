@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:sp_test/screens/GpChat/Gptiles.dart';
+import 'package:sp_test/screens/GpChat/createGp.dart';
 import 'package:sp_test/screens/chatRoom.dart';
 import 'package:sp_test/Service/chatService.dart';
 import 'package:sp_test/widgets/user_title.dart';
@@ -15,6 +17,7 @@ class ChatUserListPg extends StatefulWidget {
 class _ChatUserListPgState extends State<ChatUserListPg> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   late Stream<QuerySnapshot> _userStream;
+  late Stream<QuerySnapshot> _groupStream;
   final Chatservice _chatService = Chatservice();
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
@@ -25,6 +28,10 @@ class _ChatUserListPgState extends State<ChatUserListPg> {
     super.initState();
     checkAuthentication();
     _userStream = FirebaseFirestore.instance.collection('users').snapshots();
+    _groupStream = FirebaseFirestore.instance
+        .collection('groups')
+        .where('members', arrayContains: _auth.currentUser!.uid)
+        .snapshots();
 
     // Add a listener to the scroll controller to handle refreshing
     _scrollController.addListener(() {
@@ -75,6 +82,18 @@ class _ChatUserListPgState extends State<ChatUserListPg> {
         onRefresh: _refreshUsers, // Method to call when refreshing
         child: _buildUserList(),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  CreateGroup(), // Navigate to CreateGroup screen
+            ),
+          );
+        },
+        child: Icon(Icons.add),
+      ),
     );
   }
 
@@ -84,40 +103,75 @@ class _ChatUserListPgState extends State<ChatUserListPg> {
   }
 
   Widget _buildUserList() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _userStream,
-      builder: (context, userSnapshot) {
-        if (userSnapshot.hasError) {
-          print("Error: ${userSnapshot.error}");
-          return Text("Error");
-        }
+    return Column(
+      children: [
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: _userStream,
+            builder: (context, userSnapshot) {
+              if (userSnapshot.hasError) {
+                print("Error: ${userSnapshot.error}");
+                return Text("Error");
+              }
 
-        if (userSnapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        }
+              if (userSnapshot.connectionState == ConnectionState.waiting) {
+                return Center(child: CircularProgressIndicator());
+              }
 
-        // Filter out the current user's account
-        var filteredDocs = userSnapshot.data!.docs
-            .where((doc) => doc['email'] != _auth.currentUser!.email)
-            .where((doc) => doc['username']
-                .toString()
-                .toLowerCase()
-                .contains(_searchText.toLowerCase()));
+              // Filter out the current user's account
+              var filteredUserDocs = userSnapshot.data!.docs
+                  .where((doc) => doc['email'] != _auth.currentUser!.email)
+                  .where((doc) => doc['username']
+                      .toString()
+                      .toLowerCase()
+                      .contains(_searchText.toLowerCase()));
 
-        return ListView.builder(
-          controller: _scrollController, // Set the scroll controller
-          itemCount: filteredDocs.length,
-          itemBuilder: (context, index) {
-            var doc = filteredDocs.elementAt(index);
-            return UserTile(
-              userDoc: doc,
-              currentUserId: _auth.currentUser!.uid,
-              chatService: _chatService,
-              onDelete: _confirmDeleteChat,
-            );
-          },
-        );
-      },
+              return ListView.builder(
+                controller: _scrollController, // Set the scroll controller
+                itemCount: filteredUserDocs.length,
+                itemBuilder: (context, index) {
+                  var doc = filteredUserDocs.elementAt(index);
+                  return UserTile(
+                    userDoc: doc,
+                    currentUserId: _auth.currentUser!.uid,
+                    chatService: _chatService,
+                    onDelete: _confirmDeleteChat,
+                  );
+                },
+              );
+            },
+          ),
+        ),
+        SizedBox(height: 16), // Add spacing between user and group lists
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: _groupStream,
+            builder: (context, groupSnapshot) {
+              if (groupSnapshot.hasError) {
+                print("Error: ${groupSnapshot.error}");
+                return Text("Error");
+              }
+
+              if (groupSnapshot.connectionState == ConnectionState.waiting) {
+                return Center(child: CircularProgressIndicator());
+              }
+
+              return ListView.builder(
+                itemCount: groupSnapshot.data!.docs.length,
+                itemBuilder: (context, index) {
+                  var doc = groupSnapshot.data!.docs[index];
+                  return GroupTile(
+                    groupName: doc['groupName'],
+                    subject: doc['subject'],
+                    profileUrl: doc['profileUrl'] ?? '',
+                    groupId: doc.id,
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
