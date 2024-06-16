@@ -92,7 +92,7 @@ class Chatservice extends ChangeNotifier {
         .snapshots();
   }
 
-  // Group Chat Methods
+  //////////// Group Chat Methods//////////////////////
 
   Future<void> sendGroupMessage(String groupId, String message) async {
     final String currentUserId = _auth.currentUser!.uid;

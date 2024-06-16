@@ -22,7 +22,7 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
     });
 
     try {
-      final query = _searchController.text;
+      final query = _searchController.text.trim(); // Trim any extra spaces
       final result = await FirebaseFirestore.instance
           .collection('users')
           .where('username', isGreaterThanOrEqualTo: query)
@@ -34,6 +34,7 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
       });
     } catch (e) {
       print('Error searching users: $e');
+      // Optionally, you can handle the error here
     } finally {
       setState(() {
         _isLoading = false;
@@ -80,7 +81,7 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                labelText: 'Search by username',
+                labelText: 'Search New Partner',
                 suffixIcon: IconButton(
                   icon: Icon(Icons.search),
                   onPressed: _searchUsers,

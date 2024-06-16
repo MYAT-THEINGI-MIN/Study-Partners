@@ -6,19 +6,20 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:sp_test/Service/chatService.dart';
 import 'package:sp_test/Service/messageItem.dart';
+import 'package:sp_test/screens/GpChat/addPartner.dart';
 import 'package:sp_test/widgets/messageInput.dart';
 
 class GpChatRoom extends StatefulWidget {
   final String groupId;
   final String groupName;
-  final String gpProfileUrl; // Add this line
+  final String gpProfileUrl;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   GpChatRoom({
     required this.groupId,
     required this.groupName,
     required this.gpProfileUrl,
-    required String adminId, // Modify constructor to include gpProfileUrl
+    required String adminId,
   });
 
   @override
@@ -32,6 +33,9 @@ class _GpChatRoomState extends State<GpChatRoom> {
   final ScrollController _scrollController = ScrollController();
   List<File> _imageFiles = [];
   bool _isLoading = false;
+
+  // Add the profile cache map here
+  Map<String, String> _profileCache = {};
 
   @override
   void dispose() {
@@ -153,6 +157,27 @@ class _GpChatRoomState extends State<GpChatRoom> {
     }
   }
 
+  Future<String> _fetchUserProfileUrl(String userId) async {
+    if (_profileCache.containsKey(userId)) {
+      return _profileCache[userId]!;
+    }
+    try {
+      DocumentSnapshot userSnapshot =
+          await widget._firestore.collection('users').doc(userId).get();
+
+      if (userSnapshot.exists) {
+        String profileUrl = userSnapshot['profileUrl'] ?? '';
+        _profileCache[userId] = profileUrl;
+        return profileUrl;
+      } else {
+        throw 'User not found';
+      }
+    } catch (e) {
+      print('Error fetching user profile: $e');
+      return '';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -209,7 +234,13 @@ class _GpChatRoomState extends State<GpChatRoom> {
               if (value == 'details') {
                 _showGroupDetails();
               } else if (value == 'Add Partner') {
-                // Handle leave group action
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        AddPartnerPage(groupId: widget.groupId),
+                  ),
+                );
               } else if (value == 'Leave Group') {
                 // Handle leave group action
               }
@@ -279,11 +310,19 @@ class _GpChatRoomState extends State<GpChatRoom> {
       stream: _chatservice.getMessagesForGroup(widget.groupId),
       builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
         if (snapshot.hasError) {
-          return Text('Error: ${snapshot.error}');
+          return Center(child: Text('Error: ${snapshot.error}'));
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Text('Loading...');
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Loading...'),
+              SizedBox(height: 16),
+              CircularProgressIndicator(),
+            ],
+          );
         }
 
         final messages = snapshot.data!.docs;
@@ -316,33 +355,46 @@ class _GpChatRoomState extends State<GpChatRoom> {
           bool isCurrentUser = message['senderId'] == _auth.currentUser!.uid;
 
           messageWidgets.add(
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: isCurrentUser
-                  ? MainAxisAlignment.end
-                  : MainAxisAlignment.start,
-              children: [
-                if (!isCurrentUser)
-                  CircleAvatar(
-                    backgroundImage:
-                        NetworkImage(message['profileImageUrl'] ?? ''),
-                  ),
-                SizedBox(width: 10),
-                Expanded(
-                  child: MessageItem(
-                    document: message,
-                    auth: _auth,
-                    onDelete: _deleteMessage,
-                  ),
-                ),
-              ],
+            FutureBuilder(
+              future: _fetchUserProfileUrl(message['senderId']),
+              builder: (context, AsyncSnapshot<String> snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return SizedBox.shrink(); // Hide until profile URL is fetched
+                }
+                if (snapshot.hasError) {
+                  return Text('Error: ${snapshot.error}');
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: isCurrentUser
+                      ? MainAxisAlignment.end
+                      : MainAxisAlignment.start,
+                  children: [
+                    if (!isCurrentUser)
+                      CircleAvatar(
+                        backgroundImage: NetworkImage(snapshot.data ?? ''),
+                      ),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: MessageItem(
+                        document: message,
+                        auth: _auth,
+                        onDelete: _deleteMessage,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           );
         }
 
-        return ListView(
-          controller: _scrollController,
-          children: messageWidgets,
+        return Expanded(
+          child: ListView(
+            reverse: true, // Show latest messages at the bottom
+            controller: _scrollController,
+            children: messageWidgets.reversed.toList(),
+          ),
         );
       },
     );
