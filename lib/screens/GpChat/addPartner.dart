@@ -2,6 +2,42 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+// Your existing showTopSnackBar function
+void showTopSnackBar(BuildContext context, String message) {
+  final overlay = Overlay.of(context);
+  final overlayEntry = OverlayEntry(
+    builder: (context) => Positioned(
+      top: 50.0,
+      left: MediaQuery.of(context).size.width * 0.1,
+      right: MediaQuery.of(context).size.width * 0.1,
+      child: Material(
+        color: Colors.grey,
+        child: Container(
+          padding: EdgeInsets.all(10.0),
+          decoration: BoxDecoration(
+            color: Color.fromARGB(221, 210, 210, 210),
+            borderRadius: BorderRadius.circular(10.0),
+          ),
+          child: Text(
+            message,
+            style: TextStyle(color: Colors.white),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    ),
+  );
+
+  overlay?.insert(overlayEntry);
+  Future.delayed(Duration(seconds: 3), () {
+    overlayEntry.remove();
+  });
+}
+
 class AddPartnerPage extends StatefulWidget {
   final String groupId;
 
@@ -14,27 +50,48 @@ class AddPartnerPage extends StatefulWidget {
 class _AddPartnerPageState extends State<AddPartnerPage> {
   final TextEditingController _searchController = TextEditingController();
   List<DocumentSnapshot> _searchResults = [];
+  List<String> _existingMembers = [];
   bool _isLoading = false;
 
-  void _searchUsers() async {
+  @override
+  void initState() {
+    super.initState();
+    _loadExistingMembers();
+  }
+
+  Future<void> _loadExistingMembers() async {
+    final groupDoc = await FirebaseFirestore.instance
+        .collection('groups')
+        .doc(widget.groupId)
+        .get();
+
+    setState(() {
+      _existingMembers = List<String>.from(groupDoc['members']);
+    });
+  }
+
+  void _searchUsers(String query) async {
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final query = _searchController.text.trim(); // Trim any extra spaces
+      final trimmedQuery = query.trim();
       final result = await FirebaseFirestore.instance
           .collection('users')
-          .where('username', isGreaterThanOrEqualTo: query)
-          .where('username', isLessThanOrEqualTo: query + '\uf8ff')
+          .where('username', isGreaterThanOrEqualTo: trimmedQuery)
+          .where('username', isLessThanOrEqualTo: trimmedQuery + '\uf8ff')
           .get();
 
+      final filteredResults = result.docs
+          .where((user) => !_existingMembers.contains(user.id))
+          .toList();
+
       setState(() {
-        _searchResults = result.docs;
+        _searchResults = filteredResults;
       });
     } catch (e) {
       print('Error searching users: $e');
-      // Optionally, you can handle the error here
     } finally {
       setState(() {
         _isLoading = false;
@@ -51,14 +108,14 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
         'members': FieldValue.arrayUnion([user.id])
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${user['username']} added to the group')),
-      );
+      setState(() {
+        _existingMembers.add(user.id);
+      });
+
+      showTopSnackBar(context, '${user['username']} added to the group');
     } catch (e) {
       print('Error adding partner: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to add partner')),
-      );
+      showTopSnackBar(context, 'Failed to add partner');
     }
   }
 
@@ -82,11 +139,8 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
               controller: _searchController,
               decoration: InputDecoration(
                 labelText: 'Search New Partner',
-                suffixIcon: IconButton(
-                  icon: Icon(Icons.search),
-                  onPressed: _searchUsers,
-                ),
               ),
+              onChanged: _searchUsers,
             ),
           ),
           _isLoading
@@ -96,12 +150,17 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
                     itemCount: _searchResults.length,
                     itemBuilder: (context, index) {
                       final user = _searchResults[index];
+                      final isExistingMember =
+                          _existingMembers.contains(user.id);
+
                       return ListTile(
                         title: Text(user['username']),
-                        trailing: IconButton(
-                          icon: Icon(Icons.person_add),
-                          onPressed: () => _addPartner(user),
-                        ),
+                        trailing: isExistingMember
+                            ? Text('Already in group')
+                            : IconButton(
+                                icon: Icon(Icons.person_add),
+                                onPressed: () => _addPartner(user),
+                              ),
                       );
                     },
                   ),

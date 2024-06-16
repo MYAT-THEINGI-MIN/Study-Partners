@@ -1,12 +1,14 @@
 import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:sp_test/Service/chatService.dart';
 import 'package:sp_test/Service/messageItem.dart';
-import 'package:sp_test/screens/GpChat/addPartner.dart';
+import 'package:sp_test/screens/GpChat/EditGp.dart';
+import 'package:sp_test/screens/GpChat/LeaveGp.dart';
 import 'package:sp_test/widgets/messageInput.dart';
 
 class GpChatRoom extends StatefulWidget {
@@ -33,8 +35,6 @@ class _GpChatRoomState extends State<GpChatRoom> {
   final ScrollController _scrollController = ScrollController();
   List<File> _imageFiles = [];
   bool _isLoading = false;
-
-  // Add the profile cache map here
   Map<String, String> _profileCache = {};
 
   @override
@@ -184,19 +184,40 @@ class _GpChatRoomState extends State<GpChatRoom> {
       appBar: AppBar(
         title: Row(
           children: [
-            widget.gpProfileUrl.isNotEmpty
-                ? CircleAvatar(
-                    backgroundImage: NetworkImage(widget.gpProfileUrl),
-                  )
-                : CircleAvatar(
-                    child: Icon(Icons.group),
+            GestureDetector(
+              onTap: () async {
+                // Navigate to edit group screen
+                var result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EditGroupPage(
+                      groupId: widget.groupId,
+                      groupName: widget.groupName,
+                      groupSubject: '',
+                      gpProfileUrl: '',
+                    ),
                   ),
+                );
+
+                // Handle any result if needed from EditGroupPage
+                if (result != null) {
+                  // Perform any necessary updates
+                }
+              },
+              child: widget.gpProfileUrl.isNotEmpty
+                  ? CircleAvatar(
+                      backgroundImage: NetworkImage(widget.gpProfileUrl),
+                    )
+                  : CircleAvatar(
+                      child: Icon(Icons.group),
+                    ),
+            ),
             SizedBox(width: 8),
             Text(widget.groupName),
           ],
         ),
         actions: [
-          // Popup menu button for details and leave group and add partners
+          // Popup menu button for details and leave group
           PopupMenuButton(
             itemBuilder: (context) => [
               PopupMenuItem(
@@ -212,16 +233,6 @@ class _GpChatRoomState extends State<GpChatRoom> {
               PopupMenuItem(
                 child: Row(
                   children: [
-                    Icon(Icons.person_add),
-                    SizedBox(width: 8),
-                    Text('Add Partner'),
-                  ],
-                ),
-                value: 'Add Partner',
-              ),
-              PopupMenuItem(
-                child: Row(
-                  children: [
                     Icon(Icons.exit_to_app),
                     SizedBox(width: 8),
                     Text('Leave Group'),
@@ -233,16 +244,8 @@ class _GpChatRoomState extends State<GpChatRoom> {
             onSelected: (value) {
               if (value == 'details') {
                 _showGroupDetails();
-              } else if (value == 'Add Partner') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        AddPartnerPage(groupId: widget.groupId),
-                  ),
-                );
-              } else if (value == 'Leave Group') {
-                // Handle leave group action
+              } else if (value == 'leave') {
+                _leaveGroup();
               }
             },
           )
@@ -330,8 +333,8 @@ class _GpChatRoomState extends State<GpChatRoom> {
         String? lastDate;
 
         for (var i = 0; i < messages.length; i++) {
-          var message = messages[i];
-          var messageDate = (message['timestamp'] as Timestamp).toDate();
+          var msg = messages[i];
+          var messageDate = (msg['timestamp'] as Timestamp).toDate();
           var formattedDate = DateFormat('yMMMd').format(messageDate);
 
           if (lastDate != formattedDate) {
@@ -352,11 +355,11 @@ class _GpChatRoomState extends State<GpChatRoom> {
             );
           }
 
-          bool isCurrentUser = message['senderId'] == _auth.currentUser!.uid;
+          bool isCurrentUser = msg['senderId'] == _auth.currentUser!.uid;
 
           messageWidgets.add(
             FutureBuilder(
-              future: _fetchUserProfileUrl(message['senderId']),
+              future: _fetchUserProfileUrl(msg['senderId']),
               builder: (context, AsyncSnapshot<String> snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return SizedBox.shrink(); // Hide until profile URL is fetched
@@ -377,7 +380,7 @@ class _GpChatRoomState extends State<GpChatRoom> {
                     SizedBox(width: 10),
                     Expanded(
                       child: MessageItem(
-                        document: message,
+                        document: msg,
                         auth: _auth,
                         onDelete: _deleteMessage,
                       ),
@@ -420,7 +423,7 @@ class _GpChatRoomState extends State<GpChatRoom> {
                 Text('Admin Name: ${groupDetails['adminId']}'),
                 SizedBox(height: 8),
                 Text(
-                    'Timestamp: ${DateFormat('yMMMd').format(groupDetails['timestamp'].toDate())}'),
+                    'Created At: ${DateFormat('yMMMd').format(groupDetails['timestamp'].toDate())}'),
                 SizedBox(height: 8),
                 Text('Member Count: ${groupDetails['members'].length}'),
               ],
@@ -439,6 +442,19 @@ class _GpChatRoomState extends State<GpChatRoom> {
     } else {
       // Handle case where group details couldn't be fetched
       print('Failed to fetch group details.');
+    }
+  }
+
+  Future<void> _leaveGroup() async {
+    try {
+      // Implement logic to leave the group
+      // For example:
+      // LeaveGroupService leaveGroupService = LeaveGroupService();
+      // await leaveGroupService.leaveGroup(widget.groupId);
+      Navigator.pop(context); // Navigate back to previous screen
+    } catch (e) {
+      print('Error leaving group: $e');
+      // Handle error leaving group
     }
   }
 }
