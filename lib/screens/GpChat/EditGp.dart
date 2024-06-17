@@ -1,9 +1,42 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:sp_test/screens/GpChat/addPartner.dart';
+
+void showTopSnackBar(BuildContext context, String message) {
+  final overlay = Overlay.of(context);
+  final overlayEntry = OverlayEntry(
+    builder: (context) => Positioned(
+      top: 50.0,
+      left: MediaQuery.of(context).size.width * 0.1,
+      right: MediaQuery.of(context).size.width * 0.1,
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          padding: EdgeInsets.all(10.0),
+          decoration: BoxDecoration(
+            color: Color.fromARGB(221, 210, 210, 210),
+            borderRadius: BorderRadius.circular(10.0),
+          ),
+          child: Text(
+            message,
+            style: TextStyle(color: Colors.white),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    ),
+  );
+
+  overlay?.insert(overlayEntry);
+  Future.delayed(Duration(seconds: 3), () {
+    overlayEntry.remove();
+  });
+}
 
 class EditGroupPage extends StatefulWidget {
   final String groupId;
@@ -29,6 +62,9 @@ class _EditGroupPageState extends State<EditGroupPage> {
   String? _profileUrl;
   bool _isSaving = false;
   int _memberCount = 0;
+  String? _adminId;
+  bool _isAdmin = false;
+  List<Map<String, dynamic>> _members = [];
 
   @override
   void initState() {
@@ -38,6 +74,7 @@ class _EditGroupPageState extends State<EditGroupPage> {
     _profileUrl = widget.gpProfileUrl;
     fetchGroupDetails();
     fetchMemberCount();
+    fetchMembers();
   }
 
   @override
@@ -58,6 +95,8 @@ class _EditGroupPageState extends State<EditGroupPage> {
         final data = docSnapshot.data()!;
         _groupNameController.text = data['groupName'] ?? widget.groupName;
         _groupSubjectController.text = data['subject'] ?? widget.groupSubject;
+        _adminId = data['adminId'];
+        checkIfAdmin();
         setState(() {
           _profileUrl = data['profileUrl'] ?? widget.gpProfileUrl;
         });
@@ -79,6 +118,43 @@ class _EditGroupPageState extends State<EditGroupPage> {
       });
     } catch (e) {
       print('Error fetching member count: $e');
+    }
+  }
+
+  Future<void> fetchMembers() async {
+    try {
+      final docSnapshot = await FirebaseFirestore.instance
+          .collection('groups')
+          .doc(widget.groupId)
+          .get();
+
+      final members = docSnapshot.data()?['members'] ?? [];
+
+      final List<String> uids = members.cast<String>();
+
+      final usersSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where(FieldPath.documentId, whereIn: uids)
+          .get();
+
+      setState(() {
+        _members = usersSnapshot.docs.map((doc) => doc.data()).toList();
+      });
+    } catch (e) {
+      print('Error fetching members: $e');
+    }
+  }
+
+  Future<void> checkIfAdmin() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null && _adminId == user.uid) {
+        setState(() {
+          _isAdmin = true;
+        });
+      }
+    } catch (e) {
+      print('Error checking admin status: $e');
     }
   }
 
@@ -155,13 +231,111 @@ class _EditGroupPageState extends State<EditGroupPage> {
     });
   }
 
-  void _addPartner() {
-    Navigator.push(
+  Future<void> _deleteGroup() async {
+    bool confirmDelete = await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Delete Group'),
+          content: Text('Are you sure you want to delete this group?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmDelete) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('groups')
+            .doc(widget.groupId)
+            .delete();
+        Navigator.pop(context);
+      } catch (e) {
+        print('Error deleting group: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete group. Please try again.'),
+          ),
+        );
+      }
+    }
+  }
+
+  void _addPartner() async {
+    // Navigate to AddPartnerPage and wait for result
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => AddPartnerPage(groupId: widget.groupId),
       ),
     );
+
+    // Check if result is true (if a partner was successfully added)
+    if (result == true) {
+      // Fetch updated member list
+      fetchMembers();
+      // Show top snackbar confirmation
+      showTopSnackBar(context, 'New partner added successfully.');
+    }
+  }
+
+  Future<void> _removeMember(String memberId) async {
+    try {
+      bool confirmed = await showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Confirm Removal'),
+            content: Text('Are you sure you want to remove this member?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text('Remove'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (confirmed ?? false) {
+        await FirebaseFirestore.instance
+            .collection('groups')
+            .doc(widget.groupId)
+            .update({
+          'members': FieldValue.arrayRemove([memberId]),
+        });
+        // After removing from group, also update members list locally
+        setState(() {
+          _members.removeWhere((member) => member['uid'] == memberId);
+        });
+        // After removing from group, also update members list locally
+        setState(() {
+          _members.removeWhere((member) => member['uid'] == memberId);
+        });
+
+        showTopSnackBar(context, 'Member removed successfully.');
+      }
+    } catch (e) {
+      print('Error removing member: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to remove member. Please try again.'),
+        ),
+      );
+    }
   }
 
   @override
@@ -169,6 +343,14 @@ class _EditGroupPageState extends State<EditGroupPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Group Info'),
+        actions: _isAdmin
+            ? [
+                IconButton(
+                  icon: Icon(Icons.delete),
+                  onPressed: _deleteGroup,
+                ),
+              ]
+            : null,
       ),
       body: Stack(
         children: [
@@ -243,36 +425,34 @@ class _EditGroupPageState extends State<EditGroupPage> {
                     ],
                   ),
                 ),
-                StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('groups')
-                      .doc(widget.groupId)
-                      .collection('members')
-                      .snapshots(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return Center(child: CircularProgressIndicator());
-                    }
-
-                    final members = snapshot.data!.docs;
-
-                    return ListView.builder(
-                      shrinkWrap: true,
-                      physics: NeverScrollableScrollPhysics(),
-                      itemCount: members.length,
-                      itemBuilder: (context, index) {
-                        final member = members[index];
-                        return ListTile(
-                          leading: CircleAvatar(
-                            backgroundImage:
-                                NetworkImage(member['profileUrl'] ?? ''),
-                          ),
-                          title: Text(member['username']),
-                          subtitle:
-                              Text(member['status'] ?? 'last seen recently'),
-                          trailing: Text(member['role'] ?? ''),
-                        );
-                      },
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  itemCount: _members.length,
+                  itemBuilder: (context, index) {
+                    final member = _members[index];
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundImage:
+                            NetworkImage(member['profileImageUrl'] ?? ''),
+                      ),
+                      title: Text(member['username'] ?? ''),
+                      subtitle: Text(member['subjects'] ?? ''),
+                      trailing: _isAdmin
+                          ? PopupMenuButton(
+                              itemBuilder: (context) => [
+                                PopupMenuItem(
+                                  value: 'remove',
+                                  child: Text('Remove'),
+                                ),
+                              ],
+                              onSelected: (value) {
+                                if (value == 'remove') {
+                                  _removeMember(member['uid']);
+                                }
+                              },
+                            )
+                          : null,
                     );
                   },
                 ),

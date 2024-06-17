@@ -1,11 +1,13 @@
 import 'dart:io';
+
+import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:sp_test/Service/chatService.dart';
 import 'package:sp_test/Service/messageItem.dart';
+import 'package:sp_test/screens/chatroomUserInfo.dart';
 import 'package:sp_test/widgets/messageInput.dart';
 
 class ChatRoom extends StatefulWidget {
@@ -153,14 +155,50 @@ class _ChatRoomState extends State<ChatRoom> {
       appBar: AppBar(
         title: Row(
           children: [
-            if (_receiverProfileUrl != null)
-              CircleAvatar(
-                backgroundImage: NetworkImage(_receiverProfileUrl!),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ChatroomUserInfo(
+                      userId: widget.receiverUserId,
+                    ),
+                  ),
+                );
+              },
+              child: CircleAvatar(
+                backgroundImage: _receiverProfileUrl != null
+                    ? NetworkImage(_receiverProfileUrl!)
+                    : null,
               ),
+            ),
             SizedBox(width: 10),
             Text(widget.receiverUserName),
           ],
         ),
+        actions: [
+          PopupMenuButton(
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'delete_chat',
+                child: Text('Delete Chat'),
+              ),
+              PopupMenuItem(
+                value: 'block_user',
+                child: Text('Block User'),
+              ),
+            ],
+            onSelected: (value) {
+              if (value == 'delete_chat') {
+                // Implement delete chat logic here
+                print('Delete Chat');
+              } else if (value == 'block_user') {
+                // Implement block user logic here
+                print('Block User');
+              }
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
