@@ -5,6 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sp_test/controllers/login/loginBloc.dart';
 import 'package:sp_test/controllers/login/loginEvent.dart';
 import 'package:sp_test/controllers/login/loginState.dart';
+import 'package:sp_test/screens/GpChat/addPartner.dart';
 import 'package:sp_test/widgets/textfield.dart';
 import 'homePg.dart';
 import 'registerPg.dart';
@@ -188,35 +189,4 @@ class _LoginPgState extends State<LoginPg> {
       showTopSnackBar(context, 'Failed to sign in with Google: $error');
     }
   }
-}
-
-void showTopSnackBar(BuildContext context, String message) {
-  final overlay = Overlay.of(context);
-  final overlayEntry = OverlayEntry(
-    builder: (context) => Positioned(
-      top: 50.0,
-      left: MediaQuery.of(context).size.width * 0.1,
-      right: MediaQuery.of(context).size.width * 0.1,
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          padding: EdgeInsets.all(10.0),
-          decoration: BoxDecoration(
-            color: Color.fromARGB(221, 210, 210, 210),
-            borderRadius: BorderRadius.circular(10.0),
-          ),
-          child: Text(
-            message,
-            style: TextStyle(color: Colors.white),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ),
-    ),
-  );
-
-  overlay?.insert(overlayEntry);
-  Future.delayed(Duration(seconds: 3), () {
-    overlayEntry.remove();
-  });
 }

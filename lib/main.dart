@@ -5,8 +5,6 @@ import 'package:sp_test/routes/router.dart';
 import 'package:sp_test/screens/SplashScreen.dart';
 import 'package:sp_test/screens/homePg.dart';
 import 'package:sp_test/screens/loginPg.dart';
-import 'screens/homePg.dart';
-import 'screens/loginPg.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,14 +17,44 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Firebase Demo',
-      home: SplashScreen(),
+      theme: ThemeData(
+        primarySwatch: Colors.deepPurple,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+      ),
+      home: AuthWrapper(),
       onGenerateRoute: router,
     );
   }
 }
+
+class AuthWrapper extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return SplashScreen(); // Show loading screen while checking auth state
+        } else {
+          if (snapshot.hasData) {
+            // User is logged in
+            return HomePg(); // Navigate to home page if user is authenticated
+          } else {
+            // User is not logged in
+            return LoginPg(); // Navigate to login page if user is not authenticated
+          }
+        }
+      },
+    );
+  }
+}
+
 
 //myattheingimin3532@gmail.com
 //Myat@2019
 
 //wwp68706@doolk.com
 //Wwp68706@
+
+//yairzawhtun007@gmail.com
+//yairzawhtun12#

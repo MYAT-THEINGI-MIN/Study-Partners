@@ -24,19 +24,26 @@ class _PlannerPageState extends State<PlannerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
+      appBar: AppBar(title: Text('Planner')),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildTableCalendar(),
-          TaskCard(
-            selectedDay: _selectedDay,
-            tasks: _tasks,
-            onDeleteTask: _deleteTask,
-            onShowTaskDetails: _showTaskDetails,
-            onToggleTaskCompletion: _toggleTaskCompletion,
-          ),
+          if (_isTaskCardVisible)
+            TaskCard(
+              selectedDay: _selectedDay,
+              tasks: _tasks,
+              onDeleteTask: _deleteTask,
+              onShowTaskDetails: _showTaskDetails,
+              onToggleTaskCompletion: _toggleTaskCompletion,
+            ),
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addTask,
+        child: Icon(Icons.add),
+      ),
       bottomNavigationBar: BottomAppBar(
         shape: CircularNotchedRectangle(),
         notchMargin: 8.0,
@@ -81,10 +88,6 @@ class _PlannerPageState extends State<PlannerPage> {
         return _tasks[day] ?? [];
       },
     );
-  }
-
-  List<Task> _getTasksForDay(DateTime day) {
-    return _tasks[day] ?? [];
   }
 
   void _addTask() {

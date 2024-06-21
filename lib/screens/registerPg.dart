@@ -21,10 +21,19 @@ class _RegisterPgState extends State<RegisterPg> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _subjectsController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool _obscureText = true;
   File? _profileImage;
+
+  final List<String> _predefinedSubjects = [
+    'Math',
+    'Science',
+    'History',
+    'English',
+    'Art',
+  ];
+
+  List<String> _selectedSubjects = [];
 
   Future<void> _pickImage() async {
     final pickedFile =
@@ -34,6 +43,46 @@ class _RegisterPgState extends State<RegisterPg> {
         _profileImage = File(pickedFile.path);
       });
     }
+  }
+
+  void _addNewSubject(String subject) {
+    if (subject.isNotEmpty && !_selectedSubjects.contains(subject)) {
+      setState(() {
+        _selectedSubjects.add(subject);
+        _predefinedSubjects.add(subject);
+      });
+    }
+  }
+
+  void _showAddSubjectDialog(BuildContext context) {
+    final TextEditingController _newSubjectController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Add New Subject'),
+          content: TextField(
+            controller: _newSubjectController,
+            decoration: InputDecoration(hintText: "Enter subject name"),
+          ),
+          actions: <Widget>[
+            ElevatedButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            ElevatedButton(
+              child: Text('Add'),
+              onPressed: () {
+                _addNewSubject(_newSubjectController.text);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -151,41 +200,82 @@ class _RegisterPgState extends State<RegisterPg> {
                               },
                             ),
                             const SizedBox(height: 16.0),
-                            CustomTextField(
-                              controller: _subjectsController,
-                              labelText: 'Subjects',
-                              showSuffixIcon: false,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter your subjects';
+                            DropdownButtonFormField<String>(
+                              decoration: InputDecoration(
+                                labelText: 'Select Subject',
+                                border: OutlineInputBorder(),
+                              ),
+                              items: _predefinedSubjects.map((String value) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(value),
+                                );
+                              }).toList()
+                                ..add(
+                                  DropdownMenuItem<String>(
+                                    value: 'add_new',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.add),
+                                        SizedBox(width: 8.0),
+                                        Text('Add New Subject'),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              onChanged: (String? newValue) {
+                                if (newValue == 'add_new') {
+                                  _showAddSubjectDialog(context);
+                                } else if (newValue != null &&
+                                    !_selectedSubjects.contains(newValue)) {
+                                  setState(() {
+                                    _selectedSubjects.add(newValue);
+                                  });
                                 }
-                                return null;
                               },
-                              onSuffixIconPressed: () {},
                             ),
                             const SizedBox(height: 16.0),
-                            ElevatedButton(
-                              onPressed: () {
-                                if (_formKey.currentState!.validate()) {
-                                  final email = _emailController.text;
-                                  final password = _passwordController.text;
-                                  final username = _usernameController.text;
-                                  final subjects = _subjectsController.text;
-                                  context.read<RegisterBloc>().add(
-                                        RegisterButtonPressed(
-                                          email: email,
-                                          password: password,
-                                          username: username,
-                                          subjects: subjects,
-                                          profileImage: _profileImage,
-                                        ),
-                                      );
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.deepPurple.shade100,
+                            Wrap(
+                              spacing: 8.0,
+                              runSpacing: 4.0,
+                              children: _selectedSubjects.map((subject) {
+                                return Chip(
+                                  label: Text(subject),
+                                  onDeleted: () {
+                                    setState(() {
+                                      _selectedSubjects.remove(subject);
+                                    });
+                                  },
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 16.0),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  if (_formKey.currentState!.validate()) {
+                                    final email = _emailController.text;
+                                    final password = _passwordController.text;
+                                    final username = _usernameController.text;
+                                    final subjects =
+                                        _selectedSubjects.join(', ');
+                                    context.read<RegisterBloc>().add(
+                                          RegisterButtonPressed(
+                                            email: email,
+                                            password: password,
+                                            username: username,
+                                            subjects: subjects,
+                                            profileImage: _profileImage,
+                                          ),
+                                        );
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.deepPurple.shade100,
+                                ),
+                                child: Text('Register'),
                               ),
-                              child: Text('Register'),
                             ),
                           ],
                         ),

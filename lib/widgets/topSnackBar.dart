@@ -12,12 +12,12 @@ void showTopSnackBar(BuildContext context, String message) {
         child: Container(
           padding: EdgeInsets.all(10.0),
           decoration: BoxDecoration(
-            color: Color.fromARGB(221, 210, 210, 210),
+            color: Color.fromARGB(221, 43, 43, 43),
             borderRadius: BorderRadius.circular(10.0),
           ),
           child: Text(
             message,
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: Colors.purple),
             textAlign: TextAlign.center,
           ),
         ),
