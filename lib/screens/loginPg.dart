@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sp_test/controllers/login/loginBloc.dart';
 import 'package:sp_test/controllers/login/loginEvent.dart';
 import 'package:sp_test/controllers/login/loginState.dart';
@@ -17,6 +18,9 @@ class _LoginPgState extends State<LoginPg> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscureText = true;
+
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   Widget build(BuildContext context) {
@@ -40,13 +44,8 @@ class _LoginPgState extends State<LoginPg> {
                   BlocConsumer<LoginBloc, LoginState>(
                     listener: (context, state) {
                       if (state is LoginFailure) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Failed to login: ${state.error}'),
-                            duration: const Duration(seconds: 3),
-                            backgroundColor: Colors.red.shade300,
-                          ),
-                        );
+                        showTopSnackBar(
+                            context, 'Failed to login: ${state.error}');
                       } else if (state is LoginSuccess) {
                         Navigator.pushReplacement(
                           context,
@@ -85,24 +84,37 @@ class _LoginPgState extends State<LoginPg> {
                             },
                           ),
                           const SizedBox(height: 16.0),
-                          ElevatedButton(
-                            onPressed: () {
-                              final email = _emailController.text;
-                              final password = _passwordController.text;
-                              print(
-                                  'Login button pressed with email: $email, password: $password'); // Debug print
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width * 0.8,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                final email = _emailController.text;
+                                final password = _passwordController.text;
+                                print(
+                                    'Login button pressed with email: $email, password: $password'); // Debug print
 
-                              context.read<LoginBloc>().add(
-                                    LoginButtonPressed(
-                                      email: email,
-                                      password: password,
-                                    ),
-                                  );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.deepPurple.shade100,
+                                context.read<LoginBloc>().add(
+                                      LoginButtonPressed(
+                                        email: email,
+                                        password: password,
+                                      ),
+                                    );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.deepPurple.shade100,
+                              ),
+                              child: const Text('Login'),
                             ),
-                            child: const Text('Login'),
+                          ),
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width * 0.8,
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                _signInWithGoogle(context);
+                              },
+                              icon: Icon(Icons.login),
+                              label: Text('Sign in with Google'),
+                            ),
                           ),
                           TextButton(
                             onPressed: () {
@@ -140,19 +152,71 @@ class _LoginPgState extends State<LoginPg> {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Password reset email sent to $email'),
+          content:
+              Text('Password reset email was sent.Check your mail please.'),
           duration: const Duration(seconds: 3),
           backgroundColor: Colors.red,
         ),
       );
     } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to send password reset email: $error'),
-          duration: const Duration(seconds: 3),
-          backgroundColor: Colors.red,
-        ),
-      );
+      showTopSnackBar(context, 'Enter the email first');
     }
   }
+
+  // Google Sign-In method
+  Future<void> _signInWithGoogle(BuildContext context) async {
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser != null) {
+        final GoogleSignInAuthentication googleAuth =
+            await googleUser.authentication;
+        final AuthCredential credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+        final UserCredential userCredential =
+            await _auth.signInWithCredential(credential);
+        if (userCredential.user != null) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => HomePg()),
+          );
+        }
+      }
+    } catch (error) {
+      print('Error signing in with Google: $error');
+      showTopSnackBar(context, 'Failed to sign in with Google: $error');
+    }
+  }
+}
+
+void showTopSnackBar(BuildContext context, String message) {
+  final overlay = Overlay.of(context);
+  final overlayEntry = OverlayEntry(
+    builder: (context) => Positioned(
+      top: 50.0,
+      left: MediaQuery.of(context).size.width * 0.1,
+      right: MediaQuery.of(context).size.width * 0.1,
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          padding: EdgeInsets.all(10.0),
+          decoration: BoxDecoration(
+            color: Color.fromARGB(221, 210, 210, 210),
+            borderRadius: BorderRadius.circular(10.0),
+          ),
+          child: Text(
+            message,
+            style: TextStyle(color: Colors.white),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    ),
+  );
+
+  overlay?.insert(overlayEntry);
+  Future.delayed(Duration(seconds: 3), () {
+    overlayEntry.remove();
+  });
 }

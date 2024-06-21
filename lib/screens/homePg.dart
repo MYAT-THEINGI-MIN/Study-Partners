@@ -17,7 +17,7 @@ class _HomePgState extends State<HomePg> {
     PlannerPage(),
     ChatUserListPg(),
     SearchPartnerPg(),
-    ProfilePg(),
+    // LinkRecommendationPg(),
   ];
 
   void _onItemTapped(int index) {
@@ -26,11 +26,24 @@ class _HomePgState extends State<HomePg> {
     });
   }
 
+  void _onProfileTapped() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => ProfilePg()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Home Page"),
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: _onProfileTapped,
+          ),
+        ],
       ),
       drawer: const AppDrawer(),
       body: Center(
@@ -51,8 +64,8 @@ class _HomePgState extends State<HomePg> {
             label: 'Search',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
+            icon: Icon(Icons.link),
+            label: 'Link',
           ),
         ],
         currentIndex: _selectedIndex,
