@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sp_test/screens/PlannerPg.dart';
+import 'package:sp_test/screens/Planner/plannerPg.dart';
 import 'package:sp_test/screens/ProfilePg.dart';
 import 'package:sp_test/screens/chatUserListPg.dart';
 import 'package:sp_test/screens/searchPartner.dart';

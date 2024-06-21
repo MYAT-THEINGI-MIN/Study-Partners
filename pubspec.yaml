@@ -24,6 +24,7 @@ dependencies:
   firebase_app_check: ^0.2.2+7
   path_provider: ^2.0.7
   gallery_saver: ^2.3.0
+
   
 
 dev_dependencies:

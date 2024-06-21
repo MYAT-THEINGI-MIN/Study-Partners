@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sp_test/controllers/login/loginBloc.dart';
 import 'package:sp_test/controllers/login/loginEvent.dart';
 import 'package:sp_test/controllers/login/loginState.dart';
@@ -20,7 +19,6 @@ class _LoginPgState extends State<LoginPg> {
   final TextEditingController _passwordController = TextEditingController();
   bool _obscureText = true;
 
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
@@ -107,16 +105,6 @@ class _LoginPgState extends State<LoginPg> {
                               child: const Text('Login'),
                             ),
                           ),
-                          SizedBox(
-                            width: MediaQuery.of(context).size.width * 0.8,
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                _signInWithGoogle(context);
-                              },
-                              icon: Icon(Icons.login),
-                              label: Text('Sign in with Google'),
-                            ),
-                          ),
                           TextButton(
                             onPressed: () {
                               _resetPassword(_emailController.text);
@@ -161,32 +149,6 @@ class _LoginPgState extends State<LoginPg> {
       );
     } catch (error) {
       showTopSnackBar(context, 'Enter the email first');
-    }
-  }
-
-  // Google Sign-In method
-  Future<void> _signInWithGoogle(BuildContext context) async {
-    try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser != null) {
-        final GoogleSignInAuthentication googleAuth =
-            await googleUser.authentication;
-        final AuthCredential credential = GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken,
-          idToken: googleAuth.idToken,
-        );
-        final UserCredential userCredential =
-            await _auth.signInWithCredential(credential);
-        if (userCredential.user != null) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => HomePg()),
-          );
-        }
-      }
-    } catch (error) {
-      print('Error signing in with Google: $error');
-      showTopSnackBar(context, 'Failed to sign in with Google: $error');
     }
   }
 }
