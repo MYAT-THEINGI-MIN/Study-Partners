@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sp_test/controllers/login/loginBloc.dart';
 import 'package:sp_test/controllers/login/loginEvent.dart';
 import 'package:sp_test/controllers/login/loginState.dart';
-import 'package:sp_test/screens/GpChat/addPartner.dart';
 import 'package:sp_test/widgets/textfield.dart';
 import 'homePg.dart';
 import 'registerPg.dart';
@@ -18,8 +17,6 @@ class _LoginPgState extends State<LoginPg> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscureText = true;
-
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   Widget build(BuildContext context) {
@@ -43,8 +40,13 @@ class _LoginPgState extends State<LoginPg> {
                   BlocConsumer<LoginBloc, LoginState>(
                     listener: (context, state) {
                       if (state is LoginFailure) {
-                        showTopSnackBar(
-                            context, 'Failed to login: ${state.error}');
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Failed to login: ${state.error}'),
+                            duration: const Duration(seconds: 3),
+                            backgroundColor: Colors.red.shade300,
+                          ),
+                        );
                       } else if (state is LoginSuccess) {
                         Navigator.pushReplacement(
                           context,
@@ -83,8 +85,8 @@ class _LoginPgState extends State<LoginPg> {
                             },
                           ),
                           const SizedBox(height: 16.0),
-                          SizedBox(
-                            width: MediaQuery.of(context).size.width * 0.8,
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 10.0),
                             child: ElevatedButton(
                               onPressed: () {
                                 final email = _emailController.text;
@@ -100,9 +102,22 @@ class _LoginPgState extends State<LoginPg> {
                                     );
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.deepPurple.shade100,
+                                backgroundColor: Colors.deepPurple
+                                    .shade100, // Background color of the button
+                                padding: EdgeInsets.symmetric(
+                                    vertical: 16.0,
+                                    horizontal:
+                                        20.0), // Adjust padding as needed
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                      8.0), // Optional: Button border radius
+                                ),
                               ),
-                              child: const Text('Login'),
+                              child: Container(
+                                width: double.infinity, // Full width button
+                                alignment: Alignment.center,
+                                child: const Text('Login'),
+                              ),
                             ),
                           ),
                           TextButton(
@@ -141,14 +156,19 @@ class _LoginPgState extends State<LoginPg> {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content:
-              Text('Password reset email was sent.Check your mail please.'),
+          content: Text('Password reset email sent to $email'),
           duration: const Duration(seconds: 3),
           backgroundColor: Colors.red,
         ),
       );
     } catch (error) {
-      showTopSnackBar(context, 'Enter the email first');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to send password reset email: $error'),
+          duration: const Duration(seconds: 3),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 }

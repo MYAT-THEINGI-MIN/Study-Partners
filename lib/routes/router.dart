@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:sp_test/Service/authService.dart';
+import 'package:sp_test/Service/authService.dart'; // Import your AuthBloc and AuthState
 import 'package:sp_test/screens/homePg.dart';
 import 'package:sp_test/screens/loginPg.dart';
 import 'package:sp_test/screens/registerPg.dart';
@@ -11,7 +11,10 @@ abstract class RouteNames {
   static const String register = "/register";
 }
 
-List<String> protectedRoutes = [RouteNames.home];
+List<String> protectedRoutes = [
+  RouteNames.home,
+  RouteNames.register
+]; // Adjust protected routes as needed
 
 Route<dynamic>? router(RouteSettings settings) {
   final String incomingRoute = settings.name ?? "/";

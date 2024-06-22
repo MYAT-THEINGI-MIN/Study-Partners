@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sp_test/screens/Planner/plannerPg.dart';
 import 'package:sp_test/screens/ProfilePg.dart';
 import 'package:sp_test/screens/chatUserListPg.dart';
+import 'package:sp_test/screens/linkRCMpg.dart';
 import 'package:sp_test/screens/searchPartner.dart';
 import 'package:sp_test/widgets/drawer.dart';
 
@@ -17,7 +18,7 @@ class _HomePgState extends State<HomePg> {
     PlannerPage(),
     ChatUserListPg(),
     SearchPartnerPg(),
-    // LinkRecommendationPg(),
+    LinkRecommendationPage(),
   ];
 
   void _onItemTapped(int index) {
@@ -69,7 +70,7 @@ class _HomePgState extends State<HomePg> {
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: const Color.fromARGB(255, 176, 95, 227),
+        selectedItemColor: Colors.deepPurple,
         unselectedItemColor:
             Colors.grey, // Set the unselected item color to grey
         onTap: _onItemTapped,

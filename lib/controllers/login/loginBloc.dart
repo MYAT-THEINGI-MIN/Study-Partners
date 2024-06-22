@@ -9,11 +9,9 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
   LoginBloc({required FirebaseAuth auth})
       : _auth = auth,
         super(LoginInitial()) {
-    // Register the event handler
     on<LoginButtonPressed>(_onLoginButtonPressed);
   }
 
-  // Event handler for LoginButtonPressed event
   void _onLoginButtonPressed(
       LoginButtonPressed event, Emitter<LoginState> emit) async {
     emit(LoginLoading());

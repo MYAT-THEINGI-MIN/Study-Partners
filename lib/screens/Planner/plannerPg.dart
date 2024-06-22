@@ -1,299 +1,562 @@
 import 'package:flutter/material.dart';
-import 'package:sp_test/screens/Planner/taskCard.dart';
-import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 class PlannerPage extends StatefulWidget {
+  const PlannerPage({Key? key}) : super(key: key);
+
   @override
   _PlannerPageState createState() => _PlannerPageState();
 }
 
 class _PlannerPageState extends State<PlannerPage> {
+  CalendarFormat _calendarFormat = CalendarFormat.week;
   DateTime _selectedDay = DateTime.now();
-  Map<DateTime, List<Task>> _tasks = {};
-  bool _isTaskCardVisible = false;
+  Map<DateTime, List<Map<String, dynamic>>> _events = {};
+  TextEditingController _eventController = TextEditingController();
+  TimeOfDay? _selectedTime;
+  List<String> _repeatDays = [];
+  int _completionPercent = 0;
+  User? _currentUser;
 
   @override
   void initState() {
     super.initState();
-    _loadTasks();
+    _getCurrentUser();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadEvents();
+  }
+
+  Future<void> _getCurrentUser() async {
+    FirebaseAuth auth = FirebaseAuth.instance;
+    User? user = auth.currentUser;
+    if (user == null) {
+      // If no user is logged in, you can handle redirect or login logic here.
+    } else {
+      setState(() {
+        _currentUser = user;
+      });
+      await _loadEvents();
+    }
+  }
+
+  Future<void> _loadEvents() async {
+    if (_currentUser == null) return;
+
+    try {
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('users') // Collection for users
+          .doc(_currentUser!.uid) // Document ID is the user's ID
+          .collection('tasks') // Subcollection for tasks under the user
+          .get();
+      Map<DateTime, List<Map<String, dynamic>>> loadedEvents = {};
+
+      querySnapshot.docs.forEach((doc) {
+        DateTime date = (doc['date'] as Timestamp).toDate();
+        String eventName = doc['name'];
+        TimeOfDay? eventTime;
+        if (doc['alarmTime'] != null) {
+          eventTime = TimeOfDay(
+            hour: doc['alarmTime']['hour'],
+            minute: doc['alarmTime']['minute'],
+          );
+        }
+        List<String> repeatDays = List<String>.from(doc['repeatDays']);
+        int completionPercent = doc['completionPercent'] ?? 0;
+
+        DateTime roundedDate = DateTime(date.year, date.month, date.day);
+
+        if (!loadedEvents.containsKey(roundedDate)) {
+          loadedEvents[roundedDate] = [];
+        }
+        loadedEvents[roundedDate]!.add({
+          'id': doc.id,
+          'name': eventName,
+          'time': eventTime,
+          'repeatDays': repeatDays,
+          'completionPercent': completionPercent,
+        });
+      });
+
+      setState(() {
+        _events = loadedEvents;
+      });
+    } catch (e) {
+      print('Error loading events: $e');
+    }
+  }
+
+  Future<void> _saveEvent(DateTime date, String event, TimeOfDay? time,
+      List<String> repeatDays, int completionPercent) async {
+    if (_currentUser == null) return;
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('users') // Collection for users
+          .doc(_currentUser!.uid) // Document ID is the user's ID
+          .collection('tasks') // Subcollection for tasks under the user
+          .add({
+        'date': Timestamp.fromDate(date),
+        'name': event,
+        'alarmTime':
+            time != null ? {'hour': time.hour, 'minute': time.minute} : null,
+        'repeatDays': repeatDays,
+        'completionPercent': completionPercent,
+      });
+      // Refresh events after saving
+      await _loadEvents();
+    } catch (e) {
+      print('Error saving event: $e');
+    }
+  }
+
+  Future<void> _updateEvent(String id, DateTime date, String event,
+      TimeOfDay? time, List<String> repeatDays, int completionPercent) async {
+    if (_currentUser == null) return;
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('users') // Collection for users
+          .doc(_currentUser!.uid) // Document ID is the user's ID
+          .collection('tasks') // Subcollection for tasks under the user
+          .doc(id) // Document ID of the event
+          .update({
+        'date': Timestamp.fromDate(date),
+        'name': event,
+        'alarmTime':
+            time != null ? {'hour': time.hour, 'minute': time.minute} : null,
+        'repeatDays': repeatDays,
+        'completionPercent': completionPercent,
+      });
+      // Refresh events after updating
+      await _loadEvents();
+    } catch (e) {
+      print('Error updating event: $e');
+    }
+  }
+
+  Future<void> _deleteEvent(String id) async {
+    if (_currentUser == null) return;
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('users') // Collection for users
+          .doc(_currentUser!.uid) // Document ID is the user's ID
+          .collection('tasks') // Subcollection for tasks under the user
+          .doc(id) // Document ID of the event
+          .delete();
+      // Refresh events after deleting
+      await _loadEvents();
+    } catch (e) {
+      print('Error deleting event: $e');
+    }
+  }
+
+  void _addEvent(String event, TimeOfDay? time, List<String> repeatDays,
+      int completionPercent) {
+    DateTime roundedDate =
+        DateTime(_selectedDay.year, _selectedDay.month, _selectedDay.day);
+    if (_events[roundedDate] != null) {
+      _events[roundedDate]!.add({
+        'id':
+            '', // Placeholder for id, will be updated after saving to Firestore
+        'name': event,
+        'time': time,
+        'repeatDays': repeatDays,
+        'completionPercent': completionPercent,
+      });
+    } else {
+      _events[roundedDate] = [
+        {
+          'id':
+              '', // Placeholder for id, will be updated after saving to Firestore
+          'name': event,
+          'time': time,
+          'repeatDays': repeatDays,
+          'completionPercent': completionPercent,
+        }
+      ];
+    }
+    _saveEvent(roundedDate, event, time, repeatDays, completionPercent);
+    _eventController.clear();
+    setState(() {
+      _repeatDays = [];
+      _completionPercent = 0;
+      _selectedTime = null;
+    });
+  }
+
+  void _selectTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _selectedTime ?? TimeOfDay.now(),
+    );
+    if (picked != null && picked != _selectedTime) {
+      setState(() {
+        _selectedTime = picked;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          _buildTableCalendar(),
-          TaskCard(
-            selectedDay: _selectedDay,
-            tasks: _tasks,
-            onDeleteTask: _deleteTask,
-            onShowTaskDetails: _showTaskDetails,
-            onToggleTaskCompletion: _toggleTaskCompletion,
-          ),
-        ],
+      appBar: AppBar(
+        title: Text('School Planner'),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomAppBar(
-        shape: CircularNotchedRectangle(),
-        notchMargin: 8.0,
-        child: Container(height: 50.0),
-      ),
-    );
-  }
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            TableCalendar(
+              focusedDay: _selectedDay,
+              firstDay: DateTime(2000),
+              lastDay: DateTime(2100),
+              calendarFormat: _calendarFormat,
+              selectedDayPredicate: (day) {
+                return isSameDay(_selectedDay, day);
+              },
+              onDaySelected: (selectedDay, focusedDay) {
+                setState(() {
+                  _selectedDay = selectedDay;
+                });
+              },
+              eventLoader: (day) {
+                DateTime roundedDate = DateTime(day.year, day.month, day.day);
+                return _events[roundedDate] ?? [];
+              },
+              onFormatChanged: (format) {
+                setState(() {
+                  _calendarFormat = format;
+                });
+              },
+              availableCalendarFormats: const {
+                CalendarFormat.week: 'Week',
+              },
+              calendarStyle: CalendarStyle(
+                markersAlignment: Alignment.bottomCenter,
+                todayDecoration: BoxDecoration(
+                  color: Colors.deepPurple.shade400,
+                  shape: BoxShape.circle,
+                ),
+                selectedDecoration: BoxDecoration(
+                  color: Colors.blue,
+                  shape: BoxShape.circle,
+                ),
+                selectedTextStyle: TextStyle(color: Colors.white),
+              ),
+              daysOfWeekStyle: DaysOfWeekStyle(
+                weekendStyle: TextStyle(color: Colors.red),
+              ),
+              headerStyle: HeaderStyle(
+                formatButtonVisible: false,
+                titleCentered: true,
+              ),
+            ),
+            SizedBox(height: 8.0),
+            Container(
+              height: 300.0, // Adjust height as needed
+              child: ListView.builder(
+                itemCount: (_events[DateTime(_selectedDay.year,
+                            _selectedDay.month, _selectedDay.day)] ??
+                        [])
+                    .length,
+                itemBuilder: (context, index) {
+                  Map<String, dynamic> event = (_events[DateTime(
+                          _selectedDay.year,
+                          _selectedDay.month,
+                          _selectedDay.day)] ??
+                      [])[index];
 
-  Widget _buildTableCalendar() {
-    return TableCalendar(
-      firstDay: DateTime.utc(2010, 10, 16),
-      lastDay: DateTime.utc(2030, 3, 14),
-      focusedDay: _selectedDay,
-      calendarFormat: CalendarFormat.month,
-      selectedDayPredicate: (day) {
-        return isSameDay(_selectedDay, day);
-      },
-      onDaySelected: (selectedDay, focusedDay) {
-        setState(() {
-          _selectedDay = selectedDay;
-          _isTaskCardVisible = true;
-        });
-      },
-      calendarStyle: CalendarStyle(
-        selectedDecoration: BoxDecoration(
-          color: Colors.green,
-          shape: BoxShape.circle,
-        ),
-        todayDecoration: BoxDecoration(
-          color: Colors.orange,
-          shape: BoxShape.circle,
-        ),
-        markerDecoration: BoxDecoration(
-          color: Colors.blue,
-          shape: BoxShape.circle,
-        ),
-      ),
-      headerStyle: HeaderStyle(
-        formatButtonVisible: false,
-      ),
-      eventLoader: (day) {
-        return _tasks[day] ?? [];
-      },
-    );
-  }
+                  if (event == null || !event.containsKey('name')) {
+                    return SizedBox
+                        .shrink(); // Skip rendering if event is null or doesn't have a name
+                  }
 
-  List<Task> _getTasksForDay(DateTime day) {
-    return _tasks[day] ?? [];
-  }
+                  String eventTime = event['time'] != null
+                      ? '${event['time'].hour}:${event['time'].minute.toString().padLeft(2, '0')}'
+                      : '';
+                  String repeatDays = event['repeatDays'] != null &&
+                          (event['repeatDays'] as List<String>).isNotEmpty
+                      ? (event['repeatDays'] as List<String>).join(', ')
+                      : '';
+                  int completionPercent = event['completionPercent'] ?? 0;
 
-  void _addTask() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AddTaskDialog(
-          onTaskAdded: (task) {
-            setState(() {
-              if (_tasks[_selectedDay] == null) {
-                _tasks[_selectedDay] = [];
-              }
-              _tasks[_selectedDay]!.add(task);
-              _saveTasks();
-            });
-          },
-        );
-      },
-    );
-  }
-
-  void _deleteTask(DateTime day, int index) {
-    setState(() {
-      _tasks[day]?.removeAt(index);
-      _saveTasks();
-    });
-  }
-
-  void _toggleTaskCompletion(Task task) {
-    setState(() {
-      task.isDone = !task.isDone;
-      _saveTasks();
-    });
-  }
-
-  Future<void> _loadTasks() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? tasksString = prefs.getString('tasks');
-    if (tasksString != null) {
-      final Map<String, dynamic> decodedTasks = jsonDecode(tasksString);
-      final Map<DateTime, List<Task>> loadedTasks = {};
-      decodedTasks.forEach((key, value) {
-        final DateTime date = DateTime.parse(key);
-        final List<Task> tasksList =
-            (value as List).map((task) => Task.fromJson(task)).toList();
-        loadedTasks[date] = tasksList;
-      });
-      setState(() {
-        _tasks = loadedTasks;
-      });
-    }
-  }
-
-  Future<void> _saveTasks() async {
-    final prefs = await SharedPreferences.getInstance();
-    final Map<String, dynamic> encodedTasks = {};
-    _tasks.forEach((key, value) {
-      encodedTasks[key.toIso8601String()] =
-          value.map((task) => task.toJson()).toList();
-    });
-    final String tasksString = jsonEncode(encodedTasks);
-    await prefs.setString('tasks', tasksString);
-  }
-
-  void _showTaskDetails(Task task, DateTime day, int index) {
-    String newTitle = task.title;
-    double completionPercent = task.completionPercent ?? 0.0;
-
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter modalSetState) {
-            return FractionallySizedBox(
-              widthFactor: 1.0,
-              child: Container(
-                padding: EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.delete),
-                          onPressed: () {
-                            setState(() {
-                              _deleteTask(day, index);
-                            });
-                            Navigator.pop(context);
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8.0, vertical: 4.0),
+                    child: Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15.0),
+                      ),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.deepPurple[150],
+                          child: Text(
+                            '$completionPercent%',
+                            style: TextStyle(
+                                color: const Color.fromARGB(255, 49, 49, 49)),
+                          ),
+                        ),
+                        title: Text(event['name']),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (eventTime.isNotEmpty) Text('Time: $eventTime'),
+                            if (repeatDays.isNotEmpty)
+                              Text('Repeat: $repeatDays'),
+                          ],
+                        ),
+                        trailing: PopupMenuButton<String>(
+                          onSelected: (value) {
+                            if (value == 'edit') {
+                              _showEditEventDialog(
+                                context,
+                                event['id'],
+                                event['name'],
+                                event['time'],
+                                event['repeatDays'],
+                                completionPercent,
+                              );
+                            } else if (value == 'delete') {
+                              _deleteEvent(event['id']);
+                            }
+                          },
+                          itemBuilder: (BuildContext context) {
+                            return {'Edit', 'Delete'}.map((String choice) {
+                              return PopupMenuItem<String>(
+                                value: choice.toLowerCase(),
+                                child: Text(choice),
+                              );
+                            }).toList();
                           },
                         ),
-                      ],
-                    ),
-                    Text(
-                      'Task Details',
-                      style: TextStyle(
-                        fontSize: 20.0,
-                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(height: 10.0),
-                    Text('Title:'),
-                    TextFormField(
-                      initialValue: task.title,
-                      onChanged: (value) {
-                        newTitle = value;
-                      },
-                    ),
-                    SizedBox(height: 10.0),
-                    Text('Completion Percentage:'),
-                    Slider(
-                      value: completionPercent,
-                      onChanged: (value) {
-                        modalSetState(() {
-                          completionPercent = value;
-                        });
-                      },
-                      min: 0,
-                      max: 100,
-                      divisions: 100,
-                      label: '$completionPercent%',
-                    ),
-                    SizedBox(height: 20.0),
-                    ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          task.title = newTitle;
-                          task.completionPercent = completionPercent;
-                          task.isDone = completionPercent == 100;
-                          _saveTasks();
-                        });
-                        Navigator.pop(context);
-                      },
-                      child: Text('Save'),
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
-            );
-          },
-        );
-      },
-    );
-  }
-}
-
-class Task {
-  String title;
-  bool isDone;
-  double? completionPercent;
-
-  Task({required this.title, this.isDone = false, this.completionPercent});
-
-  factory Task.fromJson(Map<String, dynamic> json) {
-    return Task(
-      title: json['title'],
-      isDone: json['isDone'],
-      completionPercent: json['completionPercent'],
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'title': title,
-      'isDone': isDone,
-      'completionPercent': completionPercent,
-    };
-  }
-}
-
-class AddTaskDialog extends StatefulWidget {
-  final Function(Task) onTaskAdded;
-
-  AddTaskDialog({required this.onTaskAdded});
-
-  @override
-  _AddTaskDialogState createState() => _AddTaskDialogState();
-}
-
-class _AddTaskDialogState extends State<AddTaskDialog> {
-  final TextEditingController _controller = TextEditingController();
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text('Add Task'),
-      content: TextField(
-        controller: _controller,
-        decoration: InputDecoration(
-          hintText: 'Task title',
+            ),
+          ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-          child: Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () {
-            final task = Task(title: _controller.text);
-            widget.onTaskAdded(task);
-            Navigator.of(context).pop();
-          },
-          child: Text('Add'),
-        ),
-      ],
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddEventDialog(context),
+        child: Icon(Icons.add),
+      ),
+    );
+  }
+
+  void _showAddEventDialog(BuildContext context) {
+    _eventController.clear();
+    _selectedTime = null;
+    _repeatDays = [];
+    _completionPercent = 0;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: Text('Add Event'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: _eventController,
+                    decoration: InputDecoration(hintText: 'Enter event name'),
+                  ),
+                  Row(
+                    children: [
+                      Text(
+                          "Alarm Time: ${_selectedTime != null ? _selectedTime!.format(context) : 'None'}"),
+                      IconButton(
+                        icon: Icon(Icons.access_time),
+                        onPressed: () => _selectTime(context),
+                      ),
+                    ],
+                  ),
+                  Wrap(
+                    spacing: 5.0,
+                    children: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+                        .map((day) => FilterChip(
+                              label: Text(day),
+                              selected: _repeatDays.contains(day),
+                              selectedColor: Colors.deepPurple[100],
+                              onSelected: (selected) {
+                                setState(() {
+                                  if (selected) {
+                                    _repeatDays.add(day);
+                                  } else {
+                                    _repeatDays.remove(day);
+                                  }
+                                });
+                              },
+                            ))
+                        .toList(),
+                  ),
+                  Row(
+                    children: [
+                      Text("Completion %: "),
+                      Expanded(
+                        child: Slider(
+                          value: _completionPercent.toDouble(),
+                          min: 0,
+                          max: 100,
+                          divisions: 10,
+                          label: _completionPercent.round().toString(),
+                          onChanged: (double value) {
+                            setState(() {
+                              _completionPercent = value.toInt();
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                child: Text('Cancel'),
+                onPressed: () {
+                  Navigator.pop(context);
+                  _eventController.clear();
+                  _selectedTime = null;
+                  _repeatDays = [];
+                  _completionPercent = 0;
+                },
+              ),
+              TextButton(
+                child: Text('Add'),
+                onPressed: () {
+                  if (_eventController.text.isEmpty) return;
+                  _addEvent(
+                    _eventController.text,
+                    _selectedTime,
+                    _repeatDays,
+                    _completionPercent,
+                  );
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showEditEventDialog(
+      BuildContext context,
+      String eventId,
+      String currentName,
+      TimeOfDay? currentTime,
+      List<String> currentRepeatDays,
+      int currentCompletionPercent) {
+    _eventController.text = currentName;
+    _selectedTime = currentTime;
+    _repeatDays = List.from(currentRepeatDays);
+    _completionPercent = currentCompletionPercent;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: Text('Edit Event'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: _eventController,
+                    decoration: InputDecoration(hintText: 'Enter event name'),
+                  ),
+                  Row(
+                    children: [
+                      Text(
+                          "Alarm Time: ${_selectedTime != null ? _selectedTime!.format(context) : 'None'}"),
+                      IconButton(
+                        icon: Icon(Icons.access_time),
+                        onPressed: () => _selectTime(context),
+                      ),
+                    ],
+                  ),
+                  Wrap(
+                    spacing: 5.0,
+                    children: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+                        .map((day) => FilterChip(
+                              label: Text(day),
+                              selected: _repeatDays.contains(day),
+                              selectedColor: Colors.deepPurple[100],
+                              onSelected: (selected) {
+                                setState(() {
+                                  if (selected) {
+                                    _repeatDays.add(day);
+                                  } else {
+                                    _repeatDays.remove(day);
+                                  }
+                                });
+                              },
+                            ))
+                        .toList(),
+                  ),
+                  Row(
+                    children: [
+                      Text("Completion %: "),
+                      Expanded(
+                        child: Slider(
+                          value: _completionPercent.toDouble(),
+                          min: 0,
+                          max: 100,
+                          divisions: 10,
+                          label: _completionPercent.round().toString(),
+                          onChanged: (double value) {
+                            setState(() {
+                              _completionPercent = value.toInt();
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                child: Text('Cancel'),
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+              ),
+              TextButton(
+                child: Text('Save'),
+                onPressed: () {
+                  if (_eventController.text.isEmpty) return;
+                  _updateEvent(
+                    eventId,
+                    _selectedDay,
+                    _eventController.text,
+                    _selectedTime,
+                    _repeatDays,
+                    _completionPercent,
+                  );
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }

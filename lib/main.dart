@@ -4,14 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sp_test/routes/router.dart';
 import 'package:sp_test/screens/SplashScreen.dart';
 import 'package:sp_test/screens/homePg.dart';
-import 'package:sp_test/screens/loginPg.dart';
-import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:sp_test/routes/router.dart';
-import 'package:sp_test/screens/SplashScreen.dart';
-import 'package:sp_test/screens/homePg.dart';
-import 'package:sp_test/screens/loginPg.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,26 +20,28 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.deepPurple,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: AuthWrapper(),
+      home:
+          _handleInitialScreen(), // Determine initial screen based on authentication state
       onGenerateRoute: router,
     );
   }
-}
 
-class AuthWrapper extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
+  Widget _handleInitialScreen() {
+    // Function to determine initial screen based on authentication state
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return SplashScreen(); // Show loading screen while checking auth state
-        } else if (snapshot.hasData) {
-          // User is logged in
-          return HomePg(); // Navigate to home page if user is authenticated
+          // While waiting for connection, show loading or splash screen
+          return SplashScreen();
         } else {
-          // User is not logged in
-          return SplashScreen(); // Navigate to login page if user is not authenticated
+          if (snapshot.hasData) {
+            // User is logged in
+            return HomePg();
+          } else {
+            // User is not logged in
+            return SplashScreen(); // Or your login/signup screen
+          }
         }
       },
     );
