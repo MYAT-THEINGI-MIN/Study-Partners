@@ -17,7 +17,6 @@ class _PlannerPageState extends State<PlannerPage> {
   Map<DateTime, List<Map<String, dynamic>>> _events = {};
   TextEditingController _eventController = TextEditingController();
   TimeOfDay? _selectedTime;
-  List<String> _repeatDays = [];
   int _completionPercent = 0;
   User? _currentUser;
 
@@ -67,7 +66,6 @@ class _PlannerPageState extends State<PlannerPage> {
             minute: doc['alarmTime']['minute'],
           );
         }
-        List<String> repeatDays = List<String>.from(doc['repeatDays']);
         int completionPercent = doc['completionPercent'] ?? 0;
 
         DateTime roundedDate = DateTime(date.year, date.month, date.day);
@@ -79,7 +77,6 @@ class _PlannerPageState extends State<PlannerPage> {
           'id': doc.id,
           'name': eventName,
           'time': eventTime,
-          'repeatDays': repeatDays,
           'completionPercent': completionPercent,
         });
       });
@@ -93,7 +90,7 @@ class _PlannerPageState extends State<PlannerPage> {
   }
 
   Future<void> _saveEvent(DateTime date, String event, TimeOfDay? time,
-      List<String> repeatDays, int completionPercent) async {
+      int completionPercent) async {
     if (_currentUser == null) return;
 
     try {
@@ -106,7 +103,6 @@ class _PlannerPageState extends State<PlannerPage> {
         'name': event,
         'alarmTime':
             time != null ? {'hour': time.hour, 'minute': time.minute} : null,
-        'repeatDays': repeatDays,
         'completionPercent': completionPercent,
       });
       // Refresh events after saving
@@ -117,7 +113,7 @@ class _PlannerPageState extends State<PlannerPage> {
   }
 
   Future<void> _updateEvent(String id, DateTime date, String event,
-      TimeOfDay? time, List<String> repeatDays, int completionPercent) async {
+      TimeOfDay? time, int completionPercent) async {
     if (_currentUser == null) return;
 
     try {
@@ -131,7 +127,6 @@ class _PlannerPageState extends State<PlannerPage> {
         'name': event,
         'alarmTime':
             time != null ? {'hour': time.hour, 'minute': time.minute} : null,
-        'repeatDays': repeatDays,
         'completionPercent': completionPercent,
       });
       // Refresh events after updating
@@ -158,35 +153,15 @@ class _PlannerPageState extends State<PlannerPage> {
     }
   }
 
-  void _addEvent(String event, TimeOfDay? time, List<String> repeatDays,
-      int completionPercent) {
+  void _addEvent(String event, TimeOfDay? time, int completionPercent) {
     DateTime roundedDate =
         DateTime(_selectedDay.year, _selectedDay.month, _selectedDay.day);
-    if (_events[roundedDate] != null) {
-      _events[roundedDate]!.add({
-        'id':
-            '', // Placeholder for id, will be updated after saving to Firestore
-        'name': event,
-        'time': time,
-        'repeatDays': repeatDays,
-        'completionPercent': completionPercent,
-      });
-    } else {
-      _events[roundedDate] = [
-        {
-          'id':
-              '', // Placeholder for id, will be updated after saving to Firestore
-          'name': event,
-          'time': time,
-          'repeatDays': repeatDays,
-          'completionPercent': completionPercent,
-        }
-      ];
-    }
-    _saveEvent(roundedDate, event, time, repeatDays, completionPercent);
+
+    // Save event for the selected day
+    _saveEvent(roundedDate, event, time, completionPercent);
+
     _eventController.clear();
     setState(() {
-      _repeatDays = [];
       _completionPercent = 0;
       _selectedTime = null;
     });
@@ -281,10 +256,6 @@ class _PlannerPageState extends State<PlannerPage> {
                   String eventTime = event['time'] != null
                       ? '${event['time'].hour}:${event['time'].minute.toString().padLeft(2, '0')}'
                       : '';
-                  String repeatDays = event['repeatDays'] != null &&
-                          (event['repeatDays'] as List<String>).isNotEmpty
-                      ? (event['repeatDays'] as List<String>).join(', ')
-                      : '';
                   int completionPercent = event['completionPercent'] ?? 0;
 
                   return Padding(
@@ -300,7 +271,8 @@ class _PlannerPageState extends State<PlannerPage> {
                           child: Text(
                             '$completionPercent%',
                             style: TextStyle(
-                                color: const Color.fromARGB(255, 49, 49, 49)),
+                              color: const Color.fromARGB(255, 49, 49, 49),
+                            ),
                           ),
                         ),
                         title: Text(event['name']),
@@ -308,8 +280,6 @@ class _PlannerPageState extends State<PlannerPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             if (eventTime.isNotEmpty) Text('Time: $eventTime'),
-                            if (repeatDays.isNotEmpty)
-                              Text('Repeat: $repeatDays'),
                           ],
                         ),
                         trailing: PopupMenuButton<String>(
@@ -320,7 +290,6 @@ class _PlannerPageState extends State<PlannerPage> {
                                 event['id'],
                                 event['name'],
                                 event['time'],
-                                event['repeatDays'],
                                 completionPercent,
                               );
                             } else if (value == 'delete') {
@@ -355,7 +324,6 @@ class _PlannerPageState extends State<PlannerPage> {
   void _showAddEventDialog(BuildContext context) {
     _eventController.clear();
     _selectedTime = null;
-    _repeatDays = [];
     _completionPercent = 0;
 
     showDialog(
@@ -381,25 +349,6 @@ class _PlannerPageState extends State<PlannerPage> {
                         onPressed: () => _selectTime(context),
                       ),
                     ],
-                  ),
-                  Wrap(
-                    spacing: 5.0,
-                    children: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-                        .map((day) => FilterChip(
-                              label: Text(day),
-                              selected: _repeatDays.contains(day),
-                              selectedColor: Colors.deepPurple[100],
-                              onSelected: (selected) {
-                                setState(() {
-                                  if (selected) {
-                                    _repeatDays.add(day);
-                                  } else {
-                                    _repeatDays.remove(day);
-                                  }
-                                });
-                              },
-                            ))
-                        .toList(),
                   ),
                   Row(
                     children: [
@@ -430,7 +379,6 @@ class _PlannerPageState extends State<PlannerPage> {
                   Navigator.pop(context);
                   _eventController.clear();
                   _selectedTime = null;
-                  _repeatDays = [];
                   _completionPercent = 0;
                 },
               ),
@@ -441,7 +389,6 @@ class _PlannerPageState extends State<PlannerPage> {
                   _addEvent(
                     _eventController.text,
                     _selectedTime,
-                    _repeatDays,
                     _completionPercent,
                   );
                   Navigator.pop(context);
@@ -459,11 +406,9 @@ class _PlannerPageState extends State<PlannerPage> {
       String eventId,
       String currentName,
       TimeOfDay? currentTime,
-      List<String> currentRepeatDays,
       int currentCompletionPercent) {
     _eventController.text = currentName;
     _selectedTime = currentTime;
-    _repeatDays = List.from(currentRepeatDays);
     _completionPercent = currentCompletionPercent;
 
     showDialog(
@@ -489,25 +434,6 @@ class _PlannerPageState extends State<PlannerPage> {
                         onPressed: () => _selectTime(context),
                       ),
                     ],
-                  ),
-                  Wrap(
-                    spacing: 5.0,
-                    children: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-                        .map((day) => FilterChip(
-                              label: Text(day),
-                              selected: _repeatDays.contains(day),
-                              selectedColor: Colors.deepPurple[100],
-                              onSelected: (selected) {
-                                setState(() {
-                                  if (selected) {
-                                    _repeatDays.add(day);
-                                  } else {
-                                    _repeatDays.remove(day);
-                                  }
-                                });
-                              },
-                            ))
-                        .toList(),
                   ),
                   Row(
                     children: [
@@ -547,7 +473,6 @@ class _PlannerPageState extends State<PlannerPage> {
                     _selectedDay,
                     _eventController.text,
                     _selectedTime,
-                    _repeatDays,
                     _completionPercent,
                   );
                   Navigator.pop(context);
@@ -559,4 +484,10 @@ class _PlannerPageState extends State<PlannerPage> {
       ),
     );
   }
+}
+
+void main() {
+  runApp(MaterialApp(
+    home: PlannerPage(),
+  ));
 }
