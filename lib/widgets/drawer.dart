@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import 'package:sp_test/Service/themeProvider.dart';
 import 'package:sp_test/screens/aboutMe.dart';
 import 'package:sp_test/screens/loginPg.dart';
 
@@ -38,19 +40,35 @@ class AppDrawer extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.logout),
-            title: const Text('Logout'),
+            title: Text(
+              'Logout',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
             onTap: () => _logout(context),
           ),
           ListTile(
+            leading: const Icon(Icons.brightness_6),
+            title: Text(
+              'Change Theme',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            onTap: () {
+              Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.info),
-            title: const Text('AboutMe'),
+            title: Text(
+              'About Me',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => AboutMePg()),
               );
             },
-          )
+          ),
         ],
       ),
     );

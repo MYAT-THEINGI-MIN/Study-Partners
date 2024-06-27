@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sp_test/screens/loginPg.dart';
 import 'package:sp_test/screens/registerPg.dart';
 
-class SplashScreen extends StatelessWidget {
+class loginOrRegiser extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(

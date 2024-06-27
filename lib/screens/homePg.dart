@@ -39,9 +39,16 @@ class _HomePgState extends State<HomePg> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Home Page"),
+        backgroundColor: Theme.of(context).brightness == Brightness.light
+            ? Colors.white // Set app bar color to white in light theme
+            : Colors
+                .deepPurple, // Set app bar color to deep purple in dark theme
         actions: <Widget>[
           IconButton(
-            icon: const Icon(Icons.person),
+            icon: CircleAvatar(
+              backgroundImage: AssetImage(
+                  'assets/profile.jpg'), // Replace with your user's profile image
+            ),
             onPressed: _onProfileTapped,
           ),
         ],
@@ -78,3 +85,5 @@ class _HomePgState extends State<HomePg> {
     );
   }
 }
+
+//changed text styles//app bar color theme//
