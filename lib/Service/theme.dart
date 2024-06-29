@@ -7,10 +7,9 @@ class AppThemes {
     primarySwatch: Colors.deepPurple,
     visualDensity: VisualDensity.adaptivePlatformDensity,
     textTheme: TextTheme(
-      bodyLarge: TextStyle(
-          fontSize: 22, color: Colors.black, fontWeight: FontWeight.bold),
-      bodyMedium: TextStyle(fontSize: 18, color: Colors.black87),
-    ),
+        bodyMedium: TextStyle(fontSize: 18, color: Colors.black87),
+        bodyLarge: TextStyle(fontSize: 22, color: Colors.black),
+        bodySmall: TextStyle(fontSize: 16, color: Colors.black)),
   );
 
   static final ThemeData darkTheme = ThemeData(
@@ -29,9 +28,8 @@ class AppThemes {
       textTheme: ButtonTextTheme.primary,
     ),
     textTheme: TextTheme(
-      bodyLarge: TextStyle(
-          fontSize: 22, color: Colors.white, fontWeight: FontWeight.bold),
-      bodyMedium: TextStyle(fontSize: 18, color: Colors.white70),
-    ),
+        bodyMedium: TextStyle(fontSize: 18, color: Colors.white70),
+        bodyLarge: TextStyle(fontSize: 22, color: Colors.white),
+        bodySmall: TextStyle(fontSize: 16, color: Colors.black)),
   );
 }

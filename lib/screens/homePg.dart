@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sp_test/screens/Planner/plannerPg.dart';
 import 'package:sp_test/screens/ProfilePg.dart';
 import 'package:sp_test/screens/chatUserListPg.dart';
@@ -13,6 +15,7 @@ class HomePg extends StatefulWidget {
 
 class _HomePgState extends State<HomePg> {
   int _selectedIndex = 0;
+  late String _profileImageUrl = '';
 
   static final List<Widget> _widgetOptions = <Widget>[
     PlannerPage(),
@@ -35,6 +38,27 @@ class _HomePgState extends State<HomePg> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _loadProfileImage();
+  }
+
+  Future<void> _loadProfileImage() async {
+    FirebaseAuth auth = FirebaseAuth.instance;
+    User? user = auth.currentUser;
+    if (user != null) {
+      DocumentSnapshot<Map<String, dynamic>> userProfile =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+      setState(() {
+        _profileImageUrl = userProfile.data()?['profileImageUrl'] ?? '';
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -45,10 +69,13 @@ class _HomePgState extends State<HomePg> {
                 .deepPurple, // Set app bar color to deep purple in dark theme
         actions: <Widget>[
           IconButton(
-            icon: CircleAvatar(
-              backgroundImage: AssetImage(
-                  'assets/profile.jpg'), // Replace with your user's profile image
-            ),
+            icon: _profileImageUrl.isNotEmpty
+                ? CircleAvatar(
+                    backgroundImage: NetworkImage(_profileImageUrl),
+                  )
+                : CircleAvatar(
+                    child: Icon(Icons.person),
+                  ),
             onPressed: _onProfileTapped,
           ),
         ],
@@ -85,5 +112,3 @@ class _HomePgState extends State<HomePg> {
     );
   }
 }
-
-//changed text styles//app bar color theme//
