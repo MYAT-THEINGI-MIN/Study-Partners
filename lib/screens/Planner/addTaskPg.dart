@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:sp_test/screens/Planner/InputField.dart';
+import 'package:sp_test/screens/Planner/button.dart';
 import 'package:sp_test/screens/Planner/colorCircle.dart';
 import 'package:sp_test/screens/Planner/firebaseService.dart';
-import 'package:sp_test/screens/Planner/inputField.dart';
-import 'package:sp_test/screens/Planner/button.dart';
 
 class AddTaskPage extends StatefulWidget {
   final String uid; // Pass uid to AddTaskPage
 
-  const AddTaskPage({Key? key, required this.uid}) : super(key: key);
+  const AddTaskPage({Key? key, required this.uid, required String taskId})
+      : super(key: key);
 
   @override
   _AddTaskPageState createState() => _AddTaskPageState();
@@ -22,8 +23,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
   String _selectedRemind = '5 minutes before';
   Color? _selectedColor;
 
-  final FirebaseService _firebaseService =
-      FirebaseService(); // Create instance of FirebaseService
+  final FirebaseService _firebaseService = FirebaseService();
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -59,9 +59,8 @@ class _AddTaskPageState extends State<AddTaskPage> {
     final time = _timeController.text;
     final repeat = _selectedRepeat;
     final remind = _selectedRemind;
-    final color = _selectedColor != null
-        ? '#${_selectedColor!.value.toRadixString(16)}'
-        : '';
+    final color =
+        _selectedColor?.value ?? Colors.blue.value; // Save color value as int
 
     _firebaseService.saveTask(
       uid: widget.uid,
@@ -227,4 +226,5 @@ class _AddTaskPageState extends State<AddTaskPage> {
     );
   }
 }
+
 ///Convert the color to a hexadecimal string before passing it to FirebaseService//
