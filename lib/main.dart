@@ -59,6 +59,7 @@ class MyApp extends StatelessWidget {
       create: (_) => ThemeProvider(),
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
+          // Add listener to the themeProvider
           themeProvider.addListener(() {
             _scheduleNotification(
                 'Theme changed to ${themeProvider.isDarkMode ? "Dark" : "Light"} mode');
@@ -82,11 +83,22 @@ class MyApp extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return SplashScreen(
-              duration: 3, nextPage: HomePg()); // Temporary page while waiting
-        } else if (snapshot.hasData) {
-          return SplashScreen(duration: 3, nextPage: HomePg());
+            duration: 3,
+            nextPage: HomePg(),
+          ); // Show splash for 3 seconds while waiting for connection
         } else {
-          return SplashScreen(duration: 3, nextPage: loginOrRegiser());
+          if (snapshot.hasData) {
+            // User is logged in
+            return SplashScreen(
+                duration: 3,
+                nextPage: HomePg()); // Show splash for 3 seconds if logged in
+          } else {
+            // User is not logged in
+            return SplashScreen(
+                duration: 3,
+                nextPage:
+                    loginOrRegiser()); // Show splash for 3 seconds if not logged in
+          }
         }
       },
     );

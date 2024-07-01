@@ -17,7 +17,7 @@ void showTopSnackBar(BuildContext context, String message) {
           ),
           child: Text(
             message,
-            style: TextStyle(color: Colors.purple),
+            style: TextStyle(color: Colors.white),
             textAlign: TextAlign.center,
           ),
         ),

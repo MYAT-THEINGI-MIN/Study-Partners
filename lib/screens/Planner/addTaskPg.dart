@@ -62,16 +62,47 @@ class _AddTaskPageState extends State<AddTaskPage> {
     final color =
         _selectedColor?.value ?? Colors.blue.value; // Save color value as int
 
-    _firebaseService.saveTask(
-      uid: widget.uid,
-      title: title,
-      note: note,
-      date: date,
-      time: time,
-      repeat: repeat,
-      remind: remind,
-      color: color,
-    );
+    if (repeat == 'None') {
+      _firebaseService.saveTask(
+        uid: widget.uid,
+        title: title,
+        note: note,
+        date: date,
+        time: time,
+        repeat: repeat,
+        remind: remind,
+        color: color,
+      );
+    } else {
+      List<DateTime> repeatDates = [];
+
+      if (repeat == 'Daily') {
+        for (int i = 0; i < 30; i++) {
+          repeatDates.add(date.add(Duration(days: i)));
+        }
+      } else if (repeat == 'Weekly') {
+        for (int i = 0; i < 4; i++) {
+          repeatDates.add(date.add(Duration(days: 7 * i)));
+        }
+      } else if (repeat == 'Monthly') {
+        for (int i = 0; i < 12; i++) {
+          repeatDates.add(DateTime(date.year, date.month + i, date.day));
+        }
+      }
+
+      for (var repeatDate in repeatDates) {
+        _firebaseService.saveTask(
+          uid: widget.uid,
+          title: title,
+          note: note,
+          date: repeatDate,
+          time: time,
+          repeat: repeat,
+          remind: remind,
+          color: color,
+        );
+      }
+    }
 
     Navigator.pop(context); // Navigate back after saving task
   }
@@ -226,5 +257,3 @@ class _AddTaskPageState extends State<AddTaskPage> {
     );
   }
 }
-
-///Convert the color to a hexadecimal string before passing it to FirebaseService//

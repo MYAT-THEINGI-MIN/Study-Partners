@@ -23,9 +23,11 @@ class TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDone =
-        color == Colors.grey.value; // Check if the task is marked as done
-    final displayColor = isDone ? Colors.grey : Color(color);
+    final isDone = color ==
+        const Color.fromARGB(
+            255, 222, 222, 222); // Check if the task is marked as done
+    final displayColor =
+        isDone ? const Color.fromARGB(255, 222, 222, 222) : Color(color);
     final theme = Theme.of(context);
     final textColor =
         theme.brightness == Brightness.dark ? Colors.deepPurple : Colors.black;

@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sp_test/controllers/login/loginBloc.dart';
 import 'package:sp_test/controllers/login/loginEvent.dart';
 import 'package:sp_test/controllers/login/loginState.dart';
-import 'package:sp_test/widgets/textfield.dart';
 import 'homePg.dart';
 import 'registerPg.dart';
 
@@ -40,13 +39,8 @@ class _LoginPgState extends State<LoginPg> {
                   BlocConsumer<LoginBloc, LoginState>(
                     listener: (context, state) {
                       if (state is LoginFailure) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Failed to login: ${state.error}'),
-                            duration: const Duration(seconds: 3),
-                            backgroundColor: Colors.red.shade300,
-                          ),
-                        );
+                        showTopSnackBar(
+                            context, 'Incorrect! Please Check Again');
                       } else if (state is LoginSuccess) {
                         Navigator.pushReplacement(
                           context,
@@ -61,32 +55,30 @@ class _LoginPgState extends State<LoginPg> {
 
                       return Column(
                         children: [
-                          CustomTextField(
+                          InputField(
+                            title: 'Email',
+                            hint: 'Enter your email',
                             controller: _emailController,
-                            labelText: 'Email',
-                            showSuffixIcon: false,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter your email';
-                              }
-                              return null;
-                            },
-                            onSuffixIconPressed: () {},
                           ),
-                          const SizedBox(height: 16.0),
-                          CustomTextField(
+                          const SizedBox(height: 5.0),
+                          InputField(
+                            title: 'Password',
+                            hint: 'Enter your password',
                             controller: _passwordController,
-                            labelText: 'Password',
-                            obscureText: _obscureText,
-                            onSuffixIconPressed: () {
-                              setState(() {
-                                _obscureText = !_obscureText;
-                              });
-                            },
+                            widget: IconButton(
+                              icon: Icon(_obscureText
+                                  ? Icons.visibility
+                                  : Icons.visibility_off),
+                              onPressed: () {
+                                setState(() {
+                                  _obscureText = !_obscureText;
+                                });
+                              },
+                            ),
                           ),
                           const SizedBox(height: 16.0),
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 10.0),
+                            padding: EdgeInsets.only(left: 5, right: 5),
                             child: ElevatedButton(
                               onPressed: () {
                                 final email = _emailController.text;
@@ -154,21 +146,104 @@ class _LoginPgState extends State<LoginPg> {
   void _resetPassword(String email) async {
     try {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Password reset email sent to $email'),
-          duration: const Duration(seconds: 3),
-          backgroundColor: Colors.red,
-        ),
-      );
+      showTopSnackBar(
+          context, 'Password reset was sent.Please check your Email.');
     } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to send password reset email: $error'),
-          duration: const Duration(seconds: 3),
-          backgroundColor: Colors.red,
-        ),
-      );
+      showTopSnackBar(context, 'Please fill Email first.');
     }
   }
+}
+
+class InputField extends StatelessWidget {
+  final String title;
+  final String hint;
+  final TextEditingController? controller;
+  final Widget? widget;
+  final VoidCallback? onTap;
+
+  const InputField({
+    super.key,
+    required this.title,
+    required this.hint,
+    this.controller,
+    this.widget,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Container(
+            height: 50,
+            decoration: BoxDecoration(
+              color: const Color.fromARGB(255, 226, 219, 240),
+              border: Border.all(color: Colors.deepPurple, width: 1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: controller,
+                    style: Theme.of(context).textTheme.bodySmall,
+                    decoration: InputDecoration(
+                      hintText: hint,
+                      hintStyle: Theme.of(context).textTheme.bodySmall,
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                    onTap: onTap,
+                  ),
+                ),
+                if (widget != null) widget!,
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+void showTopSnackBar(BuildContext context, String message) {
+  final overlay = Overlay.of(context);
+  final overlayEntry = OverlayEntry(
+    builder: (context) => Positioned(
+      top: 50.0,
+      left: MediaQuery.of(context).size.width * 0.1,
+      right: MediaQuery.of(context).size.width * 0.1,
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          padding: EdgeInsets.all(10.0),
+          decoration: BoxDecoration(
+            color: Color.fromARGB(221, 43, 43, 43),
+            borderRadius: BorderRadius.circular(10.0),
+          ),
+          child: Text(
+            message,
+            style: TextStyle(color: Colors.white),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    ),
+  );
+
+  overlay?.insert(overlayEntry);
+  Future.delayed(Duration(seconds: 3), () {
+    overlayEntry.remove();
+  });
 }

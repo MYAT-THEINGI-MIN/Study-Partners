@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:sp_test/screens/Planner/addTaskPg.dart';
 import 'package:sp_test/screens/Planner/button.dart';
+import 'package:sp_test/screens/Planner/searchTask.dart';
+import 'package:sp_test/screens/Planner/shareTaskPg.dart';
 import 'package:sp_test/screens/Planner/taskCard.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import 'firebaseService.dart';
 
 class PlannerPage extends StatefulWidget {
@@ -28,6 +29,12 @@ class _PlannerPageState extends State<PlannerPage> {
   void initState() {
     super.initState();
     _getCurrentUser();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadTasks();
   }
 
   void _getCurrentUser() {
@@ -96,7 +103,7 @@ class _PlannerPageState extends State<PlannerPage> {
           .doc(_currentUser!.uid)
           .collection('tasks')
           .doc(id)
-          .update({'color': Colors.white.value});
+          .update({'color': const Color.fromARGB(255, 222, 222, 222).value});
     }
   }
 
@@ -122,21 +129,75 @@ class _PlannerPageState extends State<PlannerPage> {
               ],
             ),
           ),
-          myButton(
-            label: 'Add Task',
-            onTap: () {
-              if (_currentUser != null) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => AddTaskPage(
-                      uid: _currentUser!.uid,
-                      taskId: '',
-                    ),
+          Row(
+            children: [
+              Column(
+                children: [
+                  Row(
+                    children: [
+                      //search tasks
+                      IconButton(
+                        icon: const Icon(Icons.search),
+                        onPressed: () {
+                          if (_currentUser != null) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    SearchTasksPage(uid: _currentUser!.uid),
+                              ),
+                            ).then((_) {
+                              // Reload tasks when returning from search page
+                              _loadTasks();
+                            });
+                          }
+                        },
+                      ),
+
+                      //share tasks
+                      IconButton(
+                        icon: const Icon(Icons.share),
+                        onPressed: () {
+                          if (_currentUser != null) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ShareTasksPage(
+                                    uid: _currentUser!.uid,
+                                    selectedDay: _selectedDay),
+                              ),
+                            ).then((_) {
+                              // Reload tasks when returning from share page
+                              _loadTasks();
+                            });
+                          }
+                        },
+                      ),
+                    ],
                   ),
-                );
-              }
-            },
+                  //add task
+                  myButton(
+                    label: 'Add Task',
+                    onTap: () {
+                      if (_currentUser != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AddTaskPage(
+                              uid: _currentUser!.uid,
+                              taskId: '',
+                            ),
+                          ),
+                        ).then((_) {
+                          // Reload tasks when returning from add task page
+                          _loadTasks();
+                        });
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
@@ -168,7 +229,9 @@ class _PlannerPageState extends State<PlannerPage> {
               });
             },
             onPageChanged: (focusedDay) {
-              _focusedDay = focusedDay;
+              setState(() {
+                _focusedDay = focusedDay;
+              });
             },
             eventLoader: _getEventsForDay,
             calendarStyle: const CalendarStyle(
@@ -197,6 +260,7 @@ class _PlannerPageState extends State<PlannerPage> {
                 fontWeight: FontWeight.bold,
               ),
             ),
+            daysOfWeekHeight: 20.0, // Correct placement for daysOfWeekHeight
             headerStyle: const HeaderStyle(
               formatButtonVisible: false,
               titleCentered: true,
@@ -209,24 +273,47 @@ class _PlannerPageState extends State<PlannerPage> {
             ),
           ),
           Expanded(
-            child: ListView.builder(
-              itemCount: _tasks.length,
-              itemBuilder: (context, index) {
-                final task = _tasks[index];
-                return TaskCard(
-                  id: task['id'],
-                  title: task['title'],
-                  note: task['note'],
-                  time: task['time'],
-                  color: task.containsKey('color') && task['color'] is String
-                      ? int.parse(task['color'], radix: 16)
-                      : task['color'],
-                  onDelete: _deleteTask,
-                  onDone: _markTaskAsDone,
-                  onEdit: (String) {},
-                );
-              },
-            ),
+            child: _tasks.isEmpty
+                ? Center(
+                    child: Container(
+                    padding: const EdgeInsets.only(
+                        left: 20, right: 20, top: 20, bottom: 20),
+                    decoration: BoxDecoration(
+                        color: Colors.deepPurple.shade100,
+                        borderRadius: BorderRadius.circular(10)),
+                    child: Text(
+                      'No tasks for the selected day',
+                      style: Theme.of(context).textTheme.bodyMedium!,
+                    ),
+                  ))
+                : Container(
+                    padding:
+                        const EdgeInsets.only(left: 20, right: 20, top: 10),
+                    decoration: BoxDecoration(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey
+                            : Colors.deepPurple.shade100,
+                        borderRadius: BorderRadius.circular(20)),
+                    child: ListView.builder(
+                      itemCount: _tasks.length,
+                      itemBuilder: (context, index) {
+                        final task = _tasks[index];
+                        return TaskCard(
+                          id: task['id'],
+                          title: task['title'],
+                          note: task['note'],
+                          time: task['time'],
+                          color: task.containsKey('color') &&
+                                  task['color'] is String
+                              ? int.parse(task['color'], radix: 16)
+                              : task['color'],
+                          onDelete: _deleteTask,
+                          onDone: _markTaskAsDone,
+                          onEdit: (String) {},
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),
@@ -239,5 +326,3 @@ class Event {
 
   Event(this.title);
 }
-
-///now tasks are show//tasks card color add//task three dots added//
