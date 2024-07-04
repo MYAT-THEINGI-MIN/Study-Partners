@@ -1,12 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-
-// Your existing showTopSnackBar function
 void showTopSnackBar(BuildContext context, String message) {
   final overlay = Overlay.of(context);
   final overlayEntry = OverlayEntry(
@@ -66,7 +61,7 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
         .get();
 
     setState(() {
-      _existingMembers = List<String>.from(groupDoc['members']);
+      _existingMembers = List<String>.from(groupDoc['members'] ?? []);
     });
   }
 
@@ -83,9 +78,7 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
           .where('username', isLessThanOrEqualTo: trimmedQuery + '\uf8ff')
           .get();
 
-      final filteredResults = result.docs
-          .where((user) => !_existingMembers.contains(user.id))
-          .toList();
+      final filteredResults = result.docs.toList();
 
       setState(() {
         _searchResults = filteredResults;
@@ -101,12 +94,27 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
 
   void _addPartner(DocumentSnapshot user) async {
     try {
-      await FirebaseFirestore.instance
+      // Check if the member document already exists
+      final memberDoc = await FirebaseFirestore.instance
           .collection('groups')
           .doc(widget.groupId)
-          .update({
-        'members': FieldValue.arrayUnion([user.id])
-      });
+          .collection('members')
+          .doc(user.id)
+          .get();
+
+      if (!memberDoc.exists) {
+        // If member document doesn't exist, create it with initial points
+        await FirebaseFirestore.instance
+            .collection('groups')
+            .doc(widget.groupId)
+            .collection('members')
+            .doc(user.id)
+            .set({
+          'name':
+              user['username'], // Adjust according to your user data structure
+          'points': 0, // Initial points
+        });
+      }
 
       setState(() {
         _existingMembers.add(user.id);
@@ -153,14 +161,27 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
                       final isExistingMember =
                           _existingMembers.contains(user.id);
 
-                      return ListTile(
-                        title: Text(user['username']),
-                        trailing: isExistingMember
-                            ? Text('Already in group')
-                            : IconButton(
-                                icon: Icon(Icons.person_add),
-                                onPressed: () => _addPartner(user),
-                              ),
+                      return Card(
+                        margin:
+                            EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundImage: NetworkImage(
+                              user['profileImageUrl'] ??
+                                  'https://via.placeholder.com/150',
+                            ),
+                          ),
+                          title: Text(user['username'] ?? 'No Username'),
+                          subtitle: isExistingMember
+                              ? Text('Already in group')
+                              : Text(user['subjects'] ?? 'No Subjects'),
+                          trailing: isExistingMember
+                              ? null
+                              : IconButton(
+                                  icon: Icon(Icons.person_add),
+                                  onPressed: () => _addPartner(user),
+                                ),
+                        ),
                       );
                     },
                   ),
@@ -170,3 +191,4 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
     );
   }
 }
+//adding new member with point 0

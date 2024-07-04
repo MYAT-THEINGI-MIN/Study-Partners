@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:sp_test/widgets/textfield.dart';
 
 class EditProfilePg extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -130,68 +131,81 @@ class _EditProfilePgState extends State<EditProfilePg> {
                 ),
               ),
               SizedBox(height: 16),
-              TextField(
+              CustomTextField(
                 controller: _usernameController,
-                decoration: InputDecoration(labelText: 'Username'),
+                labelText: 'Username',
+                showSuffixIcon: false,
+                onSuffixIconPressed:
+                    () {}, // Hide suffix icon for username field
               ),
               SizedBox(height: 8),
-              TextField(
+              CustomTextField(
                 controller: _statusController,
-                decoration: InputDecoration(labelText: 'Status'),
+                labelText: 'Status',
+                showSuffixIcon: false,
+                onSuffixIconPressed: () {}, // Hide suffix icon for status field
               ),
               SizedBox(height: 16),
-              Text('Studying Subjects', style: TextStyle(fontSize: 18)),
+              Text(
+                'Studying Subjects',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).brightness == Brightness.light
+                      ? Colors.deepPurple
+                      : Colors.deepPurpleAccent,
+                ),
+              ),
               SizedBox(height: 8),
               Wrap(
                 children: _subjects
-                    .map((subject) => Container(
-                          margin: EdgeInsets.only(right: 8, bottom: 8),
-                          padding:
-                              EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[300],
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(subject),
-                              SizedBox(width: 8),
-                              IconButton(
-                                icon: Icon(Icons.remove_circle_outline),
-                                onPressed: () {
-                                  _removeSubject(_subjects.indexOf(subject));
-                                },
-                              ),
-                            ],
-                          ),
-                        ))
+                    .map(
+                      (subject) => Container(
+                        margin: EdgeInsets.only(right: 8, bottom: 8),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color:
+                              Theme.of(context).brightness == Brightness.light
+                                  ? Colors.deepPurple[100]
+                                  : Colors.deepPurpleAccent[100],
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(subject.trim(),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color: Theme.of(context).brightness ==
+                                              Brightness.light
+                                          ? Colors.black
+                                          : Colors.white,
+                                    )),
+                            SizedBox(width: 8),
+                            IconButton(
+                              icon: Icon(Icons.remove_circle_outline),
+                              onPressed: () {
+                                _removeSubject(_subjects.indexOf(subject));
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
                     .toList(),
               ),
               SizedBox(height: 8),
               Row(
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _subjectController,
-                      decoration: InputDecoration(labelText: 'Add Subject'),
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.add_circle_outline),
-                    onPressed: () {
-                      String subject = _subjectController.text.trim();
-                      if (subject.isNotEmpty) {
-                        _addSubject(subject);
-                      }
-                    },
+                  ElevatedButton(
+                    onPressed: _updateProfile,
+                    child: Text('Save Changes'),
                   ),
                 ],
-              ),
-              SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _updateProfile,
-                child: Text('Save Changes'),
               ),
             ],
           ),

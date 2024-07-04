@@ -8,13 +8,13 @@ class InputField extends StatelessWidget {
   final VoidCallback? onTap;
 
   const InputField({
-    super.key,
+    Key? key,
     required this.title,
     required this.hint,
     this.controller,
     this.widget,
     this.onTap,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +28,8 @@ class InputField extends StatelessWidget {
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
+              color: Colors
+                  .deepPurple, // Match the deepPurple color for consistency
             ),
           ),
           const SizedBox(height: 2),
@@ -43,10 +45,14 @@ class InputField extends StatelessWidget {
                 Expanded(
                   child: TextFormField(
                     controller: controller,
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium, // Match your app's body text style
                     decoration: InputDecoration(
                       hintText: hint,
-                      hintStyle: Theme.of(context).textTheme.bodySmall,
+                      hintStyle: Theme.of(context)
+                          .textTheme
+                          .bodyMedium, // Match your app's body text style
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                     ),

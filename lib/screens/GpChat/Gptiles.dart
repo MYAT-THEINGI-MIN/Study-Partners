@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:sp_test/screens/GpChat/GpChatroom.dart';
+import 'package:sp_test/screens/GpChat/GpHomePg.dart';
 
 class GroupTilesPage extends StatefulWidget {
   @override
@@ -77,25 +77,33 @@ class GroupTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final TextStyle? bodyMedium = Theme.of(context).textTheme.bodyMedium;
+    final TextStyle? bodySmall = Theme.of(context).textTheme.bodySmall;
+
     return ListTile(
       leading: CircleAvatar(
         backgroundImage:
             profileUrl.isNotEmpty ? NetworkImage(profileUrl) : null,
         child: profileUrl.isEmpty ? Icon(Icons.group) : null,
       ),
-      title: Text(groupName),
-      subtitle: Text(subject),
+      title: Text(
+        groupName,
+        style: bodyMedium?.copyWith(
+          color: bodyMedium.color, // Adjust color as per your theme
+        ),
+      ),
+      subtitle: Text(
+        subject,
+        style: bodySmall?.copyWith(
+          color: bodySmall.color, // Adjust color as per your theme
+        ),
+      ),
       onTap: () {
-        // Navigate to group chatroom
+        // Navigate to Group Home Page with groupId
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => GpChatRoom(
-              groupId: groupId,
-              groupName: groupName,
-              gpProfileUrl: profileUrl,
-              adminId: '',
-            ),
+            builder: (context) => GroupHomePage(groupId: groupId),
           ),
         );
       },

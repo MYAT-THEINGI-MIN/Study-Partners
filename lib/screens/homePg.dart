@@ -62,7 +62,7 @@ class _HomePgState extends State<HomePg> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Home Page"),
+        // title: const Text("Home Page"),
         backgroundColor: Theme.of(context).brightness == Brightness.light
             ? Colors.white // Set app bar color to white in light theme
             : Colors

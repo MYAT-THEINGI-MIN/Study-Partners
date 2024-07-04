@@ -6,6 +6,7 @@ import 'package:sp_test/screens/GpChat/createGp.dart';
 import 'package:sp_test/screens/chatRoom.dart';
 import 'package:sp_test/Service/chatService.dart';
 import 'package:sp_test/widgets/user_title.dart';
+import 'package:sp_test/widgets/CustomSearchBar.dart'; // Import CustomSearchBar
 
 class ChatUserListPg extends StatefulWidget {
   ChatUserListPg({Key? key}) : super(key: key);
@@ -14,7 +15,8 @@ class ChatUserListPg extends StatefulWidget {
   _ChatUserListPgState createState() => _ChatUserListPgState();
 }
 
-class _ChatUserListPgState extends State<ChatUserListPg> {
+class _ChatUserListPgState extends State<ChatUserListPg>
+    with SingleTickerProviderStateMixin {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   late Stream<QuerySnapshot> _userStream;
   late Stream<QuerySnapshot> _groupStream;
@@ -22,6 +24,8 @@ class _ChatUserListPgState extends State<ChatUserListPg> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
   String _searchText = '';
+
+  late TabController _tabController;
 
   @override
   void initState() {
@@ -32,6 +36,8 @@ class _ChatUserListPgState extends State<ChatUserListPg> {
         .collection('groups')
         .where('members', arrayContains: _auth.currentUser!.uid)
         .snapshots();
+
+    _tabController = TabController(length: 2, vsync: this);
 
     // Add a listener to the scroll controller to handle refreshing
     _scrollController.addListener(() {
@@ -58,29 +64,32 @@ class _ChatUserListPgState extends State<ChatUserListPg> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search...',
-                  border: InputBorder.none,
-                ),
-              ),
-            ),
-            IconButton(
-              icon: Icon(Icons.search),
-              onPressed: () {
-                // Optionally handle search button press if needed
-              },
-            ),
+        title: CustomSearchBar(
+          controller: _searchController,
+          hintText: 'Search...',
+          onChanged: (value) {
+            setState(() {
+              _searchText = value;
+            });
+          },
+          onIconPressed: () {
+            // Optionally handle search button press if needed
+          },
+        ),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(text: 'Groups'),
+            Tab(text: 'Friends'),
           ],
         ),
       ),
-      body: RefreshIndicator(
-        onRefresh: _refreshUsers, // Method to call when refreshing
-        child: _buildUserList(),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildGroupList(),
+          _buildUserList(),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -103,75 +112,79 @@ class _ChatUserListPgState extends State<ChatUserListPg> {
   }
 
   Widget _buildUserList() {
-    return Column(
-      children: [
-        Expanded(
-          child: StreamBuilder<QuerySnapshot>(
-            stream: _userStream,
-            builder: (context, userSnapshot) {
-              if (userSnapshot.hasError) {
-                print("Error: ${userSnapshot.error}");
-                return Text("Error");
-              }
+    return RefreshIndicator(
+      onRefresh: _refreshUsers, // Method to call when refreshing
+      child: StreamBuilder<QuerySnapshot>(
+        stream: _userStream,
+        builder: (context, userSnapshot) {
+          if (userSnapshot.hasError) {
+            print("Error: ${userSnapshot.error}");
+            return Text("Error");
+          }
 
-              if (userSnapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CircularProgressIndicator());
-              }
+          if (userSnapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
 
-              // Filter out the current user's account
-              var filteredUserDocs = userSnapshot.data!.docs
-                  .where((doc) => doc['email'] != _auth.currentUser!.email)
-                  .where((doc) => doc['username']
-                      .toString()
-                      .toLowerCase()
-                      .contains(_searchText.toLowerCase()));
+          // Filter out the current user's account and filter by search text
+          var filteredUserDocs = userSnapshot.data!.docs
+              .where((doc) => doc['email'] != _auth.currentUser!.email)
+              .where((doc) => doc['username']
+                  .toString()
+                  .toLowerCase()
+                  .contains(_searchText.toLowerCase()));
 
-              return ListView.builder(
-                controller: _scrollController, // Set the scroll controller
-                itemCount: filteredUserDocs.length,
-                itemBuilder: (context, index) {
-                  var doc = filteredUserDocs.elementAt(index);
-                  return UserTile(
-                    userDoc: doc,
-                    currentUserId: _auth.currentUser!.uid,
-                    chatService: _chatService,
-                    onDelete: _confirmDeleteChat,
-                  );
-                },
+          return ListView.builder(
+            controller: _scrollController, // Set the scroll controller
+            itemCount: filteredUserDocs.length,
+            itemBuilder: (context, index) {
+              var doc = filteredUserDocs.elementAt(index);
+              return UserTile(
+                userDoc: doc,
+                currentUserId: _auth.currentUser!.uid,
+                chatService: _chatService,
+                onDelete: _confirmDeleteChat,
               );
             },
-          ),
-        ),
-        SizedBox(height: 16), // Add spacing between user and group lists
-        Expanded(
-          child: StreamBuilder<QuerySnapshot>(
-            stream: _groupStream,
-            builder: (context, groupSnapshot) {
-              if (groupSnapshot.hasError) {
-                print("Error: ${groupSnapshot.error}");
-                return Text("Error");
-              }
+          );
+        },
+      ),
+    );
+  }
 
-              if (groupSnapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CircularProgressIndicator());
-              }
+  Widget _buildGroupList() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _groupStream,
+      builder: (context, groupSnapshot) {
+        if (groupSnapshot.hasError) {
+          print("Error: ${groupSnapshot.error}");
+          return Text("Error");
+        }
 
-              return ListView.builder(
-                itemCount: groupSnapshot.data!.docs.length,
-                itemBuilder: (context, index) {
-                  var doc = groupSnapshot.data!.docs[index];
-                  return GroupTile(
-                    groupName: doc['groupName'],
-                    subject: doc['subject'],
-                    profileUrl: doc['profileUrl'] ?? '',
-                    groupId: doc.id,
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ],
+        if (groupSnapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+
+        // Filter groups by search text
+        var filteredGroupDocs = groupSnapshot.data!.docs.where((doc) =>
+            doc['groupName']
+                .toString()
+                .toLowerCase()
+                .contains(_searchText.toLowerCase()));
+
+        return ListView.builder(
+          itemCount: filteredGroupDocs.length,
+          itemBuilder: (context, index) {
+            var doc = filteredGroupDocs.elementAt(index);
+            return GroupTile(
+              groupName: doc['groupName'],
+              subject: doc['subject'],
+              profileUrl: doc['profileUrl'] ?? '',
+              groupId: doc.id,
+            );
+          },
+        );
+      },
     );
   }
 
@@ -233,6 +246,7 @@ class _ChatUserListPgState extends State<ChatUserListPg> {
   void dispose() {
     _scrollController.dispose(); // Dispose the ScrollController
     _searchController.dispose(); // Dispose the TextEditingController
+    _tabController.dispose(); // Dispose the TabController
     super.dispose();
   }
 }

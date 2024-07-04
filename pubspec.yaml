@@ -30,13 +30,9 @@ dependencies:
   date_picker_timeline: ^1.2.3
   table_calendar: ^3.1.2
   shared_preferences: ^2.0.13
+  file_picker: ^4.0.0
   
  
-
-
-
-
-  
 
 dev_dependencies:
   flutter_test:
@@ -48,6 +44,7 @@ flutter:
   uses-material-design: true
 
 
-assets:
+  assets:
     - assets/images/
-    - assets/images/appicon.png
+    - assets/images/chatBubbles.gif
+    - assets/images/lock.gif

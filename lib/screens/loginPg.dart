@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sp_test/controllers/login/loginBloc.dart';
 import 'package:sp_test/controllers/login/loginEvent.dart';
 import 'package:sp_test/controllers/login/loginState.dart';
+import 'package:sp_test/widgets/textfield.dart';
 import 'homePg.dart';
 import 'registerPg.dart';
 
@@ -28,14 +29,11 @@ class _LoginPgState extends State<LoginPg> {
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
             child: Center(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Image.network(
-                    'https://i.pinimg.com/564x/84/17/9e/84179edf09d79962b0c68c1642dbc1b8.jpg', // image URL
-                    height: 100,
-                    width: 100,
-                  ),
-                  SizedBox(height: 24.0),
+                  Image.asset('assets/images/lock.gif'),
+                  SizedBox(height: 10.0),
                   BlocConsumer<LoginBloc, LoginState>(
                     listener: (context, state) {
                       if (state is LoginFailure) {
@@ -55,26 +53,23 @@ class _LoginPgState extends State<LoginPg> {
 
                       return Column(
                         children: [
-                          InputField(
-                            title: 'Email',
-                            hint: 'Enter your email',
+                          CustomTextField(
                             controller: _emailController,
+                            labelText: 'Email',
+                            obscureText: false,
+                            onSuffixIconPressed: () {},
+                            showSuffixIcon: false,
                           ),
                           const SizedBox(height: 5.0),
-                          InputField(
-                            title: 'Password',
-                            hint: 'Enter your password',
+                          CustomTextField(
                             controller: _passwordController,
-                            widget: IconButton(
-                              icon: Icon(_obscureText
-                                  ? Icons.visibility
-                                  : Icons.visibility_off),
-                              onPressed: () {
-                                setState(() {
-                                  _obscureText = !_obscureText;
-                                });
-                              },
-                            ),
+                            labelText: 'Password',
+                            obscureText: _obscureText,
+                            onSuffixIconPressed: () {
+                              setState(() {
+                                _obscureText = !_obscureText;
+                              });
+                            },
                           ),
                           const SizedBox(height: 16.0),
                           Container(
@@ -97,12 +92,12 @@ class _LoginPgState extends State<LoginPg> {
                                 backgroundColor: Colors.deepPurple
                                     .shade100, // Background color of the button
                                 padding: EdgeInsets.symmetric(
-                                    vertical: 16.0,
-                                    horizontal:
-                                        20.0), // Adjust padding as needed
+                                  vertical: 16.0,
+                                  horizontal: 20.0,
+                                ), // Adjust padding as needed
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(
-                                      8.0), // Optional: Button border radius
+                                      20.0), // Optional: Button border radius
                                 ),
                               ),
                               child: Container(
@@ -147,73 +142,10 @@ class _LoginPgState extends State<LoginPg> {
     try {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
       showTopSnackBar(
-          context, 'Password reset was sent.Please check your Email.');
+          context, 'Password reset was sent. Please check your Email.');
     } catch (error) {
       showTopSnackBar(context, 'Please fill Email first.');
     }
-  }
-}
-
-class InputField extends StatelessWidget {
-  final String title;
-  final String hint;
-  final TextEditingController? controller;
-  final Widget? widget;
-  final VoidCallback? onTap;
-
-  const InputField({
-    super.key,
-    required this.title,
-    required this.hint,
-    this.controller,
-    this.widget,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(top: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Container(
-            height: 50,
-            decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 226, 219, 240),
-              border: Border.all(color: Colors.deepPurple, width: 1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: controller,
-                    style: Theme.of(context).textTheme.bodySmall,
-                    decoration: InputDecoration(
-                      hintText: hint,
-                      hintStyle: Theme.of(context).textTheme.bodySmall,
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                    ),
-                    onTap: onTap,
-                  ),
-                ),
-                if (widget != null) widget!,
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 

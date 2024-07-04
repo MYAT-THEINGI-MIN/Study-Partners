@@ -78,10 +78,9 @@ class _PlannerPageState extends State<PlannerPage> {
     });
   }
 
-  List<Event> _getEventsForDay(DateTime day) {
+  List<dynamic> _getEventsForDay(DateTime day) {
     return _allTasks
         .where((task) => isSameDay(DateTime.parse(task['date']), day))
-        .map((task) => Event(task['title']))
         .toList();
   }
 
@@ -113,91 +112,64 @@ class _PlannerPageState extends State<PlannerPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  DateFormat.yMMMMd().format(_selectedDay),
-                  style: Theme.of(context).textTheme.bodyLarge!,
-                ),
-                Text(
-                  "Today",
-                  style: Theme.of(context).textTheme.bodyMedium!,
-                ),
-              ],
-            ),
-          ),
           Row(
             children: [
-              Column(
-                children: [
-                  Row(
-                    children: [
-                      //search tasks
-                      IconButton(
-                        icon: const Icon(Icons.search),
-                        onPressed: () {
-                          if (_currentUser != null) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    SearchTasksPage(uid: _currentUser!.uid),
-                              ),
-                            ).then((_) {
-                              // Reload tasks when returning from search page
-                              _loadTasks();
-                            });
-                          }
-                        },
+              IconButton(
+                icon: const Icon(Icons.search),
+                onPressed: () {
+                  if (_currentUser != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            SearchTasksPage(uid: _currentUser!.uid),
                       ),
-
-                      //share tasks
-                      IconButton(
-                        icon: const Icon(Icons.share),
-                        onPressed: () {
-                          if (_currentUser != null) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ShareTasksPage(
-                                    uid: _currentUser!.uid,
-                                    selectedDay: _selectedDay),
-                              ),
-                            ).then((_) {
-                              // Reload tasks when returning from share page
-                              _loadTasks();
-                            });
-                          }
-                        },
+                    ).then((_) {
+                      // Reload tasks when returning from search page
+                      _loadTasks();
+                    });
+                  }
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.share),
+                onPressed: () {
+                  if (_currentUser != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ShareTasksPage(
+                          uid: _currentUser!.uid,
+                          selectedDay: _selectedDay,
+                        ),
                       ),
-                    ],
-                  ),
-                  //add task
-                  myButton(
-                    label: 'Add Task',
-                    onTap: () {
-                      if (_currentUser != null) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => AddTaskPage(
-                              uid: _currentUser!.uid,
-                              taskId: '',
-                            ),
-                          ),
-                        ).then((_) {
-                          // Reload tasks when returning from add task page
-                          _loadTasks();
-                        });
-                      }
-                    },
-                  ),
-                ],
+                    ).then((_) {
+                      // Reload tasks when returning from share page
+                      _loadTasks();
+                    });
+                  }
+                },
               ),
             ],
+          ),
+          myButton(
+            label: 'Add Task',
+            onTap: () {
+              if (_currentUser != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AddTaskPage(
+                      uid: _currentUser!.uid,
+                      taskId: '',
+                    ),
+                  ),
+                ).then((_) {
+                  // Reload tasks when returning from add task page
+                  _loadTasks();
+                });
+              }
+            },
           ),
         ],
       ),
@@ -271,6 +243,18 @@ class _PlannerPageState extends State<PlannerPage> {
               leftChevronIcon: Icon(Icons.chevron_left),
               rightChevronIcon: Icon(Icons.chevron_right),
             ),
+            calendarBuilders: CalendarBuilders(
+              markerBuilder: (context, date, events) {
+                if (events.isNotEmpty) {
+                  return Positioned(
+                    right: 1,
+                    bottom: 1,
+                    child: _buildEventsMarker(events.length),
+                  );
+                }
+                return const SizedBox();
+              },
+            ),
           ),
           Expanded(
             child: _tasks.isEmpty
@@ -316,6 +300,26 @@ class _PlannerPageState extends State<PlannerPage> {
                   ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEventsMarker(int number) {
+    return Container(
+      width: 16,
+      height: 16,
+      decoration: BoxDecoration(
+        color: Colors.deepPurple,
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(
+          '$number',
+          style: const TextStyle().copyWith(
+            color: Colors.white,
+            fontSize: 12,
+          ),
+        ),
       ),
     );
   }

@@ -192,7 +192,7 @@ class _RegisterPgState extends State<RegisterPg> {
                                   child: Text(value,
                                       style: Theme.of(context)
                                           .textTheme
-                                          .bodyMedium),
+                                          .bodySmall),
                                 );
                               }).toList()
                                 ..add(
@@ -205,7 +205,7 @@ class _RegisterPgState extends State<RegisterPg> {
                                         Text('Add New Subject',
                                             style: Theme.of(context)
                                                 .textTheme
-                                                .bodyMedium),
+                                                .bodySmall),
                                       ],
                                     ),
                                   ),
@@ -230,7 +230,7 @@ class _RegisterPgState extends State<RegisterPg> {
                                   label: Text(subject,
                                       style: Theme.of(context)
                                           .textTheme
-                                          .bodyMedium),
+                                          .bodySmall),
                                   onDeleted: () {
                                     setState(() {
                                       _selectedSubjects.remove(subject);
@@ -261,11 +261,26 @@ class _RegisterPgState extends State<RegisterPg> {
                                   }
                                 },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.deepPurple.shade100,
+                                  backgroundColor: Colors.deepPurple
+                                      .shade100, // Background color of the button
+                                  padding: EdgeInsets.symmetric(
+                                    vertical: 14.0,
+                                    horizontal:
+                                        16.0, // Adjust padding as needed
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                        20.0), // Button border radius
+                                  ),
                                 ),
-                                child: Text('Next',
-                                    style:
-                                        Theme.of(context).textTheme.bodyMedium),
+                                child: Container(
+                                  width: double.infinity, // Full width button
+                                  alignment: Alignment.center,
+                                  child: Text('Next',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall),
+                                ),
                               ),
                             ),
                           ],

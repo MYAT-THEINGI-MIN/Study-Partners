@@ -6,17 +6,20 @@ class AppThemes {
     brightness: Brightness.light,
     primarySwatch: Colors.deepPurple,
     visualDensity: VisualDensity.adaptivePlatformDensity,
+    scaffoldBackgroundColor: Color.fromARGB(
+        255, 255, 255, 255), // Set background color to pure white
     textTheme: TextTheme(
-        bodyMedium: TextStyle(fontSize: 18, color: Colors.black87),
-        bodyLarge: TextStyle(fontSize: 22, color: Colors.black),
-        bodySmall: TextStyle(fontSize: 16, color: Colors.black)),
+      bodyMedium: TextStyle(fontSize: 18, color: Colors.black87),
+      bodyLarge: TextStyle(fontSize: 22, color: Colors.black),
+      bodySmall: TextStyle(fontSize: 16, color: Colors.black),
+    ),
   );
 
   static final ThemeData darkTheme = ThemeData(
     brightness: Brightness.dark,
     primaryColor: Colors.deepPurple,
     hintColor: Colors.deepPurpleAccent,
-    scaffoldBackgroundColor: Colors.black,
+    scaffoldBackgroundColor: const Color.fromARGB(255, 36, 36, 36),
     cardColor: Colors.grey[800],
     visualDensity: VisualDensity.adaptivePlatformDensity,
     appBarTheme: AppBarTheme(
@@ -28,8 +31,9 @@ class AppThemes {
       textTheme: ButtonTextTheme.primary,
     ),
     textTheme: TextTheme(
-        bodyMedium: TextStyle(fontSize: 18, color: Colors.white70),
-        bodyLarge: TextStyle(fontSize: 22, color: Colors.white),
-        bodySmall: TextStyle(fontSize: 16, color: Colors.black)),
+      bodyMedium: TextStyle(fontSize: 18, color: Colors.white70),
+      bodyLarge: TextStyle(fontSize: 22, color: Colors.white),
+      bodySmall: TextStyle(fontSize: 16, color: Colors.black),
+    ),
   );
 }

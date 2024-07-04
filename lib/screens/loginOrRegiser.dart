@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sp_test/Service/FireBaseImage.dart';
 import 'package:sp_test/screens/loginPg.dart';
 import 'package:sp_test/screens/registerPg.dart';
 
@@ -12,6 +13,7 @@ class loginOrRegiser extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                Image.asset('assets/images/chatBubbles.gif'),
                 Text(
                   'Welcome to Study Partners',
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),

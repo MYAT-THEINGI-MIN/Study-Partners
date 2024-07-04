@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:math';
 
 class SplashScreen extends StatefulWidget {
   final int duration;
@@ -12,6 +13,8 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  late String randomText;
+
   @override
   void initState() {
     super.initState();
@@ -24,19 +27,30 @@ class _SplashScreenState extends State<SplashScreen> {
         );
       });
     });
+
+    List<String> texts = [
+      'for more effective study hours',
+      'learn together, grow together',
+      'partnered study, better results',
+      'team up for success',
+      'study smart, study with friends'
+    ];
+
+    Random random = Random();
+    randomText = texts[random.nextInt(texts.length)];
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color.fromARGB(255, 255, 255, 255),
+    return Scaffold(
+      backgroundColor: Color.fromARGB(255, 247, 235, 255),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             SizedBox(height: 20),
             Text(
-              'for more effective study hours',
+              randomText,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
@@ -61,22 +75,3 @@ class _SplashScreenState extends State<SplashScreen> {
     );
   }
 }
-
-
-// //image//
-// Image.network(
-//               "https://i.pinimg.com/originals/ba/1b/ba/ba1bba349c9b8772806a8fd8de2a86d6.gif",
-//               loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
-//                 if (loadingProgress == null) {
-//                   return child;
-//                 }
-//                 return CircularProgressIndicator(
-//                   value: loadingProgress.expectedTotalBytes != null
-//                       ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-//                       : null,
-//                 );
-//               },
-//               errorBuilder: (BuildContext context, Object error, StackTrace? stackTrace) {
-//                 return Text('Failed to load image');
-//               },
-//             ),
