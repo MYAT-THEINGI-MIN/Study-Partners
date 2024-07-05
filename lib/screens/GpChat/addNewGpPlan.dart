@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:file_picker/file_picker.dart';
-import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:sp_test/Service/attachmentHelper.dart';
+import 'dart:io';
 import 'package:sp_test/widgets/textfield.dart';
 
 class AddNewPlan extends StatefulWidget {
+  final String groupId;
+
+  AddNewPlan({required this.groupId});
+
   @override
   _AddNewPlanState createState() => _AddNewPlanState();
 }
@@ -18,36 +21,9 @@ class _AddNewPlanState extends State<AddNewPlan> {
   final _descriptionController = TextEditingController();
   final _deadlineController = TextEditingController();
   final _linkController = TextEditingController();
-  File? _creatorAttachment;
-  String? _creatorAttachmentLink;
-  String? _attachmentType;
   DateTime? _selectedDeadline;
 
-  Future<void> _pickCreatorAttachment() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-
-    if (pickedFile != null) {
-      setState(() {
-        _creatorAttachment = File(pickedFile.path);
-        _attachmentType = 'image';
-      });
-    }
-  }
-
-  Future<void> _pickCreatorFileAttachment() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['jpg', 'pdf', 'doc', 'mp4', 'avi'],
-    );
-
-    if (result != null) {
-      setState(() {
-        _creatorAttachment = File(result.files.single.path!);
-        _attachmentType = result.files.single.extension;
-      });
-    }
-  }
+  final AttachmentHelper _attachmentHelper = AttachmentHelper();
 
   Future<void> _pickDeadline(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -69,21 +45,20 @@ class _AddNewPlanState extends State<AddNewPlan> {
       String title = _titleController.text;
       String description = _descriptionController.text;
       DateTime deadline = _selectedDeadline!;
-      String groupId = "YOUR_GROUP_ID"; // Replace with actual group ID
+      String groupId = widget.groupId; // Use the groupId passed to the widget
       String uid = FirebaseAuth.instance.currentUser!.uid;
 
       // Upload creator's attachment to Firebase Storage and get the URL
       String? creatorAttachmentUrl;
-      if (_creatorAttachment != null) {
-        final ref = FirebaseStorage.instance
-            .ref()
-            .child('attachments')
-            .child(DateTime.now().toString() + '_creator.' + _attachmentType!);
-        await ref.putFile(_creatorAttachment!);
+      if (_attachmentHelper.creatorAttachment != null) {
+        final ref = FirebaseStorage.instance.ref().child('attachments').child(
+            DateTime.now().toString() +
+                '_creator.' +
+                _attachmentHelper.attachmentType!);
+        await ref.putFile(_attachmentHelper.creatorAttachment!);
         creatorAttachmentUrl = await ref.getDownloadURL();
-      } else if (_creatorAttachmentLink != null) {
-        creatorAttachmentUrl = _creatorAttachmentLink;
-        _attachmentType = 'link';
+      } else if (_attachmentHelper.creatorAttachmentLink != null) {
+        creatorAttachmentUrl = _attachmentHelper.creatorAttachmentLink;
       }
 
       await FirebaseFirestore.instance
@@ -96,82 +71,16 @@ class _AddNewPlanState extends State<AddNewPlan> {
         'deadline': Timestamp.fromDate(deadline),
         'groupId': groupId,
         'uid': uid,
-        'completed': '',
         'creatorAttachment': creatorAttachmentUrl,
-        'attachmentType': _attachmentType,
+        'attachmentType': _attachmentHelper.attachmentType,
       });
 
       Navigator.pop(context);
     }
   }
 
-  void _showAttachmentMenu() {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return Wrap(
-          children: [
-            ListTile(
-              leading: Icon(Icons.image),
-              title: Text('Image Attachment'),
-              onTap: () {
-                _pickCreatorAttachment();
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.attach_file),
-              title: Text('File Attachment'),
-              onTap: () {
-                _pickCreatorFileAttachment();
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.link),
-              title: Text('Link Attachment'),
-              onTap: () {
-                Navigator.pop(context);
-                _showLinkAttachmentDialog();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showLinkAttachmentDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Enter Link'),
-          content: CustomTextField(
-            controller: _linkController,
-            labelText: 'Attachment Link',
-            onSuffixIconPressed: () {},
-            showSuffixIcon: false,
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _creatorAttachmentLink = _linkController.text;
-                  _attachmentType = 'link';
-                });
-                Navigator.of(context).pop();
-              },
-              child: Text('Add Link'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Widget _buildAttachmentPreview(BuildContext context) {
-    if (_attachmentType != null) {
+    if (_attachmentHelper.attachmentType != null) {
       Color backgroundColor = Theme.of(context).brightness == Brightness.light
           ? Colors.deepPurple.shade100
           : Colors.grey.shade800;
@@ -185,20 +94,23 @@ class _AddNewPlanState extends State<AddNewPlan> {
         margin: EdgeInsets.symmetric(vertical: 10.0),
         child: Row(
           children: [
-            if (_attachmentType == 'image' && _creatorAttachment != null)
-              Image.file(_creatorAttachment!, height: 100),
-            if (_attachmentType == 'link' && _creatorAttachmentLink != null)
+            if (_attachmentHelper.attachmentType == 'image' &&
+                _attachmentHelper.creatorAttachment != null)
+              Image.file(_attachmentHelper.creatorAttachment!, height: 100),
+            if (_attachmentHelper.attachmentType == 'link' &&
+                _attachmentHelper.creatorAttachmentLink != null)
               Expanded(
                 child: Text(
-                  'Link: $_creatorAttachmentLink',
-                  style: TextStyle(color: Colors.white),
+                  'Link: ${_attachmentHelper.creatorAttachmentLink}',
+                  style: TextStyle(color: Colors.deepPurple.shade300),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-            if (_attachmentType != 'image' && _creatorAttachment != null)
+            if (_attachmentHelper.attachmentType != 'image' &&
+                _attachmentHelper.creatorAttachment != null)
               Expanded(
                 child: Text(
-                  'File: ${_creatorAttachment!.path.split('/').last}',
+                  'File: ${_attachmentHelper.creatorAttachment!.path.split('/').last}',
                   style: TextStyle(color: Colors.white),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -207,9 +119,9 @@ class _AddNewPlanState extends State<AddNewPlan> {
               icon: Icon(Icons.cancel, color: Colors.white),
               onPressed: () {
                 setState(() {
-                  _creatorAttachment = null;
-                  _creatorAttachmentLink = null;
-                  _attachmentType = null;
+                  _attachmentHelper.creatorAttachment = null;
+                  _attachmentHelper.creatorAttachmentLink = null;
+                  _attachmentHelper.attachmentType = null;
                 });
               },
             ),
@@ -228,7 +140,8 @@ class _AddNewPlanState extends State<AddNewPlan> {
         actions: [
           IconButton(
             icon: Icon(Icons.attachment),
-            onPressed: _showAttachmentMenu,
+            onPressed: () => _attachmentHelper.showAttachmentMenu(
+                context, setState, _linkController),
           ),
         ],
       ),

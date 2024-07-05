@@ -3,11 +3,15 @@ import 'package:intl/intl.dart';
 import 'package:sp_test/screens/GpChat/planDetailPg.dart';
 
 class PlanCard extends StatelessWidget {
+  final String planId;
+  final String groupId;
   final String title;
   final String description;
   final DateTime deadline;
 
   PlanCard({
+    required this.planId,
+    required this.groupId,
     required this.title,
     required this.description,
     required this.deadline,
@@ -26,6 +30,8 @@ class PlanCard extends StatelessWidget {
           context,
           MaterialPageRoute(
             builder: (context) => PlanDetailPage(
+              planId: planId,
+              groupId: groupId,
               title: title,
               description: description,
               deadline: deadline,

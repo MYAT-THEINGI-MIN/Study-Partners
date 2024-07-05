@@ -108,6 +108,7 @@ class _PlannerPageState extends State<PlannerPage> {
 
   Widget _addTaskBar(BuildContext context) {
     return Container(
+      padding: EdgeInsets.only(left: 10, right: 10),
       margin: const EdgeInsets.all(5),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -182,78 +183,83 @@ class _PlannerPageState extends State<PlannerPage> {
       body: Column(
         children: [
           _addTaskBar(context),
-          TableCalendar(
-            focusedDay: _focusedDay,
-            firstDay: DateTime(2000),
-            lastDay: DateTime(2100),
-            calendarFormat: _calendarFormat,
-            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-            onDaySelected: (selectedDay, focusedDay) {
-              setState(() {
-                _selectedDay = selectedDay;
-                _focusedDay = focusedDay;
-                _filterTasks();
-              });
-            },
-            onFormatChanged: (format) {
-              setState(() {
-                _calendarFormat = format;
-              });
-            },
-            onPageChanged: (focusedDay) {
-              setState(() {
-                _focusedDay = focusedDay;
-              });
-            },
-            eventLoader: _getEventsForDay,
-            calendarStyle: const CalendarStyle(
-              todayDecoration: BoxDecoration(
-                color: Color.fromARGB(255, 137, 198, 247),
-                shape: BoxShape.circle,
-              ),
-              selectedDecoration: BoxDecoration(
-                color: Colors.blue,
-                shape: BoxShape.circle,
-              ),
-              markersMaxCount: 1,
-              markerDecoration: BoxDecoration(
-                color: Colors.deepPurple,
-                shape: BoxShape.circle,
-              ),
-              outsideDaysVisible: false,
-            ),
-            daysOfWeekStyle: const DaysOfWeekStyle(
-              weekdayStyle: TextStyle(
-                color: Colors.deepPurple,
-                fontWeight: FontWeight.bold,
-              ),
-              weekendStyle: TextStyle(
-                color: Colors.red,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            daysOfWeekHeight: 20.0, // Correct placement for daysOfWeekHeight
-            headerStyle: const HeaderStyle(
-              formatButtonVisible: false,
-              titleCentered: true,
-              titleTextStyle: TextStyle(
-                fontSize: 16.0,
-                fontWeight: FontWeight.bold,
-              ),
-              leftChevronIcon: Icon(Icons.chevron_left),
-              rightChevronIcon: Icon(Icons.chevron_right),
-            ),
-            calendarBuilders: CalendarBuilders(
-              markerBuilder: (context, date, events) {
-                if (events.isNotEmpty) {
-                  return Positioned(
-                    right: 1,
-                    bottom: 1,
-                    child: _buildEventsMarker(events.length),
-                  );
-                }
-                return const SizedBox();
+          Container(
+            //   decoration:
+            //       BoxDecoration(color: const Color.fromARGB(255, 239, 231, 255)),
+            padding: EdgeInsets.only(left: 10, right: 10),
+            child: TableCalendar(
+              focusedDay: _focusedDay,
+              firstDay: DateTime(2000),
+              lastDay: DateTime(2100),
+              calendarFormat: _calendarFormat,
+              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+              onDaySelected: (selectedDay, focusedDay) {
+                setState(() {
+                  _selectedDay = selectedDay;
+                  _focusedDay = focusedDay;
+                  _filterTasks();
+                });
               },
+              onFormatChanged: (format) {
+                setState(() {
+                  _calendarFormat = format;
+                });
+              },
+              onPageChanged: (focusedDay) {
+                setState(() {
+                  _focusedDay = focusedDay;
+                });
+              },
+              eventLoader: _getEventsForDay,
+              calendarStyle: const CalendarStyle(
+                todayDecoration: BoxDecoration(
+                  color: Color.fromARGB(255, 137, 198, 247),
+                  shape: BoxShape.circle,
+                ),
+                selectedDecoration: BoxDecoration(
+                  color: Colors.blue,
+                  shape: BoxShape.circle,
+                ),
+                markersMaxCount: 1,
+                markerDecoration: BoxDecoration(
+                  color: Colors.deepPurple,
+                  shape: BoxShape.circle,
+                ),
+                outsideDaysVisible: false,
+              ),
+              daysOfWeekStyle: const DaysOfWeekStyle(
+                weekdayStyle: TextStyle(
+                  color: Colors.deepPurple,
+                  fontWeight: FontWeight.bold,
+                ),
+                weekendStyle: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              daysOfWeekHeight: 20.0, // Correct placement for daysOfWeekHeight
+              headerStyle: const HeaderStyle(
+                formatButtonVisible: false,
+                titleCentered: true,
+                titleTextStyle: TextStyle(
+                  fontSize: 16.0,
+                  fontWeight: FontWeight.bold,
+                ),
+                leftChevronIcon: Icon(Icons.chevron_left),
+                rightChevronIcon: Icon(Icons.chevron_right),
+              ),
+              calendarBuilders: CalendarBuilders(
+                markerBuilder: (context, date, events) {
+                  if (events.isNotEmpty) {
+                    return Positioned(
+                      right: 1,
+                      bottom: 1,
+                      child: _buildEventsMarker(events.length),
+                    );
+                  }
+                  return const SizedBox();
+                },
+              ),
             ),
           ),
           Expanded(

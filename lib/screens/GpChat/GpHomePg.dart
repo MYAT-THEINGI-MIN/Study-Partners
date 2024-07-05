@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sp_test/screens/GpChat/EditGp.dart'; // Make sure this import path is correct
 import 'package:sp_test/screens/GpChat/GpChatroom.dart';
 import 'package:sp_test/screens/GpChat/GpPlans.dart';
+import 'package:sp_test/screens/GpChat/LeaderBoard.dart';
 import 'package:sp_test/screens/GpChat/MemberList.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Ensure to import FirebaseAuth
 
@@ -32,6 +33,7 @@ class GroupHomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.deepPurple.shade100,
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) {
@@ -144,7 +146,8 @@ class GroupHomePage extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => GpPlans(),
+                              builder: (context) => GpPlans(
+                                  groupId: groupId), // Pass groupId here
                             ),
                           );
                         },
@@ -166,7 +169,16 @@ class GroupHomePage extends StatelessWidget {
                       ListTile(
                         leading: const Icon(Icons.leaderboard),
                         title: const Text('LeaderBoard'),
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => LeaderboardPage(
+                                groupId: groupId,
+                              ),
+                            ),
+                          );
+                        },
                       ),
                       ListTile(
                         leading: const Icon(Icons.group),

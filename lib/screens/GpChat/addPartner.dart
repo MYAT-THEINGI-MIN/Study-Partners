@@ -1,6 +1,9 @@
-import 'package:flutter/material.dart';
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:image_picker/image_picker.dart';
 
 void showTopSnackBar(BuildContext context, String message) {
   final overlay = Overlay.of(context);
@@ -61,7 +64,7 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
         .get();
 
     setState(() {
-      _existingMembers = List<String>.from(groupDoc['members'] ?? []);
+      _existingMembers = List<String>.from(groupDoc['members']);
     });
   }
 
@@ -78,7 +81,9 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
           .where('username', isLessThanOrEqualTo: trimmedQuery + '\uf8ff')
           .get();
 
-      final filteredResults = result.docs.toList();
+      final filteredResults = result.docs
+          .where((user) => !_existingMembers.contains(user.id))
+          .toList();
 
       setState(() {
         _searchResults = filteredResults;
@@ -94,34 +99,34 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
 
   void _addPartner(DocumentSnapshot user) async {
     try {
-      // Check if the member document already exists
-      final memberDoc = await FirebaseFirestore.instance
+      // Update the 'members' array in the 'groups' collection
+      await FirebaseFirestore.instance
           .collection('groups')
           .doc(widget.groupId)
-          .collection('members')
-          .doc(user.id)
-          .get();
+          .update({
+        'members': FieldValue.arrayUnion([user.id])
+      });
 
-      if (!memberDoc.exists) {
-        // If member document doesn't exist, create it with initial points
-        await FirebaseFirestore.instance
-            .collection('groups')
-            .doc(widget.groupId)
-            .collection('members')
-            .doc(user.id)
-            .set({
-          'name':
-              user['username'], // Adjust according to your user data structure
-          'points': 0, // Initial points
-        });
-      }
-
+      // Update the local state to reflect the new member
       setState(() {
         _existingMembers.add(user.id);
       });
 
+      // Add the user to the LeaderBoard collection under the group
+      await FirebaseFirestore.instance
+          .collection('groups')
+          .doc(widget.groupId)
+          .collection('LeaderBoard')
+          .doc(user.id)
+          .set({
+        'name': user['username'],
+        'points': 0,
+      });
+
+      // Show a success message
       showTopSnackBar(context, '${user['username']} added to the group');
     } catch (e) {
+      // Handle errors
       print('Error adding partner: $e');
       showTopSnackBar(context, 'Failed to add partner');
     }
@@ -161,27 +166,18 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
                       final isExistingMember =
                           _existingMembers.contains(user.id);
 
-                      return Card(
-                        margin:
-                            EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundImage: NetworkImage(
-                              user['profileImageUrl'] ??
-                                  'https://via.placeholder.com/150',
-                            ),
-                          ),
-                          title: Text(user['username'] ?? 'No Username'),
-                          subtitle: isExistingMember
-                              ? Text('Already in group')
-                              : Text(user['subjects'] ?? 'No Subjects'),
-                          trailing: isExistingMember
-                              ? null
-                              : IconButton(
-                                  icon: Icon(Icons.person_add),
-                                  onPressed: () => _addPartner(user),
-                                ),
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundImage:
+                              NetworkImage(user['profileImageUrl']),
                         ),
+                        title: Text(user['username']),
+                        trailing: isExistingMember
+                            ? Text('Already in group')
+                            : IconButton(
+                                icon: Icon(Icons.person_add),
+                                onPressed: () => _addPartner(user),
+                              ),
                       );
                     },
                   ),
@@ -191,4 +187,3 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
     );
   }
 }
-//adding new member with point 0

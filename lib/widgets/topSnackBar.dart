@@ -12,7 +12,9 @@ void showTopSnackBar(BuildContext context, String message) {
         child: Container(
           padding: EdgeInsets.all(10.0),
           decoration: BoxDecoration(
-            color: Color.fromARGB(221, 43, 43, 43),
+            color: Theme.of(context).brightness == Brightness.light
+                ? Color.fromARGB(221, 221, 221, 221) // Light theme color
+                : Color.fromARGB(221, 43, 43, 43), // Dark theme color
             borderRadius: BorderRadius.circular(10.0),
           ),
           child: Text(

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:sp_test/screens/GpChat/addPartner.dart';
 
 class CreateGroup extends StatefulWidget {
   @override
@@ -15,8 +16,8 @@ class _CreateGroupState extends State<CreateGroup> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final TextEditingController _groupNameController = TextEditingController();
   final TextEditingController _subjectController = TextEditingController();
-  File? _imageFile; // Variable to store the selected image file
-  final ImagePicker _picker = ImagePicker(); // Image picker instance
+  File? _imageFile;
+  final ImagePicker _picker = ImagePicker();
 
   void _createGroup() async {
     String groupName = _groupNameController.text.trim();
@@ -32,10 +33,10 @@ class _CreateGroupState extends State<CreateGroup> {
       // Get current user details
       User? user = _auth.currentUser;
       String adminId = user!.uid;
+      String adminName = user.displayName ?? "Admin"; // Default to 'Admin'
 
       // Upload image file if selected
       if (_imageFile != null) {
-        // Example path for image storage
         String imagePath =
             'group_profiles/${DateTime.now().millisecondsSinceEpoch}.jpg';
         Reference storageReference =
@@ -52,7 +53,7 @@ class _CreateGroupState extends State<CreateGroup> {
         'profileUrl': profileUrl ?? '',
         'adminId': adminId,
         'timestamp': FieldValue.serverTimestamp(),
-        'members': [adminId], // Include admin as the first member
+        'members': [adminId],
       });
 
       // Add the admin to the group members array
@@ -60,12 +61,26 @@ class _CreateGroupState extends State<CreateGroup> {
         'members': FieldValue.arrayUnion([adminId]),
       });
 
+      // Ensure adminName is fetched and set correctly
+      if (adminName == null) {
+        // If displayName is null, fetch user info again (not expected to happen often)
+        User? updatedUser = await _auth.currentUser;
+        adminName = updatedUser!.displayName ?? "Admin";
+      }
+
+      // Create the LeaderBoard collection under the group document
+      await groupRef.collection('LeaderBoard').doc(adminId).set({
+        'name': adminName,
+        'points': 0,
+      });
+
       // Show snackbar and navigate back
       showTopSnackBar(context, 'Group created successfully');
-      Navigator.pop(context); // Navigate back to previous screen
+      Navigator.pop(context);
     } catch (e) {
       // Handle errors
       print("Error creating group: $e");
+      showTopSnackBar(context, 'Failed to create group: $e');
     }
   }
 
@@ -128,35 +143,4 @@ class _CreateGroupState extends State<CreateGroup> {
     _subjectController.dispose();
     super.dispose();
   }
-}
-
-void showTopSnackBar(BuildContext context, String message) {
-  final overlay = Overlay.of(context);
-  final overlayEntry = OverlayEntry(
-    builder: (context) => Positioned(
-      top: 50.0,
-      left: MediaQuery.of(context).size.width * 0.1,
-      right: MediaQuery.of(context).size.width * 0.1,
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          padding: EdgeInsets.all(10.0),
-          decoration: BoxDecoration(
-            color: Color.fromARGB(221, 210, 210, 210),
-            borderRadius: BorderRadius.circular(10.0),
-          ),
-          child: Text(
-            message,
-            style: TextStyle(color: Colors.white),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ),
-    ),
-  );
-
-  overlay?.insert(overlayEntry);
-  Future.delayed(Duration(seconds: 3), () {
-    overlayEntry.remove();
-  });
 }

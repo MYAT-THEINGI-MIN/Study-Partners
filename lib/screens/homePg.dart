@@ -64,7 +64,8 @@ class _HomePgState extends State<HomePg> {
       appBar: AppBar(
         // title: const Text("Home Page"),
         backgroundColor: Theme.of(context).brightness == Brightness.light
-            ? Colors.white // Set app bar color to white in light theme
+            ? Colors.deepPurple
+                .shade100 // Set app bar color to white in light theme
             : Colors
                 .deepPurple, // Set app bar color to deep purple in dark theme
         actions: <Widget>[
