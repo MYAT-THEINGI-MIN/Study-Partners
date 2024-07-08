@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sp_test/screens/GpChat/EditGp.dart'; // Make sure this import path is correct
+import 'package:sp_test/screens/GpChat/FlashCard/FCpage.dart';
 import 'package:sp_test/screens/GpChat/GpChatroom.dart';
 import 'package:sp_test/screens/GpChat/GpPlans.dart';
 import 'package:sp_test/screens/GpChat/LeaderBoard.dart';
@@ -33,7 +34,6 @@ class GroupHomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.deepPurple.shade100,
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) {
@@ -164,6 +164,20 @@ class GroupHomePage extends StatelessWidget {
                         title: const Text('Quiz'),
                         onTap: () {
                           // Add your navigation or functionality here
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.lightbulb),
+                        title: const Text('Flash Card'),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => FlashcardsPage(
+                                groupId: groupId,
+                              ),
+                            ),
+                          );
                         },
                       ),
                       ListTile(

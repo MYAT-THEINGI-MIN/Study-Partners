@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:intl/intl.dart';
 import 'package:sp_test/Service/attachmentHelper.dart';
-import 'dart:io';
 import 'package:sp_test/widgets/textfield.dart';
 
 class AddNewPlan extends StatefulWidget {
@@ -48,6 +48,18 @@ class _AddNewPlanState extends State<AddNewPlan> {
       String groupId = widget.groupId; // Use the groupId passed to the widget
       String uid = FirebaseAuth.instance.currentUser!.uid;
 
+      // Fetch current user's username
+      String? username;
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get()
+          .then((DocumentSnapshot documentSnapshot) {
+        if (documentSnapshot.exists) {
+          username = documentSnapshot['username'];
+        }
+      });
+
       // Upload creator's attachment to Firebase Storage and get the URL
       String? creatorAttachmentUrl;
       if (_attachmentHelper.creatorAttachment != null) {
@@ -61,7 +73,8 @@ class _AddNewPlanState extends State<AddNewPlan> {
         creatorAttachmentUrl = _attachmentHelper.creatorAttachmentLink;
       }
 
-      await FirebaseFirestore.instance
+      // Add new plan document to Firestore
+      DocumentReference planRef = await FirebaseFirestore.instance
           .collection('groups')
           .doc(groupId)
           .collection('plans')
@@ -71,8 +84,15 @@ class _AddNewPlanState extends State<AddNewPlan> {
         'deadline': Timestamp.fromDate(deadline),
         'groupId': groupId,
         'uid': uid,
+        'username': username, // Save username instead of uid
         'creatorAttachment': creatorAttachmentUrl,
         'attachmentType': _attachmentHelper.attachmentType,
+      });
+
+      // Create a 'completed' collection under the new plan document
+      await planRef.collection('completed').doc(uid).set({
+        'completedBy': uid,
+        'completedAt': Timestamp.now(),
       });
 
       Navigator.pop(context);
@@ -137,19 +157,13 @@ class _AddNewPlanState extends State<AddNewPlan> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Add New Plan'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.attachment),
-            onPressed: () => _attachmentHelper.showAttachmentMenu(
-                context, setState, _linkController),
-          ),
-        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          child: ListView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               CustomTextField(
                 controller: _titleController,
@@ -195,9 +209,21 @@ class _AddNewPlanState extends State<AddNewPlan> {
               SizedBox(height: 10),
               _buildAttachmentPreview(context),
               SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _addNewPlan,
-                child: Text('Add Plan'),
+              Row(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.attachment),
+                    onPressed: () => _attachmentHelper.showAttachmentMenu(
+                        context, setState, _linkController),
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _addNewPlan,
+                      child: Text('Add Plan'),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:sp_test/screens/GpChat/PlanCard.dart';
 import 'package:sp_test/screens/GpChat/addNewGpPlan.dart';
-import 'package:sp_test/screens/GpChat/planCard.dart';
 
 class GpPlans extends StatelessWidget {
   final String groupId;
@@ -17,7 +17,7 @@ class GpPlans extends StatelessWidget {
           Container(
             padding: EdgeInsets.symmetric(horizontal: 16.0),
             child: ElevatedButton(
-              child: Text("+Add New Plan"),
+              child: Text("+ Add New Plan"),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -54,15 +54,19 @@ class GpPlans extends StatelessWidget {
               String planId = plan.id; // Get the planId from the document ID
               String title = plan['title'];
               String description = plan['description'];
+              String creatorName =
+                  plan['username']; // Ensure this matches Firestore field name
               DateTime deadline = (plan['deadline'] as Timestamp).toDate();
 
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
                 child: PlanCard(
-                  planId: planId, // Pass the planId
-                  groupId: groupId, // Pass the groupId
+                  planId: planId,
+                  groupId: groupId,
                   title: title,
                   description: description,
+                  creatorName: creatorName,
                   deadline: deadline,
                 ),
               );

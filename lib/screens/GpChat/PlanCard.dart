@@ -7,6 +7,7 @@ class PlanCard extends StatelessWidget {
   final String groupId;
   final String title;
   final String description;
+  final String creatorName; // Named parameter for creator's name
   final DateTime deadline;
 
   PlanCard({
@@ -14,6 +15,7 @@ class PlanCard extends StatelessWidget {
     required this.groupId,
     required this.title,
     required this.description,
+    required this.creatorName, // Named parameter for creator's name
     required this.deadline,
   });
 
@@ -57,6 +59,7 @@ class PlanCard extends StatelessWidget {
               SizedBox(height: 8),
               Text(description),
               SizedBox(height: 8),
+              Text('Creator: $creatorName'), // Display creator's name
               Text(
                 'Deadline: $formattedDeadline',
                 style: TextStyle(fontStyle: FontStyle.italic),
