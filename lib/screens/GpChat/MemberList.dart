@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:sp_test/screens/GpChat/addPartner.dart'; // Make sure this import path is correct
+import 'package:sp_test/screens/GpChat/EditGroup/addPartner.dart'; // Make sure this import path is correct
 
 class MemberList extends StatefulWidget {
   final String groupId;

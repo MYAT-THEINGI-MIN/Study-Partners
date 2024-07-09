@@ -43,7 +43,8 @@ class _PlanDetailPageState extends State<PlanDetailPage> {
             _attachmentHelper.creatorAttachmentLink == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('Please attach a file or link before submitting')),
+          content: Text('Please attach a file or link before submitting'),
+        ),
       );
       return;
     }
@@ -194,6 +195,48 @@ class _PlanDetailPageState extends State<PlanDetailPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Plan Detail'),
+        actions: [
+          FutureBuilder<bool>(
+            future: _isCurrentUserCreator(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return SizedBox();
+              } else {
+                if (snapshot.hasError || !snapshot.data!) {
+                  return SizedBox();
+                } else {
+                  return IconButton(
+                    icon: Icon(Icons.delete),
+                    onPressed: () async {
+                      bool confirm = await showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: Text('Delete Plan'),
+                          content: Text(
+                              'Are you sure you want to delete this plan?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(false),
+                              child: Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(true),
+                              child: Text('Delete'),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirm) {
+                        _deletePlan(context);
+                      }
+                    },
+                  );
+                }
+              }
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -214,7 +257,9 @@ class _PlanDetailPageState extends State<PlanDetailPage> {
                       Text(
                         widget.title,
                         style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 20),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
                       ),
                       SizedBox(height: 10),
                       Text(widget.description),
@@ -261,14 +306,16 @@ class _PlanDetailPageState extends State<PlanDetailPage> {
                         ),
                       ] else ...[
                         Text(
-                          'You have done this work',
+                          'You have submitted your work',
                           style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                         SizedBox(height: 20),
                         ElevatedButton(
                           onPressed: _deleteWork,
-                          child: Text('Delete Work'),
+                          child: Text('Delete Submission'),
                         ),
                       ],
                     ],
@@ -287,5 +334,36 @@ class _PlanDetailPageState extends State<PlanDetailPage> {
     _linkController.dispose();
     _comment.dispose();
     super.dispose();
+  }
+
+  Future<bool> _isCurrentUserCreator() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      final DocumentSnapshot planSnapshot = await _firestore
+          .collection('groups')
+          .doc(widget.groupId)
+          .collection('plans')
+          .doc(widget.planId)
+          .get();
+      return planSnapshot['uid'] == user.uid;
+    }
+    return false;
+  }
+
+  Future<void> _deletePlan(BuildContext context) async {
+    try {
+      await _firestore
+          .collection('groups')
+          .doc(widget.groupId)
+          .collection('plans')
+          .doc(widget.planId)
+          .delete();
+      Navigator.of(context).pop();
+    } catch (e) {
+      print('Failed to delete plan: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to delete plan')),
+      );
+    }
   }
 }

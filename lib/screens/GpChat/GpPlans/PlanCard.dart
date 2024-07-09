@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:sp_test/screens/GpChat/planDetailPg.dart';
+import 'package:sp_test/screens/GpChat/GpPlans/planDetailPg.dart';
+import 'package:sp_test/screens/Planner/addTaskPg.dart';
 
 class PlanCard extends StatelessWidget {
   final String planId;
   final String groupId;
   final String title;
   final String description;
-  final String creatorName; // Named parameter for creator's name
+  final String creatorName;
   final DateTime deadline;
 
   PlanCard({
@@ -15,7 +16,7 @@ class PlanCard extends StatelessWidget {
     required this.groupId,
     required this.title,
     required this.description,
-    required this.creatorName, // Named parameter for creator's name
+    required this.creatorName,
     required this.deadline,
   });
 
@@ -49,9 +50,32 @@ class PlanCard extends StatelessWidget {
         margin: EdgeInsets.symmetric(vertical: 8.0),
         child: ListTile(
           contentPadding: EdgeInsets.all(16.0),
-          title: Text(
-            title,
-            style: TextStyle(fontWeight: FontWeight.bold),
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.add_task),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AddTaskPage(
+                        uid: 'user_uid_here', // Replace with actual UID
+                        title: title,
+                        description: description,
+                        deadline: deadline,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

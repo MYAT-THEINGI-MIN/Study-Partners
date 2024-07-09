@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:sp_test/screens/GpChat/EditGp.dart'; // Make sure this import path is correct
+import 'package:sp_test/screens/GpChat/EditGroup/EditGp.dart'; // Make sure this import path is correct
 import 'package:sp_test/screens/GpChat/FlashCard/FCpage.dart';
 import 'package:sp_test/screens/GpChat/GpChatroom.dart';
-import 'package:sp_test/screens/GpChat/GpPlans.dart';
+import 'package:sp_test/screens/GpChat/GpPlans/GpPlans.dart';
 import 'package:sp_test/screens/GpChat/LeaderBoard.dart';
 import 'package:sp_test/screens/GpChat/MemberList.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Ensure to import FirebaseAuth

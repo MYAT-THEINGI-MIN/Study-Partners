@@ -7,8 +7,8 @@ import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:sp_test/Service/chatService.dart';
 import 'package:sp_test/Service/messageItem.dart';
-import 'package:sp_test/screens/GpChat/EditGp.dart';
-import 'package:sp_test/screens/GpChat/LeaveGp.dart';
+import 'package:sp_test/screens/GpChat/EditGroup/EditGp.dart';
+import 'package:sp_test/screens/GpChat/EditGroup/LeaveGp.dart';
 import 'package:sp_test/widgets/messageInput.dart';
 
 class GpChatRoom extends StatefulWidget {

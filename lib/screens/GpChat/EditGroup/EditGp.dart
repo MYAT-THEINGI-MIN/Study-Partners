@@ -4,7 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:sp_test/screens/GpChat/addPartner.dart';
+import 'package:sp_test/screens/GpChat/EditGroup/addPartner.dart';
 
 class EditGroupPage extends StatefulWidget {
   final String groupId;

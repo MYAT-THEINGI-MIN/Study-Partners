@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:sp_test/screens/GpChat/PlanCard.dart';
-import 'package:sp_test/screens/GpChat/addNewGpPlan.dart';
+import 'package:sp_test/screens/GpChat/GpPlans/PlanCard.dart';
+import 'package:sp_test/screens/GpChat/GpPlans/addNewGpPlan.dart';
 
 class GpPlans extends StatelessWidget {
   final String groupId;

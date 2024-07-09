@@ -33,7 +33,7 @@ class MyApp extends StatelessWidget {
   }
 
   Future<void> _scheduleNotification(String message) async {
-    final androidPlatformChannelSpecifics = AndroidNotificationDetails(
+    const androidPlatformChannelSpecifics = AndroidNotificationDetails(
       'your_channel_id',
       'your_channel_name',
       channelDescription: 'your_channel_description',
@@ -97,7 +97,7 @@ class MyApp extends StatelessWidget {
             return SplashScreen(
                 duration: 3,
                 nextPage:
-                    loginOrRegiser()); // Show splash for 3 seconds if not logged in
+                    LoginOrRegister()); // Show splash for 3 seconds if not logged in
           }
         }
       },

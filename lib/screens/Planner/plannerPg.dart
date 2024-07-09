@@ -162,7 +162,6 @@ class _PlannerPageState extends State<PlannerPage> {
                   MaterialPageRoute(
                     builder: (context) => AddTaskPage(
                       uid: _currentUser!.uid,
-                      taskId: '',
                     ),
                   ),
                 ).then((_) {

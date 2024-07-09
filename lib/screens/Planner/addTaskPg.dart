@@ -1,34 +1,56 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:sp_test/screens/Planner/InputField.dart';
 import 'package:sp_test/screens/Planner/button.dart';
 import 'package:sp_test/screens/Planner/colorCircle.dart';
 import 'package:sp_test/screens/Planner/firebaseService.dart';
 
 class AddTaskPage extends StatefulWidget {
-  final String uid; // Pass uid to AddTaskPage
+  final String uid;
+  final String? title;
+  final String? description;
+  final DateTime? deadline;
 
-  const AddTaskPage({Key? key, required this.uid, required String taskId})
-      : super(key: key);
+  const AddTaskPage({
+    Key? key,
+    required this.uid,
+    this.title,
+    this.description,
+    this.deadline,
+  }) : super(key: key);
 
   @override
   _AddTaskPageState createState() => _AddTaskPageState();
 }
 
 class _AddTaskPageState extends State<AddTaskPage> {
-  final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _noteController = TextEditingController();
-  final TextEditingController _dateController = TextEditingController();
-  final TextEditingController _timeController = TextEditingController();
+  late TextEditingController _titleController;
+  late TextEditingController _noteController;
+  late TextEditingController _dateController;
+  late TextEditingController _timeController;
   String _selectedRepeat = 'None';
   String _selectedRemind = '5 minutes before';
   Color? _selectedColor;
 
   final FirebaseService _firebaseService = FirebaseService();
 
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.title ?? '');
+    _noteController = TextEditingController(text: widget.description ?? '');
+    _dateController = TextEditingController(
+      text: widget.deadline != null
+          ? DateFormat('yyyy-MM-dd').format(widget.deadline!)
+          : '',
+    );
+    _timeController = TextEditingController();
+  }
+
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: widget.deadline ?? DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
     );
@@ -199,7 +221,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
                     '5 minutes before',
                     '10 minutes before',
                     '15 minutes before',
-                    '30 minutes before'
+                    '20 minutes before'
                   ].map<DropdownMenuItem<String>>((String value) {
                     return DropdownMenuItem<String>(
                       value: value,
@@ -225,11 +247,11 @@ class _AddTaskPageState extends State<AddTaskPage> {
                       },
                     ),
                     ColorCircle(
-                      color: Colors.orange,
-                      isSelected: _selectedColor == Colors.orange,
+                      color: Colors.yellow,
+                      isSelected: _selectedColor == Colors.yellow,
                       onTap: () {
                         setState(() {
-                          _selectedColor = Colors.orange;
+                          _selectedColor = Colors.yellow;
                         });
                       },
                     ),

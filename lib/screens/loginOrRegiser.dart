@@ -3,7 +3,7 @@ import 'package:sp_test/Service/FireBaseImage.dart';
 import 'package:sp_test/screens/loginPg.dart';
 import 'package:sp_test/screens/registerPg.dart';
 
-class loginOrRegiser extends StatelessWidget {
+class LoginOrRegister extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -29,7 +29,7 @@ class loginOrRegiser extends StatelessWidget {
               children: [
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.push(
+                    Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(builder: (context) => LoginPg()),
                     );
@@ -48,7 +48,7 @@ class loginOrRegiser extends StatelessWidget {
                 SizedBox(height: 10),
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.push(
+                    Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(builder: (context) => RegisterPg()),
                     );
