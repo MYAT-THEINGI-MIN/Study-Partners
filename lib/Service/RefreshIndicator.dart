@@ -1,6 +1,4 @@
-// refresh_indicator_widget.dart
 import 'package:flutter/material.dart';
-import 'package:sp_test/Service/refreshService.dart';
 
 class RefreshIndicatorWidget extends StatelessWidget {
   final Widget child;
@@ -29,5 +27,15 @@ class RefreshIndicatorWidget extends StatelessWidget {
         child: child,
       ),
     );
+  }
+}
+
+class RefreshController {
+  VoidCallback? onRefresh;
+
+  void refresh() {
+    if (onRefresh != null) {
+      onRefresh!();
+    }
   }
 }

@@ -22,6 +22,17 @@ class _EditProfilePgState extends State<EditProfilePg> {
   File? _profileImage;
 
   List<String> _subjects = [];
+  List<String> _predefinedSubjects = [
+    'Java',
+    'Html',
+    'CSS',
+    'Flutter',
+    'Art',
+    'Japanese',
+    'Korean',
+    'Chinese',
+    'English'
+  ];
 
   @override
   void initState() {
@@ -98,12 +109,51 @@ class _EditProfilePgState extends State<EditProfilePg> {
         'username': _usernameController.text,
         'status': _statusController.text,
         'subjects': newSubjects,
+        'interests': newSubjects,
         'profileImageUrl': profileImageUrl,
       });
       Navigator.pop(context);
     } catch (e) {
       print('Failed to update profile: $e');
     }
+  }
+
+  void _showAddSubjectDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Add New Subject'),
+          content: TextField(
+            controller: _subjectController,
+            decoration: InputDecoration(
+              hintText: 'Enter subject',
+            ),
+          ),
+          actions: [
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Add'),
+              onPressed: () {
+                if (_subjectController.text.isNotEmpty) {
+                  setState(() {
+                    _subjects.add(_subjectController.text.trim());
+                    _predefinedSubjects.add(_subjectController.text.trim());
+                  });
+                  _subjectController.clear();
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -198,6 +248,43 @@ class _EditProfilePgState extends State<EditProfilePg> {
                     .toList(),
               ),
               SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                decoration: InputDecoration(
+                  labelText: 'Select Subject',
+                  border: OutlineInputBorder(),
+                ),
+                items: _predefinedSubjects.map((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value,
+                        style: Theme.of(context).textTheme.bodySmall),
+                  );
+                }).toList()
+                  ..add(
+                    DropdownMenuItem<String>(
+                      value: 'add_new',
+                      child: Row(
+                        children: [
+                          Icon(Icons.add),
+                          SizedBox(width: 8.0),
+                          Text('Add New Subject',
+                              style: Theme.of(context).textTheme.bodySmall),
+                        ],
+                      ),
+                    ),
+                  ),
+                onChanged: (String? newValue) {
+                  if (newValue == 'add_new') {
+                    _showAddSubjectDialog(context);
+                  } else if (newValue != null &&
+                      !_subjects.contains(newValue)) {
+                    setState(() {
+                      _subjects.add(newValue);
+                    });
+                  }
+                },
+              ),
+              SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [

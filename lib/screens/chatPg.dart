@@ -8,14 +8,14 @@ import 'package:sp_test/Service/chatService.dart';
 import 'package:sp_test/widgets/user_title.dart';
 import 'package:sp_test/widgets/CustomSearchBar.dart'; // Import CustomSearchBar
 
-class ChatUserListPg extends StatefulWidget {
-  ChatUserListPg({Key? key}) : super(key: key);
+class ChatPg extends StatefulWidget {
+  ChatPg({Key? key}) : super(key: key);
 
   @override
   _ChatUserListPgState createState() => _ChatUserListPgState();
 }
 
-class _ChatUserListPgState extends State<ChatUserListPg>
+class _ChatUserListPgState extends State<ChatPg>
     with SingleTickerProviderStateMixin {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   late Stream<QuerySnapshot> _userStream;

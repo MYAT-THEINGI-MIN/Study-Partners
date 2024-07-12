@@ -158,74 +158,76 @@ class _AddNewPlanState extends State<AddNewPlan> {
       appBar: AppBar(
         title: Text('Add New Plan'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              CustomTextField(
-                controller: _titleController,
-                labelText: 'Title',
-                onSuffixIconPressed: () {},
-                showSuffixIcon: false,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a title';
-                  }
-                  return null;
-                },
-              ),
-              CustomTextField(
-                controller: _descriptionController,
-                labelText: 'Description',
-                onSuffixIconPressed: () {},
-                showSuffixIcon: false,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a description';
-                  }
-                  return null;
-                },
-              ),
-              InkWell(
-                onTap: () => _pickDeadline(context),
-                child: IgnorePointer(
-                  child: CustomTextField(
-                    controller: _deadlineController,
-                    labelText: 'Deadline',
-                    onSuffixIconPressed: () {},
-                    showSuffixIcon: false,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please pick a deadline';
-                      }
-                      return null;
-                    },
-                  ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                CustomTextField(
+                  controller: _titleController,
+                  labelText: 'Title',
+                  onSuffixIconPressed: () {},
+                  showSuffixIcon: false,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a title';
+                    }
+                    return null;
+                  },
                 ),
-              ),
-              SizedBox(height: 10),
-              _buildAttachmentPreview(context),
-              SizedBox(height: 20),
-              Row(
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.attachment),
-                    onPressed: () => _attachmentHelper.showAttachmentMenu(
-                        context, setState, _linkController),
-                  ),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _addNewPlan,
-                      child: Text('Add Plan'),
+                CustomTextField(
+                  controller: _descriptionController,
+                  labelText: 'Description',
+                  onSuffixIconPressed: () {},
+                  showSuffixIcon: false,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a description';
+                    }
+                    return null;
+                  },
+                ),
+                InkWell(
+                  onTap: () => _pickDeadline(context),
+                  child: IgnorePointer(
+                    child: CustomTextField(
+                      controller: _deadlineController,
+                      labelText: 'Deadline',
+                      onSuffixIconPressed: () {},
+                      showSuffixIcon: false,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please pick a deadline';
+                        }
+                        return null;
+                      },
                     ),
                   ),
-                ],
-              ),
-            ],
+                ),
+                SizedBox(height: 10),
+                _buildAttachmentPreview(context),
+                SizedBox(height: 20),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.attachment),
+                      onPressed: () => _attachmentHelper.showAttachmentMenu(
+                          context, setState, _linkController),
+                    ),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _addNewPlan,
+                        child: Text('Add Plan'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

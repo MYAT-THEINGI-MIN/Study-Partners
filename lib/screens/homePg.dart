@@ -3,9 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sp_test/screens/Planner/plannerPg.dart';
 import 'package:sp_test/screens/ProfilePg.dart';
-import 'package:sp_test/screens/chatUserListPg.dart';
+import 'package:sp_test/screens/chatPg.dart';
 import 'package:sp_test/screens/linkRCMpg.dart';
-import 'package:sp_test/screens/searchPartner.dart';
+import 'package:sp_test/screens/SearchGpOrFri/searchPage.dart';
 import 'package:sp_test/widgets/drawer.dart';
 
 class HomePg extends StatefulWidget {
@@ -16,31 +16,31 @@ class HomePg extends StatefulWidget {
 class _HomePgState extends State<HomePg> {
   int _selectedIndex = 0;
   late String _profileImageUrl = '';
+  late String _uid = '';
 
-  static final List<Widget> _widgetOptions = <Widget>[
-    PlannerPage(),
-    ChatUserListPg(),
-    SearchPartnerPg(),
-    LinkRecommendationPage(),
-  ];
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-  void _onProfileTapped() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => ProfilePg()),
-    );
-  }
+  List<Widget> _widgetOptions = [];
 
   @override
   void initState() {
     super.initState();
     _loadProfileImage();
+    _getCurrentUid().then((uid) {
+      setState(() {
+        _uid = uid;
+        _widgetOptions = <Widget>[
+          PlannerPage(),
+          ChatPg(),
+          SearchPage(),
+          LinkRecommendationPage(uid: _uid), // Pass the UID here
+        ];
+      });
+    });
+  }
+
+  Future<String> _getCurrentUid() async {
+    FirebaseAuth auth = FirebaseAuth.instance;
+    User? user = auth.currentUser;
+    return user?.uid ?? '';
   }
 
   Future<void> _loadProfileImage() async {
@@ -56,6 +56,19 @@ class _HomePgState extends State<HomePg> {
         _profileImageUrl = userProfile.data()?['profileImageUrl'] ?? '';
       });
     }
+  }
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  void _onProfileTapped() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => ProfilePg()),
+    );
   }
 
   @override
@@ -83,7 +96,9 @@ class _HomePgState extends State<HomePg> {
       ),
       drawer: const AppDrawer(),
       body: Center(
-        child: _widgetOptions.elementAt(_selectedIndex),
+        child: _widgetOptions.isNotEmpty
+            ? _widgetOptions.elementAt(_selectedIndex)
+            : CircularProgressIndicator(),
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[

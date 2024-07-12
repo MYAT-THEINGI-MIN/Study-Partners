@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:sp_test/Service/RefreshIndicator.dart';
-import 'package:sp_test/Service/refreshService.dart';
 import 'package:sp_test/screens/EditProfilePg.dart';
 
 class ProfilePg extends StatefulWidget {
@@ -13,7 +11,6 @@ class ProfilePg extends StatefulWidget {
 }
 
 class _ProfilePgState extends State<ProfilePg> {
-  final RefreshController _refreshController = RefreshController();
   User? user = FirebaseAuth.instance.currentUser;
 
   Future<void> _handleRefresh() async {
@@ -26,8 +23,7 @@ class _ProfilePgState extends State<ProfilePg> {
       appBar: AppBar(
         title: Text('Profile'),
       ),
-      body: RefreshIndicatorWidget(
-        controller: _refreshController,
+      body: RefreshIndicator(
         onRefresh: _handleRefresh,
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -58,7 +54,7 @@ class _ProfilePgState extends State<ProfilePg> {
               Color textColor = Theme.of(context).brightness == Brightness.light
                   ? Colors.black87 // Soft black for light theme
                   : Color.fromARGB(
-                      255, 244, 244, 244); // Deep purple for dark theme
+                      255, 244, 244, 244); // Light color for dark theme
 
               return ListView(
                 children: [
@@ -91,11 +87,11 @@ class _ProfilePgState extends State<ProfilePg> {
                   ),
                   SizedBox(height: 8),
                   if (subjects != null && subjects.isNotEmpty)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Wrap(
+                      spacing: 8.0,
+                      runSpacing: 8.0,
                       children: subjects.split(',').map((subject) {
                         return Container(
-                          margin: EdgeInsets.only(bottom: 8),
                           padding: EdgeInsets.all(8),
                           decoration: BoxDecoration(
                             color: Colors.deepPurple

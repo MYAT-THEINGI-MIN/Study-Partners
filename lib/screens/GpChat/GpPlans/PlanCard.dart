@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth
 import 'package:sp_test/screens/GpChat/GpPlans/planDetailPg.dart';
 import 'package:sp_test/screens/Planner/addTaskPg.dart';
 
@@ -25,6 +26,10 @@ class PlanCard extends StatelessWidget {
     // Format the deadline date
     final DateFormat formatter = DateFormat('dd.MM.yyyy');
     final String formattedDeadline = formatter.format(deadline);
+
+    // Get current user
+    User? user = FirebaseAuth.instance.currentUser;
+    String? currentUserUid = user?.uid;
 
     return GestureDetector(
       onTap: () {
@@ -59,22 +64,24 @@ class PlanCard extends StatelessWidget {
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
-              IconButton(
-                icon: Icon(Icons.add_task),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => AddTaskPage(
-                        uid: 'user_uid_here', // Replace with actual UID
-                        title: title,
-                        description: description,
-                        deadline: deadline,
+              if (currentUserUid !=
+                  null) // Check if current user UID is available
+                IconButton(
+                  icon: Icon(Icons.add_task),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AddTaskPage(
+                          uid: currentUserUid, // Pass current user UID here
+                          title: title,
+                          description: description,
+                          deadline: deadline,
+                        ),
                       ),
-                    ),
-                  );
-                },
-              ),
+                    );
+                  },
+                ),
             ],
           ),
           subtitle: Column(

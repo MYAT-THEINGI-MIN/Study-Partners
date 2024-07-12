@@ -16,6 +16,7 @@ class _CreateGroupState extends State<CreateGroup> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final TextEditingController _groupNameController = TextEditingController();
   final TextEditingController _subjectController = TextEditingController();
+  final TextEditingController _leaderNoteController = TextEditingController();
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
 
@@ -50,10 +51,12 @@ class _CreateGroupState extends State<CreateGroup> {
       DocumentReference groupRef = await _firestore.collection('groups').add({
         'groupName': groupName,
         'subject': subject,
+        'StudyHardPoint': 100, // Initialize StudyHard points to 100
         'profileUrl': profileUrl ?? '',
         'adminId': adminId,
         'timestamp': FieldValue.serverTimestamp(),
         'members': [adminId],
+        'leaderNote': _leaderNoteController.text.trim(), // Store leader note
       });
 
       // Add the admin to the group members array
@@ -119,12 +122,39 @@ class _CreateGroupState extends State<CreateGroup> {
             SizedBox(height: 16.0),
             TextFormField(
               controller: _groupNameController,
-              decoration: InputDecoration(labelText: 'Group Name'),
+              decoration: InputDecoration(
+                labelText: 'Group Name',
+                labelStyle: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.deepPurple, // Deep purple shade 200
+                ),
+              ),
             ),
             SizedBox(height: 16.0),
             TextFormField(
               controller: _subjectController,
-              decoration: InputDecoration(labelText: 'Subject'),
+              decoration: InputDecoration(
+                labelText: 'Subject',
+                labelStyle: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.deepPurple, // Deep purple shade 200
+                ),
+              ),
+            ),
+            SizedBox(height: 16.0),
+            TextFormField(
+              controller: _leaderNoteController,
+              decoration: InputDecoration(
+                labelText: 'Leader Note',
+                labelStyle: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.deepPurple, // Deep purple shade 200
+                ),
+              ),
+              maxLines: 3, // Adjust as needed
             ),
             SizedBox(height: 32.0),
             ElevatedButton(
@@ -141,6 +171,7 @@ class _CreateGroupState extends State<CreateGroup> {
   void dispose() {
     _groupNameController.dispose();
     _subjectController.dispose();
+    _leaderNoteController.dispose();
     super.dispose();
   }
 }

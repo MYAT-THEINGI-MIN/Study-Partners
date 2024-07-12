@@ -168,7 +168,7 @@ class _FlashCardViewState extends State<FlashCardView> {
                                   showBack
                                       ? ' ${qaPairs[currentIndex]['answer'] ?? 'N/A'}'
                                       : ' ${qaPairs[currentIndex]['question'] ?? 'N/A'}',
-                                  style: TextStyle(fontSize: 18),
+                                  style: TextStyle(fontSize: 30),
                                   textAlign: TextAlign.center,
                                 ),
                                 SizedBox(height: 20),
@@ -202,7 +202,7 @@ class _FlashCardViewState extends State<FlashCardView> {
                       },
                     ),
                   ),
-                  SizedBox(height: 20),
+                  SizedBox(height: 10),
                   ElevatedButton(
                     onPressed: () {
                       setState(() {

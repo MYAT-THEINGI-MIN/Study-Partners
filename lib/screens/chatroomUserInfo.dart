@@ -1,43 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'chatroom.dart'; // Import the ChatRoom screen
 
 class ChatroomUserInfo extends StatelessWidget {
   final String userId;
 
   ChatroomUserInfo({required this.userId});
-
-  void blockUser(BuildContext context, String blockedUserId) async {
-    String currentUserId = FirebaseAuth.instance.currentUser!.uid;
-
-    try {
-      // Add current user's UID and blocked user's UID to Firestore
-      await FirebaseFirestore.instance
-          .collection('blocked_list')
-          .doc(currentUserId)
-          .set({
-        'blockedUserId': blockedUserId,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-
-      // Show a snackbar or dialog to indicate success
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('User blocked successfully'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    } catch (e) {
-      // Handle errors
-      print('Error blocking user: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to block user. Please try again later.'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -102,16 +71,24 @@ class ChatroomUserInfo extends StatelessWidget {
                   style: TextStyle(fontSize: 16),
                 ),
                 SizedBox(height: 20),
-                // Block Button
+                // Chat Button
                 SizedBox(
                   width: double.infinity, // Full width button
                   child: ElevatedButton(
                     onPressed: () {
-                      blockUser(context, userId); // Call block user function
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChatRoom(
+                            receiverUserName: userData['username'],
+                            receiverUserId: userId,
+                          ),
+                        ),
+                      );
                     },
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: Color.fromARGB(255, 227, 87, 77)),
-                    child: Text('Block User',
+                    style:
+                        ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                    child: Text('Chat',
                         style: TextStyle(fontSize: 16, color: Colors.white)),
                   ),
                 ),

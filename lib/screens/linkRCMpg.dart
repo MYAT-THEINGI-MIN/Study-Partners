@@ -1,91 +1,119 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class LinkRecommendationPage extends StatefulWidget {
-  const LinkRecommendationPage({Key? key}) : super(key: key);
+  final String uid;
+
+  const LinkRecommendationPage({Key? key, required this.uid}) : super(key: key);
 
   @override
   _LinkRecommendationPageState createState() => _LinkRecommendationPageState();
 }
 
 class _LinkRecommendationPageState extends State<LinkRecommendationPage> {
-  final TextEditingController _topicController = TextEditingController();
-  final List<String> _recommendations = [];
-  final Map<String, List<String>> _linksDatabase = {
-    'flutter': [
-      'https://flutter.dev/',
-      'https://docs.flutter.dev/',
-      'https://github.com/flutter/flutter',
-    ],
-    'dart': [
-      'https://dart.dev/',
-      'https://dart.dev/guides',
-      'https://github.com/dart-lang/sdk',
-    ],
-    'firebase': [
-      'https://firebase.google.com/',
-      'https://firebase.google.com/docs',
-      'https://github.com/firebase/firebase-ios-sdk',
-    ],
-  };
-
-  void _getRecommendations(String topic) {
-    setState(() {
-      _recommendations.clear();
-      _recommendations.addAll(_linksDatabase[topic.toLowerCase()] ?? []);
-    });
-  }
+  List<String> subjects = [];
 
   @override
-  void dispose() {
-    _topicController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _fetchUserSubjects();
+  }
+
+  Future<void> _fetchUserSubjects() async {
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.uid)
+        .get();
+    String subjectString = userDoc['subjects'];
+    setState(() {
+      subjects = subjectString.split(',').map((s) => s.trim()).toList();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Link Recommendations'),
+        title: Text('Links Recommendations'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _topicController,
-              decoration: InputDecoration(
-                labelText: 'Enter a topic',
-                suffixIcon: IconButton(
-                  icon: Icon(Icons.search),
-                  onPressed: () => _getRecommendations(_topicController.text),
-                ),
-              ),
-              onSubmitted: (value) => _getRecommendations(value),
+      body: subjects.isEmpty
+          ? Center(child: CircularProgressIndicator())
+          : ListView.builder(
+              itemCount: subjects.length,
+              itemBuilder: (context, index) {
+                String subject = subjects[index];
+                String courseLink = _getCourseLink(subject);
+                String tutorialLink = _getTutorialLink(subject);
+                String jobLink = _getJobLink(subject);
+
+                return Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Subject: $subject',
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                          SizedBox(height: 8),
+                          Text('Recommended Online Courses:'),
+                          InkWell(
+                            child: Text(
+                              courseLink,
+                              style: TextStyle(color: Colors.blue),
+                            ),
+                            onTap: () => _launchURL(courseLink),
+                          ),
+                          SizedBox(height: 8),
+                          Text('YouTube Tutorials:'),
+                          InkWell(
+                            child: Text(
+                              tutorialLink,
+                              style: TextStyle(color: Colors.blue),
+                            ),
+                            onTap: () => _launchURL(tutorialLink),
+                          ),
+                          SizedBox(height: 8),
+                          Text('Job Opportunities:'),
+                          InkWell(
+                            child: Text(
+                              jobLink,
+                              style: TextStyle(color: Colors.blue),
+                            ),
+                            onTap: () => _launchURL(jobLink),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _recommendations.length,
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    title: Text(_recommendations[index]),
-                    onTap: () {
-                      // Handle link tap, e.g., open in a web browser
-                      _openLink(_recommendations[index]);
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
-  void _openLink(String url) {
-    // Logic to open the URL
-    // You can use the `url_launcher` package to launch URLs
-    // import 'package:url_launcher/url_launcher.dart';
-    // launch(url);
+  String _getCourseLink(String subject) {
+    return "https://www.coursera.org/search?query=$subject";
+  }
+
+  String _getTutorialLink(String subject) {
+    return "https://www.youtube.com/results?search_query=$subject+tutorial";
+  }
+
+  String _getJobLink(String subject) {
+    return "https://www.jobnet.com.mm/search?keyword=$subject";
+  }
+
+  void _launchURL(String url) async {
+    if (await canLaunch(url)) {
+      await launch(url);
+    } else {
+      throw 'Could not launch $url';
+    }
   }
 }

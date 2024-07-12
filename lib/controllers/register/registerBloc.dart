@@ -57,6 +57,7 @@ class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
           'email': event.email,
           'username': event.username,
           'subjects': event.subjects,
+          'interests': event.subjects,
           'profileImageUrl': profileImageUrl,
         }, SetOptions(merge: true));
 
