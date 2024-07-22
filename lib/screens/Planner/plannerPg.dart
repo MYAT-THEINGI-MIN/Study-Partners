@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sp_test/screens/Planner/TaskManagement.dart';
 import 'package:sp_test/screens/Planner/addTaskPg.dart';
 import 'package:sp_test/screens/Planner/button.dart';
 import 'package:sp_test/screens/Planner/searchTask.dart';
@@ -20,6 +21,8 @@ class _PlannerPageState extends State<PlannerPage> {
   DateTime _focusedDay = DateTime.now();
   CalendarFormat _calendarFormat = CalendarFormat.month;
   FirebaseService _firebaseService = FirebaseService();
+  TaskManagement _taskManagement =
+      TaskManagement(); // Instantiate TaskManagement
 
   User? _currentUser;
   List<Map<String, dynamic>> _allTasks = [];
@@ -85,25 +88,17 @@ class _PlannerPageState extends State<PlannerPage> {
   }
 
   void _deleteTask(String id) {
-    if (_currentUser != null) {
-      FirebaseFirestore.instance
-          .collection('users')
-          .doc(_currentUser!.uid)
-          .collection('tasks')
-          .doc(id)
-          .delete();
-    }
+    _taskManagement.deleteTask(id); // Use TaskManagement to delete task
   }
 
   void _markTaskAsDone(String id) {
-    if (_currentUser != null) {
-      FirebaseFirestore.instance
-          .collection('users')
-          .doc(_currentUser!.uid)
-          .collection('tasks')
-          .doc(id)
-          .update({'color': const Color.fromARGB(255, 222, 222, 222).value});
-    }
+    _taskManagement
+        .markTaskAsDone(id); // Use TaskManagement to mark task as done
+  }
+
+  void _markTaskAsUndone(String id) {
+    _taskManagement
+        .markTaskAsUndone(id); // Use TaskManagement to mark task as undone
   }
 
   Widget _addTaskBar(BuildContext context) {
@@ -183,8 +178,6 @@ class _PlannerPageState extends State<PlannerPage> {
         children: [
           _addTaskBar(context),
           Container(
-            //   decoration:
-            //       BoxDecoration(color: const Color.fromARGB(255, 239, 231, 255)),
             padding: EdgeInsets.only(left: 10, right: 10),
             child: TableCalendar(
               focusedDay: _focusedDay,
@@ -236,7 +229,7 @@ class _PlannerPageState extends State<PlannerPage> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              daysOfWeekHeight: 20.0, // Correct placement for daysOfWeekHeight
+              daysOfWeekHeight: 20.0,
               headerStyle: const HeaderStyle(
                 formatButtonVisible: false,
                 titleCentered: true,
@@ -265,16 +258,17 @@ class _PlannerPageState extends State<PlannerPage> {
             child: _tasks.isEmpty
                 ? Center(
                     child: Container(
-                    padding: const EdgeInsets.only(
-                        left: 20, right: 20, top: 20, bottom: 20),
-                    decoration: BoxDecoration(
-                        color: Colors.deepPurple.shade100,
-                        borderRadius: BorderRadius.circular(10)),
-                    child: Text(
-                      'No tasks for the selected day',
-                      style: Theme.of(context).textTheme.bodyMedium!,
+                      padding: const EdgeInsets.only(
+                          left: 20, right: 20, top: 20, bottom: 20),
+                      decoration: BoxDecoration(
+                          color: Colors.deepPurple.shade100,
+                          borderRadius: BorderRadius.circular(10)),
+                      child: Text(
+                        'No tasks for the selected day',
+                        style: Theme.of(context).textTheme.bodyMedium!,
+                      ),
                     ),
-                  ))
+                  )
                 : Container(
                     padding:
                         const EdgeInsets.only(left: 20, right: 20, top: 10),
@@ -298,7 +292,8 @@ class _PlannerPageState extends State<PlannerPage> {
                               : task['color'],
                           onDelete: _deleteTask,
                           onDone: _markTaskAsDone,
-                          onEdit: (String) {},
+                          onEdit: (String id) {}, // Handle onEdit if needed
+                          onUndone: _markTaskAsUndone, // Pass onUndone callback
                         );
                       },
                     ),
@@ -309,29 +304,23 @@ class _PlannerPageState extends State<PlannerPage> {
     );
   }
 
-  Widget _buildEventsMarker(int number) {
+  Widget _buildEventsMarker(int eventCount) {
     return Container(
-      width: 16,
-      height: 16,
+      padding: const EdgeInsets.all(5.0),
       decoration: BoxDecoration(
         color: Colors.deepPurple,
         shape: BoxShape.circle,
       ),
       child: Center(
         child: Text(
-          '$number',
-          style: const TextStyle().copyWith(
+          '$eventCount',
+          style: TextStyle(
             color: Colors.white,
-            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            fontSize: 12.0,
           ),
         ),
       ),
     );
   }
-}
-
-class Event {
-  final String title;
-
-  Event(this.title);
 }

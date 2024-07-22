@@ -19,13 +19,14 @@ class _CreateGroupState extends State<CreateGroup> {
   final TextEditingController _leaderNoteController = TextEditingController();
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
+  String? _privacy = 'Public';
 
   void _createGroup() async {
     String groupName = _groupNameController.text.trim();
     String subject = _subjectController.text.trim();
     String? profileUrl;
 
-    if (groupName.isEmpty || subject.isEmpty) {
+    if (groupName.isEmpty || subject.isEmpty || _privacy == null) {
       // Add validation or error handling if needed
       return;
     }
@@ -57,6 +58,7 @@ class _CreateGroupState extends State<CreateGroup> {
         'timestamp': FieldValue.serverTimestamp(),
         'members': [adminId],
         'leaderNote': _leaderNoteController.text.trim(), // Store leader note
+        'privacy': _privacy, // Store privacy value
       });
 
       // Add the admin to the group members array
@@ -155,6 +157,29 @@ class _CreateGroupState extends State<CreateGroup> {
                 ),
               ),
               maxLines: 3, // Adjust as needed
+            ),
+            SizedBox(height: 16.0),
+            DropdownButtonFormField<String>(
+              value: _privacy,
+              decoration: InputDecoration(
+                labelText: 'Privacy',
+                labelStyle: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.deepPurple, // Deep purple shade 200
+                ),
+              ),
+              items: ['Public', 'Private']
+                  .map((privacy) => DropdownMenuItem<String>(
+                        value: privacy,
+                        child: Text(privacy),
+                      ))
+                  .toList(),
+              onChanged: (value) {
+                setState(() {
+                  _privacy = value;
+                });
+              },
             ),
             SizedBox(height: 32.0),
             ElevatedButton(

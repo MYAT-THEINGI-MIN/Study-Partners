@@ -9,6 +9,7 @@ class TaskCard extends StatelessWidget {
   final Function(String) onDelete;
   final Function(String) onDone;
   final Function(String) onEdit;
+  final Function(String) onUndone; // Callback for marking as undone
 
   const TaskCard({
     required this.id,
@@ -19,13 +20,16 @@ class TaskCard extends StatelessWidget {
     required this.onDelete,
     required this.onDone,
     required this.onEdit,
+    required this.onUndone, // Callback for marking as undone
   });
 
   @override
   Widget build(BuildContext context) {
-    final isDone = color ==
-        const Color.fromARGB(
-            255, 222, 222, 222); // Check if the task is marked as done
+    final isDone = color == const Color.fromARGB(255, 222, 222, 222).value;
+    print('Task ID: $id');
+    print('Task Color: $color');
+    print('Is Done: $isDone');
+
     final displayColor =
         isDone ? const Color.fromARGB(255, 222, 222, 222) : Color(color);
     final theme = Theme.of(context);
@@ -70,33 +74,26 @@ class TaskCard extends StatelessWidget {
                         onDelete(id);
                       },
                     ),
-                    ListTile(
-                      leading: Icon(Icons.done, color: textColor),
-                      title: Text('Mark as Done',
-                          style: TextStyle(color: textColor)),
-                      onTap: () {
-                        Navigator.pop(context);
-                        onDone(id);
-                      },
-                    ),
-                    // Uncomment and adjust the following lines for editing task
-                    // ListTile(
-                    //   leading: Icon(Icons.edit, color: textColor),
-                    //   title: Text('Edit Task', style: TextStyle(color: textColor)),
-                    //   onTap: () {
-                    //     Navigator.pop(context); // Close the bottom sheet
-                    //     onEdit(id); // Call onEdit function with task ID
-
-                    //     // Navigate to EditTaskPage
-                    //     Navigator.push(
-                    //       context,
-                    //       MaterialPageRoute(
-                    //         builder: (context) => EditTaskPage(
-                    //             uid: 'current_user_uid', taskId: id),
-                    //       ),
-                    //     );
-                    //   },
-                    // ),
+                    if (!isDone)
+                      ListTile(
+                        leading: Icon(Icons.done, color: textColor),
+                        title: Text('Mark as Done',
+                            style: TextStyle(color: textColor)),
+                        onTap: () {
+                          Navigator.pop(context);
+                          onDone(id);
+                        },
+                      ),
+                    if (isDone)
+                      ListTile(
+                        leading: Icon(Icons.undo, color: textColor),
+                        title: Text('Mark as Undone',
+                            style: TextStyle(color: textColor)),
+                        onTap: () {
+                          Navigator.pop(context);
+                          onUndone(id);
+                        },
+                      ),
                   ],
                 );
               },

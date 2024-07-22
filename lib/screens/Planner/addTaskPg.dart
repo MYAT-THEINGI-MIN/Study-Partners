@@ -238,29 +238,29 @@ class _AddTaskPageState extends State<AddTaskPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     ColorCircle(
-                      color: Colors.blue,
-                      isSelected: _selectedColor == Colors.blue,
+                      color: Colors.blue.shade300,
+                      isSelected: _selectedColor == Colors.blue.shade300,
                       onTap: () {
                         setState(() {
-                          _selectedColor = Colors.blue;
+                          _selectedColor = Colors.blue.shade300;
                         });
                       },
                     ),
                     ColorCircle(
-                      color: Colors.yellow,
-                      isSelected: _selectedColor == Colors.yellow,
+                      color: Colors.yellow.shade300,
+                      isSelected: _selectedColor == Colors.yellow.shade300,
                       onTap: () {
                         setState(() {
-                          _selectedColor = Colors.yellow;
+                          _selectedColor = Colors.yellow.shade300;
                         });
                       },
                     ),
                     ColorCircle(
-                      color: Colors.red,
-                      isSelected: _selectedColor == Colors.red,
+                      color: Colors.pink.shade300,
+                      isSelected: _selectedColor == Colors.pink.shade300,
                       onTap: () {
                         setState(() {
-                          _selectedColor = Colors.red;
+                          _selectedColor = Colors.pink.shade300;
                         });
                       },
                     ),
