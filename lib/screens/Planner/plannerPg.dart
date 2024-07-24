@@ -19,7 +19,7 @@ class PlannerPage extends StatefulWidget {
 class _PlannerPageState extends State<PlannerPage> {
   DateTime _selectedDay = DateTime.now();
   DateTime _focusedDay = DateTime.now();
-  CalendarFormat _calendarFormat = CalendarFormat.month;
+  CalendarFormat _calendarFormat = CalendarFormat.week; // Show week format
   FirebaseService _firebaseService = FirebaseService();
   TaskManagement _taskManagement =
       TaskManagement(); // Instantiate TaskManagement
@@ -219,6 +219,20 @@ class _PlannerPageState extends State<PlannerPage> {
                 ),
                 outsideDaysVisible: false,
               ),
+              headerStyle: HeaderStyle(
+                formatButtonVisible: false,
+                titleCentered: true,
+                titleTextStyle: TextStyle(
+                  fontSize: 16.0,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white, // Text color for the header
+                ),
+                leftChevronIcon: Icon(Icons.chevron_left),
+                rightChevronIcon: Icon(Icons.chevron_right),
+                decoration: BoxDecoration(
+                  color: Colors.deepPurple.shade300, // Header background color
+                ),
+              ),
               daysOfWeekStyle: const DaysOfWeekStyle(
                 weekdayStyle: TextStyle(
                   color: Colors.deepPurple,
@@ -230,16 +244,6 @@ class _PlannerPageState extends State<PlannerPage> {
                 ),
               ),
               daysOfWeekHeight: 20.0,
-              headerStyle: const HeaderStyle(
-                formatButtonVisible: false,
-                titleCentered: true,
-                titleTextStyle: TextStyle(
-                  fontSize: 16.0,
-                  fontWeight: FontWeight.bold,
-                ),
-                leftChevronIcon: Icon(Icons.chevron_left),
-                rightChevronIcon: Icon(Icons.chevron_right),
-              ),
               calendarBuilders: CalendarBuilders(
                 markerBuilder: (context, date, events) {
                   if (events.isNotEmpty) {
@@ -254,6 +258,17 @@ class _PlannerPageState extends State<PlannerPage> {
               ),
             ),
           ),
+          SizedBox(
+            height: 8,
+          ),
+          Container(
+            height: 5,
+            width: 80,
+            decoration: BoxDecoration(
+              color: Colors.deepPurple.shade400,
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
           Expanded(
             child: _tasks.isEmpty
                 ? Center(
@@ -261,7 +276,7 @@ class _PlannerPageState extends State<PlannerPage> {
                       padding: const EdgeInsets.only(
                           left: 20, right: 20, top: 20, bottom: 20),
                       decoration: BoxDecoration(
-                          color: Colors.deepPurple.shade100,
+                          color: Colors.transparent, // Remove card color
                           borderRadius: BorderRadius.circular(10)),
                       child: Text(
                         'No tasks for the selected day',
@@ -273,9 +288,7 @@ class _PlannerPageState extends State<PlannerPage> {
                     padding:
                         const EdgeInsets.only(left: 20, right: 20, top: 10),
                     decoration: BoxDecoration(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.grey
-                            : Colors.deepPurple.shade100,
+                        color: Colors.transparent, // Remove card color
                         borderRadius: BorderRadius.circular(20)),
                     child: ListView.builder(
                       itemCount: _tasks.length,
@@ -314,10 +327,10 @@ class _PlannerPageState extends State<PlannerPage> {
       child: Center(
         child: Text(
           '$eventCount',
-          style: TextStyle(
+          style: const TextStyle(
             color: Colors.white,
-            fontWeight: FontWeight.bold,
             fontSize: 12.0,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),

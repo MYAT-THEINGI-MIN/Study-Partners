@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:sp_test/screens/Planner/ShareTaskSheet.dart';
 import 'package:sp_test/widgets/CustomDateTextField.dart';
 import 'package:sp_test/widgets/textfield.dart';
 
@@ -23,10 +24,24 @@ class _ShareTasksPageState extends State<ShareTasksPage> {
   TextEditingController _noteController = TextEditingController();
   DateTime? _startDate;
   DateTime? _endDate;
+  List<DocumentSnapshot> _groups = [];
 
   @override
   void initState() {
     super.initState();
+    _loadGroups();
+  }
+
+  void _loadGroups() {
+    FirebaseFirestore.instance
+        .collection('groups')
+        .where('members', arrayContains: widget.uid)
+        .get()
+        .then((QuerySnapshot snapshot) {
+      setState(() {
+        _groups = snapshot.docs;
+      });
+    });
   }
 
   void _loadTasks() {
@@ -99,39 +114,62 @@ class _ShareTasksPageState extends State<ShareTasksPage> {
     });
   }
 
-  Future<void> _shareTasks() async {
-    if (_tasks.isEmpty || _planNameController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Please complete all fields and select tasks')));
+  void _showGroupSelectionSheet() {
+    if (_planNameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please enter a plan name'),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
-    final planName = _planNameController.text;
-    final note = _noteController.text;
+    if (_tasks.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No tasks selected for the date range'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
-    // Create a new plan document with the selected tasks
-    final planRef = FirebaseFirestore.instance
-        .collection('groups')
-        .doc('your-group-id')
-        .collection('plans')
-        .doc();
-    await planRef.set({
-      'planName': planName,
-      'uid': widget.uid,
-      'username':
-          'dummy_username', // Replace with actual username fetching logic
-      'note': note,
-      'tasks': _tasks
-          .map((task) => {
-                'title': task['title'],
-                'deadline': task['date'],
-                'completed': [] // Initialize with empty completed list
-              })
-          .toList(),
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
+      ),
+      builder: (BuildContext context) {
+        return ShareTasksSheet(
+          parentContext: context, // Pass the context
+          groups: _groups,
+          tasks: _tasks,
+          uid: widget.uid,
+          planName: _planNameController.text,
+          note: _noteController.text,
+        );
+      },
+    ).then((_) {
+      // Clear all text fields after sharing plan
+      _planNameController.clear();
+      _startDateController.clear();
+      _endDateController.clear();
+      _noteController.clear();
+      setState(() {
+        _startDate = null;
+        _endDate = null;
+        _tasks = [];
+        _groupedTasks = {};
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Plan shared successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
     });
-
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('Tasks shared successfully!')));
   }
 
   @override
@@ -146,7 +184,7 @@ class _ShareTasksPageState extends State<ShareTasksPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Share Tasks'),
+        title: const Text('Share Tasks'),
       ),
       body: Column(
         children: [
@@ -174,109 +212,77 @@ class _ShareTasksPageState extends State<ShareTasksPage> {
                     onTap: () =>
                         _selectDate(context, _endDateController, _endDate),
                   ),
-                  SizedBox(height: 8.0),
+                  CustomTextField(
+                    controller: _noteController,
+                    labelText: 'Note',
+                    onSuffixIconPressed: () {},
+                    showSuffixIcon: false,
+                  ),
+                  const SizedBox(height: 8.0),
                   Text(
                     'Total Tasks: $totalTasks',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 16.0,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
                     'Date Range Length: $dateRangeLength days',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 16.0,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  CustomTextField(
-                    controller: _noteController,
-                    labelText: 'Note',
-                    onSuffixIconPressed:
-                        () {}, // No action needed for this field
-                    showSuffixIcon: false,
-                  ),
-                  SizedBox(height: 10),
-                  _groupedTasks.isEmpty
-                      ? Center(child: Text('No tasks found'))
-                      : ListView.builder(
-                          shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
-                          itemCount: _groupedTasks.keys.length,
-                          itemBuilder: (context, index) {
-                            String date = _groupedTasks.keys.elementAt(index);
-                            List<Map<String, dynamic>> tasks =
-                                _groupedTasks[date]!;
-                            return ExpansionTile(
-                              title: Text(DateFormat.yMMMMd()
-                                  .format(DateTime.parse(date))),
-                              children: tasks.map((task) {
-                                return Container(
-                                  width: screenWidth -
-                                      40, // Adjusted width for card
-                                  margin: EdgeInsets.symmetric(
-                                      vertical: 4.0), // Reduced margin
-                                  padding: const EdgeInsets.all(
-                                      12.0), // Adjusted padding
-                                  decoration: BoxDecoration(
-                                    color: Colors.deepPurple.shade100,
-                                    borderRadius: BorderRadius.circular(8.0),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black12,
-                                        blurRadius: 4.0,
-                                        spreadRadius: 2.0,
-                                      ),
-                                    ],
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              task['title'],
-                                              style: TextStyle(
-                                                fontSize: 16.0,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ),
-                                          IconButton(
-                                            icon: Icon(Icons.cancel),
-                                            onPressed: () =>
-                                                _removeTask(task['id']),
-                                          ),
-                                        ],
-                                      ),
-                                      SizedBox(height: 8.0),
-                                      Text(task['note'] ?? ''),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
-                            );
-                          },
+                  const SizedBox(height: 20.0),
+                  ..._groupedTasks.entries.map((entry) {
+                    String date = entry.key;
+                    List<Map<String, dynamic>> tasks = entry.value;
+                    return ExpansionTile(
+                      title: Text(
+                        DateFormat('MMMM dd, yyyy')
+                            .format(DateTime.parse(date)),
+                        style: const TextStyle(
+                          fontSize: 16.0,
+                          fontWeight: FontWeight.bold,
                         ),
+                      ),
+                      children: tasks.map((task) {
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 5.0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15.0),
+                            side: const BorderSide(
+                                color: Colors.deepPurple, width: 1.0),
+                          ),
+                          child: ListTile(
+                            title: Text(task['title']),
+                            subtitle: Text(task['note']),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.remove_circle),
+                              onPressed: () {
+                                _removeTask(task['id']);
+                              },
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  }).toList(),
                 ],
               ),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20.0),
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: ElevatedButton(
-                onPressed: _shareTasks,
-                child: Text('Share'),
-                style: ElevatedButton.styleFrom(
-                  minimumSize: Size(double.infinity, 50),
+            padding: const EdgeInsets.all(10.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _showGroupSelectionSheet,
+                    child: const Text('Share'),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ],

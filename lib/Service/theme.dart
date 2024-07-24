@@ -19,11 +19,12 @@ class AppThemes {
     brightness: Brightness.dark,
     primaryColor: Colors.deepPurple,
     hintColor: Colors.deepPurpleAccent,
-    scaffoldBackgroundColor: const Color.fromARGB(255, 36, 36, 36),
-    cardColor: Colors.grey[800],
+    scaffoldBackgroundColor:
+        Color.fromARGB(255, 0, 0, 51), // Navy blue background
+    cardColor: Colors.blueGrey[800],
     visualDensity: VisualDensity.adaptivePlatformDensity,
     appBarTheme: AppBarTheme(
-      backgroundColor: Colors.black,
+      backgroundColor: Color.fromARGB(255, 0, 0, 51), // Navy blue app bar
       elevation: 0,
     ),
     buttonTheme: ButtonThemeData(
@@ -33,7 +34,7 @@ class AppThemes {
     textTheme: TextTheme(
       bodyMedium: TextStyle(fontSize: 18, color: Colors.white70),
       bodyLarge: TextStyle(fontSize: 22, color: Colors.white),
-      bodySmall: TextStyle(fontSize: 16, color: Colors.black),
+      bodySmall: TextStyle(fontSize: 16, color: Colors.white70),
     ),
   );
 }

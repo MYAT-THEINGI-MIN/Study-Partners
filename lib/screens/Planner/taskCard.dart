@@ -34,30 +34,32 @@ class TaskCard extends StatelessWidget {
         isDone ? const Color.fromARGB(255, 222, 222, 222) : Color(color);
     final theme = Theme.of(context);
     final textColor =
-        theme.brightness == Brightness.dark ? Colors.deepPurple : Colors.black;
+        theme.brightness == Brightness.dark ? Colors.white : Colors.black;
+    final iconColor =
+        theme.brightness == Brightness.dark ? Colors.white : Colors.black;
 
     return Card(
       color: displayColor,
       child: ListTile(
         title: Text(
           title,
-          style: TextStyle(color: textColor),
+          style: TextStyle(color: Colors.black),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               note,
-              style: TextStyle(color: textColor),
+              style: TextStyle(color: Colors.black),
             ),
             Text(
               time,
-              style: TextStyle(color: textColor),
+              style: TextStyle(color: Colors.black),
             ),
           ],
         ),
         trailing: IconButton(
-          icon: Icon(Icons.more_vert, color: textColor),
+          icon: Icon(Icons.more_vert, color: Colors.black),
           onPressed: () {
             showModalBottomSheet(
               context: context,
@@ -66,9 +68,9 @@ class TaskCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     ListTile(
-                      leading: Icon(Icons.delete, color: textColor),
+                      leading: Icon(Icons.delete, color: Colors.red),
                       title: Text('Delete Task',
-                          style: TextStyle(color: textColor)),
+                          style: TextStyle(color: Colors.red)),
                       onTap: () {
                         Navigator.pop(context);
                         onDelete(id);
@@ -76,9 +78,9 @@ class TaskCard extends StatelessWidget {
                     ),
                     if (!isDone)
                       ListTile(
-                        leading: Icon(Icons.done, color: textColor),
+                        leading: Icon(Icons.done, color: iconColor),
                         title: Text('Mark as Done',
-                            style: TextStyle(color: textColor)),
+                            style: TextStyle(color: iconColor)),
                         onTap: () {
                           Navigator.pop(context);
                           onDone(id);
@@ -86,9 +88,9 @@ class TaskCard extends StatelessWidget {
                       ),
                     if (isDone)
                       ListTile(
-                        leading: Icon(Icons.undo, color: textColor),
+                        leading: Icon(Icons.undo, color: iconColor),
                         title: Text('Mark as Undone',
-                            style: TextStyle(color: textColor)),
+                            style: TextStyle(color: iconColor)),
                         onTap: () {
                           Navigator.pop(context);
                           onUndone(id);
