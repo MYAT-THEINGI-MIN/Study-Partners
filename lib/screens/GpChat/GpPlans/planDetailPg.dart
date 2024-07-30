@@ -1,369 +1,155 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:intl/intl.dart';
-import 'package:sp_test/Service/attachmentHelper.dart';
-import 'package:sp_test/widgets/textfield.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:sp_test/screens/GpChat/GpPlans/planTaskCard.dart';
 
-class PlanDetailPage extends StatefulWidget {
-  final String title;
-  final String description;
-  final DateTime deadline;
+class PlanDetailPage extends StatelessWidget {
   final String planId;
   final String groupId;
+  final String planName;
+  final String username;
+  final DateTime deadline;
+  final int taskCount;
+  final List<Map<String, dynamic>> tasks;
 
   PlanDetailPage({
-    required this.title,
-    required this.description,
-    required this.deadline,
     required this.planId,
     required this.groupId,
+    required this.planName,
+    required this.username,
+    required this.deadline,
+    required this.taskCount,
+    required this.tasks,
   });
 
-  @override
-  _PlanDetailPageState createState() => _PlanDetailPageState();
-}
-
-class _PlanDetailPageState extends State<PlanDetailPage> {
-  final AttachmentHelper _attachmentHelper = AttachmentHelper();
-  final TextEditingController _linkController = TextEditingController();
-  final TextEditingController _comment = TextEditingController();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  bool _isSubmitted = false;
-
-  Future<void> _submitWork() async {
-    if (_attachmentHelper.attachmentType == null ||
-        (_attachmentHelper.attachmentType == 'image' &&
-            _attachmentHelper.creatorAttachment == null) ||
-        (_attachmentHelper.attachmentType == 'file' &&
-            _attachmentHelper.creatorAttachment == null) ||
-        (_attachmentHelper.attachmentType == 'link' &&
-            _attachmentHelper.creatorAttachmentLink == null)) {
+  Future<void> _deletePlan(BuildContext context) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseFirestore.instance
+            .collection('groups')
+            .doc(groupId)
+            .collection('plans')
+            .doc(planId)
+            .delete();
+        Navigator.pop(context); // Go back to the previous screen
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Please attach a file or link before submitting'),
-        ),
-      );
-      return;
-    }
-
-    User? user = _auth.currentUser;
-    if (user == null) {
-      // Handle user not being logged in
-      return;
-    }
-    String uid = user.uid;
-
-    String? fileUrl;
-    if (_attachmentHelper.attachmentType == 'image' ||
-        _attachmentHelper.attachmentType == 'file') {
-      // Upload file to Firebase Storage
-      Reference storageRef = FirebaseStorage.instance.ref().child(
-          'groups/${widget.groupId}/plans/${widget.planId}/completed/$uid/${_attachmentHelper.creatorAttachment!.path.split('/').last}');
-      UploadTask uploadTask =
-          storageRef.putFile(_attachmentHelper.creatorAttachment!);
-      TaskSnapshot taskSnapshot = await uploadTask;
-      fileUrl = await taskSnapshot.ref.getDownloadURL();
-    }
-
-    String? link;
-    if (_attachmentHelper.attachmentType == 'link') {
-      link = _attachmentHelper.creatorAttachmentLink;
-    }
-
-    // Store the data in Firestore
-    await _firestore
-        .collection('groups')
-        .doc(widget.groupId)
-        .collection('plans')
-        .doc(widget.planId)
-        .collection('completed')
-        .doc(uid)
-        .set({
-      'uid': uid,
-      'comment': _comment.text,
-      'fileUrl': fileUrl,
-      'link': link,
-      'timestamp': FieldValue.serverTimestamp(),
-    });
-
-    // Update the state to show submission message and delete button
-    setState(() {
-      _isSubmitted = true;
-    });
-
-    // Show success message
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Work submitted successfully')),
-    );
-  }
-
-  Future<void> _deleteWork() async {
-    User? user = _auth.currentUser;
-    if (user == null) {
-      // Handle user not being logged in
-      return;
-    }
-    String uid = user.uid;
-
-    // Delete the submitted work from Firestore
-    await _firestore
-        .collection('groups')
-        .doc(widget.groupId)
-        .collection('plans')
-        .doc(widget.planId)
-        .collection('completed')
-        .doc(uid)
-        .delete();
-
-    // Update the state to revert the UI back to the initial state
-    setState(() {
-      _isSubmitted = false;
-      _attachmentHelper.creatorAttachment = null;
-      _attachmentHelper.creatorAttachmentLink = null;
-      _attachmentHelper.attachmentType = null;
-      _comment.clear();
-    });
-
-    // Show success message
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Work deleted successfully')),
-    );
-  }
-
-  Widget _buildAttachmentPreview() {
-    if (_attachmentHelper.attachmentType != null) {
-      Color backgroundColor = Theme.of(context).brightness == Brightness.light
-          ? Colors.deepPurple.shade100
-          : Colors.grey.shade800;
-
-      return Container(
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        padding: EdgeInsets.all(8.0),
-        margin: EdgeInsets.symmetric(vertical: 10.0),
-        child: Row(
-          children: [
-            if (_attachmentHelper.attachmentType == 'image' &&
-                _attachmentHelper.creatorAttachment != null)
-              Image.file(_attachmentHelper.creatorAttachment!, height: 100),
-            if (_attachmentHelper.attachmentType == 'link' &&
-                _attachmentHelper.creatorAttachmentLink != null)
-              Expanded(
-                child: Text(
-                  'Link: ${_attachmentHelper.creatorAttachmentLink}',
-                  style: TextStyle(color: Colors.deepPurple.shade300),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            if (_attachmentHelper.attachmentType != 'image' &&
-                _attachmentHelper.creatorAttachment != null)
-              Expanded(
-                child: Text(
-                  'File: ${_attachmentHelper.creatorAttachment!.path.split('/').last}',
-                  style: TextStyle(color: Colors.white),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            IconButton(
-              icon: Icon(Icons.cancel, color: Colors.white),
-              onPressed: () {
-                setState(() {
-                  _attachmentHelper.creatorAttachment = null;
-                  _attachmentHelper.creatorAttachmentLink = null;
-                  _attachmentHelper.attachmentType = null;
-                });
-              },
-            ),
-          ],
-        ),
+        SnackBar(content: Text('Error deleting plan: $e')),
       );
     }
-    return Container(); // Return empty container if no attachment set
   }
 
   @override
   Widget build(BuildContext context) {
-    // Format the deadline date
-    final DateFormat formatter = DateFormat('dd.MM.yyyy');
-    final String formattedDeadline = formatter.format(widget.deadline);
+    // Format the deadline date for the plan to 'day.month.year'
+    String formattedPlanDeadline = DateFormat('dd.MM.yyyy').format(deadline);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Plan Detail'),
+        title: const Text('Plan Details'),
         actions: [
-          FutureBuilder<bool>(
-            future: _isCurrentUserCreator(),
+          FutureBuilder<DocumentSnapshot>(
+            future: FirebaseFirestore.instance
+                .collection('groups')
+                .doc(groupId)
+                .collection('plans')
+                .doc(planId)
+                .get(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return SizedBox();
-              } else {
-                if (snapshot.hasError || !snapshot.data!) {
-                  return SizedBox();
-                } else {
-                  return IconButton(
-                    icon: Icon(Icons.delete),
-                    onPressed: () async {
-                      bool confirm = await showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: Text('Delete Plan'),
-                          content: Text(
-                              'Are you sure you want to delete this plan?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(false),
-                              child: Text('Cancel'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(true),
-                              child: Text('Delete'),
-                            ),
-                          ],
-                        ),
-                      );
+                return const Center(child: CircularProgressIndicator());
+              }
 
-                      if (confirm) {
-                        _deletePlan(context);
-                      }
-                    },
+              if (snapshot.hasData && snapshot.data != null) {
+                final planData = snapshot.data!.data() as Map<String, dynamic>?;
+                final planCreatorUid = planData?['uid'] as String?;
+                final currentUserUid = FirebaseAuth.instance.currentUser?.uid;
+
+                if (planCreatorUid == currentUserUid) {
+                  return IconButton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: () => _deletePlan(context),
                   );
                 }
               }
+
+              return SizedBox
+                  .shrink(); // Return an empty widget if no delete icon should be shown
             },
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.all(20.0),
-          child: Center(
-            child: SizedBox(
-              width: 400, // Fixed width for the card
-              child: Card(
-                elevation: 3,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.title,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                        ),
-                      ),
-                      SizedBox(height: 10),
-                      Text(widget.description),
-                      SizedBox(height: 10),
-                      Text(
-                        'Deadline: $formattedDeadline',
-                        style: TextStyle(fontStyle: FontStyle.italic),
-                      ),
-                      SizedBox(height: 20),
-                      if (!_isSubmitted) ...[
-                        _buildAttachmentPreview(),
-                        SizedBox(height: 20),
-                        CustomTextField(
-                          controller: _comment,
-                          labelText: 'Comment',
-                          onSuffixIconPressed: () {},
-                          showSuffixIcon: false,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Comment cannot be empty';
-                            }
-                            return null;
-                          },
-                        ),
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: Icon(Icons.attachment),
-                              onPressed: () =>
-                                  _attachmentHelper.showAttachmentMenu(
-                                context,
-                                setState,
-                                _linkController,
-                              ),
-                            ),
-                            SizedBox(width: 10),
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: _submitWork,
-                                child: Text('Submit Your Work'),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ] else ...[
-                        Text(
-                          'You have submitted your work',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        SizedBox(height: 20),
-                        ElevatedButton(
-                          onPressed: _deleteWork,
-                          child: Text('Delete Submission'),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Plan Name: $planName',
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Created by: $username',
+              style: const TextStyle(fontSize: 18),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Deadline: $formattedPlanDeadline',
+              style: const TextStyle(fontSize: 18),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Number of Tasks: $taskCount',
+              style: const TextStyle(fontSize: 18),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Tasks:',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            Expanded(
+              child: FutureBuilder<User?>(
+                future: _getCurrentUser(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (snapshot.hasData && snapshot.data != null) {
+                    final currentUserUid = snapshot.data!.uid;
+
+                    return ListView.builder(
+                      itemCount: tasks.length,
+                      itemBuilder: (context, index) {
+                        final task = tasks[index];
+                        return PlanTaskCard(
+                          title: task['title'],
+                          deadline: DateTime.parse(task['deadline']),
+                          completed: List<String>.from(task['completed']),
+                          uid: currentUserUid, // Pass the current user UID
+                          groupId: groupId, // Pass groupId
+                          planId: planId, // Pass planId
+                          taskIndex: index, // Pass taskIndex
+                        );
+                      },
+                    );
+                  }
+
+                  return const Center(child: Text('Error fetching user data'));
+                },
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
-  @override
-  void dispose() {
-    _linkController.dispose();
-    _comment.dispose();
-    super.dispose();
-  }
-
-  Future<bool> _isCurrentUserCreator() async {
-    final user = _auth.currentUser;
-    if (user != null) {
-      final DocumentSnapshot planSnapshot = await _firestore
-          .collection('groups')
-          .doc(widget.groupId)
-          .collection('plans')
-          .doc(widget.planId)
-          .get();
-      return planSnapshot['uid'] == user.uid;
-    }
-    return false;
-  }
-
-  Future<void> _deletePlan(BuildContext context) async {
-    try {
-      await _firestore
-          .collection('groups')
-          .doc(widget.groupId)
-          .collection('plans')
-          .doc(widget.planId)
-          .delete();
-      Navigator.of(context).pop();
-    } catch (e) {
-      print('Failed to delete plan: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to delete plan')),
-      );
-    }
+  Future<User?> _getCurrentUser() async {
+    return FirebaseAuth.instance.currentUser;
   }
 }

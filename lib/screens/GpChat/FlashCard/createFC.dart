@@ -108,8 +108,6 @@ class _CreateFlashcardPageState extends State<CreateFlashcardPage> {
         await flashcardDoc.collection('QAPairs').add({
           'question': flashcard['question'],
           'answer': flashcard['answer'],
-          'creatorUsername': _username,
-          'createdDate': now,
         });
       }
 

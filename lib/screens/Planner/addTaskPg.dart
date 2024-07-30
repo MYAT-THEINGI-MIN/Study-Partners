@@ -56,7 +56,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
     );
     if (picked != null) {
       setState(() {
-        _dateController.text = "${picked.toLocal()}".split(' ')[0];
+        _dateController.text = DateFormat('yyyy-MM-dd').format(picked);
       });
     }
   }
@@ -138,143 +138,148 @@ class _AddTaskPageState extends State<AddTaskPage> {
           style: Theme.of(context).textTheme.bodyMedium,
         ),
       ),
-      body: Container(
-        padding: const EdgeInsets.only(left: 20, right: 20),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              // Task name
-              InputField(
-                title: "Title",
-                hint: "Enter your new task",
-                controller: _titleController,
-              ),
-              // Note
-              InputField(
-                title: "Note",
-                hint: "Enter note for your task",
-                controller: _noteController,
-              ),
-              // Date
-              InputField(
-                title: "Date",
-                hint: "Select date",
-                controller: _dateController,
-                widget: IconButton(
-                  icon: const Icon(
-                    Icons.calendar_today,
-                    color: Colors.black,
+      body: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  // Task name
+                  InputField(
+                    hint: "Enter task title",
+                    controller: _titleController,
                   ),
-                  onPressed: () => _selectDate(context),
-                ),
-                onTap: () => _selectDate(context),
-              ),
-              // Time
-              InputField(
-                title: "Time",
-                hint: "Select time",
-                controller: _timeController,
-                widget: IconButton(
-                  icon: const Icon(
-                    Icons.access_time,
-                    color: Colors.black,
+                  // Note
+                  InputField(
+                    hint: "Enter note for your task",
+                    controller: _noteController,
                   ),
-                  onPressed: () => _selectTime(context),
-                ),
-                onTap: () => _selectTime(context),
-              ),
-              // Repeat
-              InputField(
-                title: "Repeat",
-                hint: "Select repeat",
-                controller: null,
-                widget: DropdownButton<String>(
-                  value: _selectedRepeat,
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _selectedRepeat = newValue!;
-                    });
-                  },
-                  items: <String>['None', 'Daily', 'Weekly', 'Monthly']
-                      .map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value,
-                          style: TextStyle(color: Colors.deepPurple)),
-                    );
-                  }).toList(),
-                ),
-              ),
-              // Remind
-              InputField(
-                title: "Remind",
-                hint: "Select Remind Time",
-                controller: null,
-                widget: DropdownButton<String>(
-                  value: _selectedRemind,
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _selectedRemind = newValue!;
-                    });
-                  },
-                  items: <String>[
-                    '5 minutes before',
-                    '10 minutes before',
-                    '15 minutes before',
-                    '20 minutes before'
-                  ].map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value,
-                          style: TextStyle(color: Colors.deepPurple)),
-                    );
-                  }).toList(),
-                ),
-              ),
-              // Color circles row
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    ColorCircle(
-                      color: Colors.blue.shade300,
-                      isSelected: _selectedColor == Colors.blue.shade300,
-                      onTap: () {
+                  // Date
+                  InputField(
+                    hint: "Select date",
+                    controller: _dateController,
+                    widget: IconButton(
+                      icon: const Icon(
+                        Icons.calendar_today,
+                        color: Colors.black,
+                      ),
+                      onPressed: () => _selectDate(context),
+                    ),
+                  ),
+                  // Time
+                  InputField(
+                    hint: "Select time",
+                    controller: _timeController,
+                    widget: IconButton(
+                      icon: const Icon(
+                        Icons.access_time,
+                        color: Colors.black,
+                      ),
+                      onPressed: () => _selectTime(context),
+                    ),
+                  ),
+                  // Repeat
+                  InputField(
+                    hint: "Select repeat",
+                    controller: null,
+                    widget: DropdownButton<String>(
+                      value: _selectedRepeat,
+                      onChanged: (String? newValue) {
                         setState(() {
-                          _selectedColor = Colors.blue.shade300;
+                          _selectedRepeat = newValue!;
                         });
                       },
+                      items: <String>['None', 'Daily', 'Weekly', 'Monthly']
+                          .map<DropdownMenuItem<String>>((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(
+                            value,
+                            style: TextStyle(color: Colors.deepPurple),
+                          ),
+                        );
+                      }).toList(),
                     ),
-                    ColorCircle(
-                      color: Colors.yellow.shade300,
-                      isSelected: _selectedColor == Colors.yellow.shade300,
-                      onTap: () {
+                  ),
+                  // Remind
+                  InputField(
+                    hint: "Select Remind Time",
+                    controller: null,
+                    widget: DropdownButton<String>(
+                      value: _selectedRemind,
+                      onChanged: (String? newValue) {
                         setState(() {
-                          _selectedColor = Colors.yellow.shade300;
+                          _selectedRemind = newValue!;
                         });
                       },
+                      items: <String>[
+                        '5 minutes before',
+                        '10 minutes before',
+                        '15 minutes before',
+                        '20 minutes before'
+                      ].map<DropdownMenuItem<String>>((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(
+                            value,
+                            style: TextStyle(color: Colors.deepPurple),
+                          ),
+                        );
+                      }).toList(),
                     ),
-                    ColorCircle(
-                      color: Colors.pink.shade300,
-                      isSelected: _selectedColor == Colors.pink.shade300,
-                      onTap: () {
-                        setState(() {
-                          _selectedColor = Colors.pink.shade300;
-                        });
-                      },
-                    ),
-                    // Create task button
-                    myButton(
-                      label: 'Create Task',
-                      onTap: _createTask,
-                    )
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Colors
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      ColorCircle(
+                        color: Colors.blue.shade300,
+                        isSelected: _selectedColor == Colors.blue.shade300,
+                        onTap: () {
+                          setState(() {
+                            _selectedColor = Colors.blue.shade300;
+                          });
+                        },
+                      ),
+                      ColorCircle(
+                        color: Colors.yellow.shade300,
+                        isSelected: _selectedColor == Colors.yellow.shade300,
+                        onTap: () {
+                          setState(() {
+                            _selectedColor = Colors.yellow.shade300;
+                          });
+                        },
+                      ),
+                      ColorCircle(
+                        color: Colors.pink.shade300,
+                        isSelected: _selectedColor == Colors.pink.shade300,
+                        onTap: () {
+                          setState(() {
+                            _selectedColor = Colors.pink.shade300;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 80), // Add spacing for button
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              width: MediaQuery.of(context).size.width,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: myButton(
+                label: "Create Task",
+                onTap: _createTask,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

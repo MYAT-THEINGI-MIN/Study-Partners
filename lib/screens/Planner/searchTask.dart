@@ -86,7 +86,6 @@ class _SearchTasksPageState extends State<SearchTasksPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             InputField(
-              title: 'Search by Title',
               hint: 'Enter task title...',
               controller: _searchController,
             ),
