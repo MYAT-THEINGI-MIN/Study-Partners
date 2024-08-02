@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sp_test/Service/NotificationService.dart';
+import 'package:sp_test/screens/GpChat/EditGroup/addPartner.dart';
 import 'package:sp_test/screens/Planner/InputField.dart';
 import 'package:sp_test/screens/Planner/button.dart';
 import 'package:sp_test/screens/Planner/colorCircle.dart';
 import 'package:sp_test/screens/Planner/firebaseService.dart';
+import 'package:sp_test/widgets/CustomDateTextField.dart';
+import 'package:sp_test/widgets/customTimeTextField.dart';
+import 'package:sp_test/widgets/topSnackBar.dart';
 
 class AddTaskPage extends StatefulWidget {
   final String uid;
@@ -84,7 +88,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
         note.isEmpty ||
         dateString.isEmpty ||
         timeString.isEmpty) {
-      print('Please fill in all fields.');
+      TopSnackBarWiidget(context, 'Please Fill Necessary Data');
       return;
     }
 
@@ -106,7 +110,6 @@ class _AddTaskPageState extends State<AddTaskPage> {
 
       final notificationIdBase =
           DateTime.now().millisecondsSinceEpoch % 2147483647;
-
       print(
           'Creating tasks and notifications for repeat option: $_selectedRepeat');
 
@@ -114,7 +117,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
         case 'Daily':
           for (int i = 0; i < 30; i++) {
             final taskDate = scheduledDateTime.add(Duration(days: i));
-            print('Creating daily task for: $taskDate');
+            TopSnackBarWiidget(context, 'Creating daily task at: $taskDate');
             await _firebaseService.saveTask(
               uid: widget.uid,
               title: title,
@@ -125,8 +128,8 @@ class _AddTaskPageState extends State<AddTaskPage> {
               remind: _selectedRemind,
               color: _selectedColor?.value ?? Colors.blue.value,
             );
-
-            print('Scheduling notification for: $taskDate');
+            TopSnackBarWiidget(
+                context, 'Scheduling notification at: $taskDate');
             await NotificationService.scheduleNotification(
               id: notificationIdBase + i,
               title: 'Task Reminder',
@@ -139,7 +142,8 @@ class _AddTaskPageState extends State<AddTaskPage> {
         case 'Weekly':
           for (int i = 0; i < 4; i++) {
             final taskDate = scheduledDateTime.add(Duration(days: 7 * i));
-            print('Creating weekly task for: $taskDate');
+
+            TopSnackBarWiidget(context, 'Creating weekly task at: $taskDate');
             await _firebaseService.saveTask(
               uid: widget.uid,
               title: title,
@@ -151,7 +155,8 @@ class _AddTaskPageState extends State<AddTaskPage> {
               color: _selectedColor?.value ?? Colors.blue.value,
             );
 
-            print('Scheduling notification for: $taskDate');
+            TopSnackBarWiidget(
+                context, 'Scheduling notification at: $taskDate');
             await NotificationService.scheduleNotification(
               id: notificationIdBase + i,
               title: 'Task Reminder',
@@ -170,7 +175,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
               scheduledDateTime.hour,
               scheduledDateTime.minute,
             );
-            print('Creating monthly task for: $taskDate');
+            TopSnackBarWiidget(context, 'Creating monthly task at: $taskDate');
             await _firebaseService.saveTask(
               uid: widget.uid,
               title: title,
@@ -182,7 +187,8 @@ class _AddTaskPageState extends State<AddTaskPage> {
               color: _selectedColor?.value ?? Colors.blue.value,
             );
 
-            print('Scheduling notification for: $taskDate');
+            TopSnackBarWiidget(
+                context, 'Scheduling notification at: $taskDate');
             await NotificationService.scheduleNotification(
               id: notificationIdBase + i,
               title: 'Task Reminder',
@@ -193,7 +199,8 @@ class _AddTaskPageState extends State<AddTaskPage> {
           break;
 
         case 'None':
-          print('Creating single task for: $scheduledDateTime');
+          TopSnackBarWiidget(
+              context, 'Creating single task at: $scheduledDateTime');
           await _firebaseService.saveTask(
             uid: widget.uid,
             title: title,
@@ -214,7 +221,8 @@ class _AddTaskPageState extends State<AddTaskPage> {
           );
           break;
       }
-
+      TopSnackBarWiidget(
+          context, 'Tasks saved to Firestore and notifications scheduled.');
       print('Tasks saved to Firestore and notifications scheduled.');
       Navigator.pop(context);
     } catch (e) {
@@ -241,80 +249,86 @@ class _AddTaskPageState extends State<AddTaskPage> {
                     controller: _titleController,
                   ),
                   InputField(
-                    hint: "Enter note for your task",
+                    hint: "Enter task note",
                     controller: _noteController,
                   ),
-                  InputField(
-                    hint: "Select date",
+                  CustomDateTextField(
                     controller: _dateController,
-                    widget: IconButton(
-                      icon:
-                          const Icon(Icons.calendar_today, color: Colors.black),
-                      onPressed: () => _selectDate(context),
-                    ),
+                    onTap: () => _selectDate(context),
+                    labelText: 'Select Date',
                   ),
-                  InputField(
-                    hint: "Select time",
+                  CustomTimeTextField(
                     controller: _timeController,
-                    widget: IconButton(
-                      icon: const Icon(Icons.access_time, color: Colors.black),
-                      onPressed: () => _selectTime(context),
-                    ),
+                    onTap: () => _selectTime(context),
+                    labelText: 'Select Time',
                   ),
-                  InputField(
-                    hint: "Select repeat",
-                    controller: null,
-                    widget: DropdownButton<String>(
-                      value: _selectedRepeat,
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          _selectedRepeat = newValue!;
-                        });
-                      },
-                      items: <String>['None', 'Daily', 'Weekly', 'Monthly']
-                          .map<DropdownMenuItem<String>>((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value,
-                              style: TextStyle(color: Colors.deepPurple)),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                  InputField(
-                    hint: "Select Remind Time",
-                    controller: null,
-                    widget: DropdownButton<String>(
-                      value: _selectedRemind,
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          _selectedRemind = newValue!;
-                        });
-                      },
-                      items: <String>[
-                        '5 minutes before',
-                        '10 minutes before',
-                        '15 minutes before',
-                        '20 minutes before'
-                      ].map<DropdownMenuItem<String>>((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value,
-                              style: TextStyle(color: Colors.deepPurple)),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      Text('Repeat:',
+                          style: Theme.of(context).textTheme.bodyMedium),
+                      DropdownButton<String>(
+                        value: _selectedRepeat,
+                        onChanged: (String? newValue) {
+                          setState(() {
+                            _selectedRepeat = newValue!;
+                          });
+                        },
+                        items: <String>[
+                          'None',
+                          'Daily',
+                          'Weekly',
+                          'Monthly',
+                        ].map<DropdownMenuItem<String>>((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value,
+                                style: TextStyle(color: Colors.deepPurple)),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Remind:',
+                          style: Theme.of(context).textTheme.bodyMedium),
+                      DropdownButton<String>(
+                        value: _selectedRemind,
+                        onChanged: (String? newValue) {
+                          setState(() {
+                            _selectedRemind = newValue!;
+                          });
+                        },
+                        items: <String>[
+                          '5 minutes before',
+                          '10 minutes before',
+                          '15 minutes before',
+                          '30 minutes before',
+                          '1 hour before'
+                        ].map<DropdownMenuItem<String>>((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value,
+                                style: TextStyle(color: Colors.deepPurple)),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20),
+                  Wrap(
+                    spacing: 25,
+                    children: [
                       ColorCircle(
-                        color: Colors.blue.shade300,
-                        isSelected: _selectedColor == Colors.blue.shade300,
+                        color: Colors.orange.shade300,
+                        isSelected: _selectedColor == Colors.orange.shade300,
                         onTap: () {
                           setState(() {
-                            _selectedColor = Colors.blue.shade300;
+                            _selectedColor = Colors.orange.shade300;
                           });
                         },
                       ),
@@ -328,6 +342,24 @@ class _AddTaskPageState extends State<AddTaskPage> {
                         },
                       ),
                       ColorCircle(
+                        color: Colors.purple.shade300,
+                        isSelected: _selectedColor == Colors.purple.shade300,
+                        onTap: () {
+                          setState(() {
+                            _selectedColor = Colors.purple.shade300;
+                          });
+                        },
+                      ),
+                      ColorCircle(
+                        color: Colors.blue.shade300,
+                        isSelected: _selectedColor == Colors.blue.shade300,
+                        onTap: () {
+                          setState(() {
+                            _selectedColor = Colors.blue.shade300;
+                          });
+                        },
+                      ),
+                      ColorCircle(
                         color: Colors.green.shade300,
                         isSelected: _selectedColor == Colors.green.shade300,
                         onTap: () {
@@ -336,12 +368,31 @@ class _AddTaskPageState extends State<AddTaskPage> {
                           });
                         },
                       ),
+                      ColorCircle(
+                        color: Colors.yellow.shade300,
+                        isSelected: _selectedColor == Colors.yellow.shade300,
+                        onTap: () {
+                          setState(() {
+                            _selectedColor = Colors.yellow.shade300;
+                          });
+                        },
+                      ),
+                      // Add more colors as needed
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  myButton(
-                    label: "Create Task",
-                    onTap: _createTask,
+                  SizedBox(height: 20),
+                  Padding(
+                    padding: const EdgeInsets.all(10.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _createTask,
+                            child: const Text('Create Task'),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -352,3 +403,6 @@ class _AddTaskPageState extends State<AddTaskPage> {
     );
   }
 }
+
+
+//////////NOTI NOT SHOWING////////////////

@@ -3,34 +3,18 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tzData;
 
 class NotificationService {
-  static final FlutterLocalNotificationsPlugin
-      _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+  static final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
 
   static Future<void> initialize() async {
     tzData.initializeTimeZones();
-    final InitializationSettings initializationSettings =
+    const InitializationSettings initializationSettings =
         InitializationSettings(
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
     );
 
-    await _flutterLocalNotificationsPlugin.initialize(initializationSettings);
-    await _createNotificationChannel();
-  }
-
-  static Future<void> _createNotificationChannel() async {
-    const AndroidNotificationChannel channel = AndroidNotificationChannel(
-      'your_channel_id', // ID of the channel
-      'your_channel_name', // Name of the channel
-      description: 'your_channel_description', // Description of the channel
-      importance: Importance.max,
-      sound: RawResourceAndroidNotificationSound(
-          'notification_sound'), // Optional: Add a custom sound
-    );
-
-    await _flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(channel);
+    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+    print('Notification Service Initialized');
   }
 
   static Future<void> scheduleNotification({
@@ -39,7 +23,9 @@ class NotificationService {
     required String body,
     required DateTime scheduledDate,
   }) async {
-    await _flutterLocalNotificationsPlugin.zonedSchedule(
+    print(
+        'Scheduling notification with id: $id, title: $title, body: $body, scheduledDate: $scheduledDate');
+    await flutterLocalNotificationsPlugin.zonedSchedule(
       id,
       title,
       body,
@@ -51,16 +37,13 @@ class NotificationService {
           channelDescription: 'your_channel_description',
           importance: Importance.max,
           priority: Priority.high,
-          sound: RawResourceAndroidNotificationSound(
-              'notification_sound'), // Optional: Add a custom sound
-          playSound: true, // Ensure sound is played
         ),
       ),
       androidAllowWhileIdle: true,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents:
-          DateTimeComponents.time, // Adjust based on repeat options
+      matchDateTimeComponents: DateTimeComponents.time,
     );
+    print('Notification scheduled');
   }
 }

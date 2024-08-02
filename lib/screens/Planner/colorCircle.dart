@@ -30,8 +30,8 @@ class ColorCircle extends StatelessWidget {
           child: isSelected
               ? Icon(
                   Icons.check,
-                  size: 20,
-                  color: Colors.white,
+                  size: 30,
+                  color: Colors.black,
                 )
               : null,
         ),

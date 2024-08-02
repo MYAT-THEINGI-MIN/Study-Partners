@@ -16,6 +16,8 @@ class InputField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.only(top: 16),
       child: Container(
@@ -30,14 +32,12 @@ class InputField extends StatelessWidget {
             Expanded(
               child: TextFormField(
                 controller: controller,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium, // Match your app's body text style
+                style: Theme.of(context).textTheme.bodyMedium,
                 decoration: InputDecoration(
                   hintText: hint,
-                  hintStyle: Theme.of(context)
-                      .textTheme
-                      .bodyMedium, // Match your app's body text style
+                  hintStyle: TextStyle(
+                    color: isDarkTheme ? Colors.deepPurple : null,
+                  ),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                 ),

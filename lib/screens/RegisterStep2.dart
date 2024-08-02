@@ -69,10 +69,10 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
                   BlocConsumer<RegisterBloc, RegisterState>(
                     listener: (context, state) {
                       if (state is RegisterFailure) {
-                        showTopSnackBar(
+                        TopSnackBarWiidget(
                             context, 'Failed to register: ${state.error}');
                       } else if (state is RegisterSuccess) {
-                        showTopSnackBar(context,
+                        TopSnackBarWiidget(context,
                             'Registration successful. Please verify your email.');
                         Navigator.push(
                           context,
@@ -103,7 +103,7 @@ class _UploadImageScreenState extends State<UploadImageScreen> {
                                     ),
                                   );
                             } else {
-                              showTopSnackBar(
+                              TopSnackBarWiidget(
                                   context, 'Please upload a profile image.');
                             }
                           },

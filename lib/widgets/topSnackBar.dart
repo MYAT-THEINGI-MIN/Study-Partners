@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-void showTopSnackBar(BuildContext context, String message) {
+void TopSnackBarWiidget(BuildContext context, String message) {
   final overlay = Overlay.of(context);
   final overlayEntry = OverlayEntry(
     builder: (context) => Positioned(
@@ -13,13 +13,13 @@ void showTopSnackBar(BuildContext context, String message) {
           padding: EdgeInsets.all(10.0),
           decoration: BoxDecoration(
             color: Theme.of(context).brightness == Brightness.light
-                ? Color.fromARGB(221, 221, 221, 221) // Light theme color
-                : Color.fromARGB(221, 43, 43, 43), // Dark theme color
+                ? Color.fromARGB(221, 218, 217, 217) // Light theme color
+                : Color.fromARGB(221, 142, 142, 142), // Dark theme color
             borderRadius: BorderRadius.circular(10.0),
           ),
           child: Text(
             message,
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: Colors.deepPurple),
             textAlign: TextAlign.center,
           ),
         ),

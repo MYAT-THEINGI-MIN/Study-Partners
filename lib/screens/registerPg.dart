@@ -92,11 +92,13 @@ class _RegisterPgState extends State<RegisterPg> {
                   BlocConsumer<RegisterBloc, RegisterState>(
                     listener: (context, state) {
                       if (state is RegisterFailure) {
-                        showTopSnackBar(
+                        TopSnackBarWiidget(
                             context, 'Failed to register: ${state.error}');
                       } else if (state is RegisterSuccess) {
-                        showTopSnackBar(context,
-                            'Registration successful. Please verify your email.');
+                        (
+                          context,
+                          'Registration successful. Please verify your email.'
+                        );
                         Navigator.push(
                           context,
                           MaterialPageRoute(
