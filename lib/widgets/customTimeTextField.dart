@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-class CustomDateTextField extends StatelessWidget {
+class CustomTimeTextField extends StatelessWidget {
   final TextEditingController controller;
   final String labelText;
   final Function() onTap;
   final String? Function(String?)? validator;
 
-  CustomDateTextField({
+  CustomTimeTextField({
     required this.controller,
     required this.labelText,
     required this.onTap,
@@ -41,7 +41,7 @@ class CustomDateTextField extends StatelessWidget {
                 color: Colors.deepPurple,
               ),
               prefixIcon: const Icon(
-                Icons.calendar_today,
+                Icons.access_time,
                 color: Colors.deepPurple,
               ),
               enabledBorder: OutlineInputBorder(

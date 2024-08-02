@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:sp_test/Service/NotificationService.dart';
 import 'package:sp_test/screens/Planner/InputField.dart';
 import 'package:sp_test/screens/Planner/button.dart';
 import 'package:sp_test/screens/Planner/colorCircle.dart';
@@ -73,70 +74,160 @@ class _AddTaskPageState extends State<AddTaskPage> {
     }
   }
 
-  void _createTask() {
-    final title = _titleController.text;
-    final note = _noteController.text;
-    final date =
-        DateTime.parse(_dateController.text); // Convert date string to DateTime
-    final time = _timeController.text;
-    final repeat = _selectedRepeat;
-    final remind = _selectedRemind;
-    final color =
-        _selectedColor?.value ?? Colors.blue.value; // Save color value as int
+  void _createTask() async {
+    final title = _titleController.text.trim();
+    final note = _noteController.text.trim();
+    final dateString = _dateController.text.trim();
+    final timeString = _timeController.text.trim();
 
-    if (repeat == 'None') {
-      _firebaseService.saveTask(
-        uid: widget.uid,
-        title: title,
-        note: note,
-        date: date,
-        time: time,
-        repeat: repeat,
-        remind: remind,
-        color: color,
-      );
-    } else {
-      List<DateTime> repeatDates = [];
-
-      if (repeat == 'Daily') {
-        for (int i = 0; i < 30; i++) {
-          repeatDates.add(date.add(Duration(days: i)));
-        }
-      } else if (repeat == 'Weekly') {
-        for (int i = 0; i < 4; i++) {
-          repeatDates.add(date.add(Duration(days: 7 * i)));
-        }
-      } else if (repeat == 'Monthly') {
-        for (int i = 0; i < 12; i++) {
-          repeatDates.add(DateTime(date.year, date.month + i, date.day));
-        }
-      }
-
-      for (var repeatDate in repeatDates) {
-        _firebaseService.saveTask(
-          uid: widget.uid,
-          title: title,
-          note: note,
-          date: repeatDate,
-          time: time,
-          repeat: repeat,
-          remind: remind,
-          color: color,
-        );
-      }
+    if (title.isEmpty ||
+        note.isEmpty ||
+        dateString.isEmpty ||
+        timeString.isEmpty) {
+      print('Please fill in all fields.');
+      return;
     }
 
-    Navigator.pop(context); // Navigate back after saving task
+    try {
+      final date = DateFormat('yyyy-MM-dd').parse(dateString);
+      final timeParts = timeString.split(':');
+      if (timeParts.length != 2) {
+        throw FormatException('Invalid time format');
+      }
+
+      final hour = int.parse(timeParts[0]);
+      final minute = int.parse(timeParts[1].split(' ')[0]);
+      final scheduledDateTime =
+          DateTime(date.year, date.month, date.day, hour, minute);
+
+      final remindMinutes = int.parse(_selectedRemind.split(' ')[0]);
+      DateTime notifyDateTime =
+          scheduledDateTime.subtract(Duration(minutes: remindMinutes));
+
+      final notificationIdBase =
+          DateTime.now().millisecondsSinceEpoch % 2147483647;
+
+      print(
+          'Creating tasks and notifications for repeat option: $_selectedRepeat');
+
+      switch (_selectedRepeat) {
+        case 'Daily':
+          for (int i = 0; i < 30; i++) {
+            final taskDate = scheduledDateTime.add(Duration(days: i));
+            print('Creating daily task for: $taskDate');
+            await _firebaseService.saveTask(
+              uid: widget.uid,
+              title: title,
+              note: note,
+              date: taskDate,
+              time: timeString,
+              repeat: _selectedRepeat,
+              remind: _selectedRemind,
+              color: _selectedColor?.value ?? Colors.blue.value,
+            );
+
+            print('Scheduling notification for: $taskDate');
+            await NotificationService.scheduleNotification(
+              id: notificationIdBase + i,
+              title: 'Task Reminder',
+              body: 'Reminder for task: $title',
+              scheduledDate: notifyDateTime.add(Duration(days: i)),
+            );
+          }
+          break;
+
+        case 'Weekly':
+          for (int i = 0; i < 4; i++) {
+            final taskDate = scheduledDateTime.add(Duration(days: 7 * i));
+            print('Creating weekly task for: $taskDate');
+            await _firebaseService.saveTask(
+              uid: widget.uid,
+              title: title,
+              note: note,
+              date: taskDate,
+              time: timeString,
+              repeat: _selectedRepeat,
+              remind: _selectedRemind,
+              color: _selectedColor?.value ?? Colors.blue.value,
+            );
+
+            print('Scheduling notification for: $taskDate');
+            await NotificationService.scheduleNotification(
+              id: notificationIdBase + i,
+              title: 'Task Reminder',
+              body: 'Reminder for task: $title',
+              scheduledDate: notifyDateTime.add(Duration(days: 7 * i)),
+            );
+          }
+          break;
+
+        case 'Monthly':
+          for (int i = 0; i < 3; i++) {
+            final taskDate = DateTime(
+              scheduledDateTime.year,
+              scheduledDateTime.month + i,
+              scheduledDateTime.day,
+              scheduledDateTime.hour,
+              scheduledDateTime.minute,
+            );
+            print('Creating monthly task for: $taskDate');
+            await _firebaseService.saveTask(
+              uid: widget.uid,
+              title: title,
+              note: note,
+              date: taskDate,
+              time: timeString,
+              repeat: _selectedRepeat,
+              remind: _selectedRemind,
+              color: _selectedColor?.value ?? Colors.blue.value,
+            );
+
+            print('Scheduling notification for: $taskDate');
+            await NotificationService.scheduleNotification(
+              id: notificationIdBase + i,
+              title: 'Task Reminder',
+              body: 'Reminder for task: $title',
+              scheduledDate: notifyDateTime.add(Duration(days: 30 * i)),
+            );
+          }
+          break;
+
+        case 'None':
+          print('Creating single task for: $scheduledDateTime');
+          await _firebaseService.saveTask(
+            uid: widget.uid,
+            title: title,
+            note: note,
+            date: scheduledDateTime,
+            time: timeString,
+            repeat: _selectedRepeat,
+            remind: _selectedRemind,
+            color: _selectedColor?.value ?? Colors.blue.value,
+          );
+
+          print('Scheduling single notification for: $scheduledDateTime');
+          await NotificationService.scheduleNotification(
+            id: notificationIdBase,
+            title: 'Task Reminder',
+            body: 'Reminder for task: $title',
+            scheduledDate: notifyDateTime,
+          );
+          break;
+      }
+
+      print('Tasks saved to Firestore and notifications scheduled.');
+      Navigator.pop(context);
+    } catch (e) {
+      print('Error creating task: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Add New Task',
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
+        title:
+            Text('Add New Task', style: Theme.of(context).textTheme.bodyMedium),
       ),
       body: Stack(
         children: [
@@ -145,41 +236,31 @@ class _AddTaskPageState extends State<AddTaskPage> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  // Task name
                   InputField(
                     hint: "Enter task title",
                     controller: _titleController,
                   ),
-                  // Note
                   InputField(
                     hint: "Enter note for your task",
                     controller: _noteController,
                   ),
-                  // Date
                   InputField(
                     hint: "Select date",
                     controller: _dateController,
                     widget: IconButton(
-                      icon: const Icon(
-                        Icons.calendar_today,
-                        color: Colors.black,
-                      ),
+                      icon:
+                          const Icon(Icons.calendar_today, color: Colors.black),
                       onPressed: () => _selectDate(context),
                     ),
                   ),
-                  // Time
                   InputField(
                     hint: "Select time",
                     controller: _timeController,
                     widget: IconButton(
-                      icon: const Icon(
-                        Icons.access_time,
-                        color: Colors.black,
-                      ),
+                      icon: const Icon(Icons.access_time, color: Colors.black),
                       onPressed: () => _selectTime(context),
                     ),
                   ),
-                  // Repeat
                   InputField(
                     hint: "Select repeat",
                     controller: null,
@@ -194,15 +275,12 @@ class _AddTaskPageState extends State<AddTaskPage> {
                           .map<DropdownMenuItem<String>>((String value) {
                         return DropdownMenuItem<String>(
                           value: value,
-                          child: Text(
-                            value,
-                            style: TextStyle(color: Colors.deepPurple),
-                          ),
+                          child: Text(value,
+                              style: TextStyle(color: Colors.deepPurple)),
                         );
                       }).toList(),
                     ),
                   ),
-                  // Remind
                   InputField(
                     hint: "Select Remind Time",
                     controller: null,
@@ -221,16 +299,13 @@ class _AddTaskPageState extends State<AddTaskPage> {
                       ].map<DropdownMenuItem<String>>((String value) {
                         return DropdownMenuItem<String>(
                           value: value,
-                          child: Text(
-                            value,
-                            style: TextStyle(color: Colors.deepPurple),
-                          ),
+                          child: Text(value,
+                              style: TextStyle(color: Colors.deepPurple)),
                         );
                       }).toList(),
                     ),
                   ),
                   const SizedBox(height: 20),
-                  // Colors
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -244,38 +319,31 @@ class _AddTaskPageState extends State<AddTaskPage> {
                         },
                       ),
                       ColorCircle(
-                        color: Colors.yellow.shade300,
-                        isSelected: _selectedColor == Colors.yellow.shade300,
+                        color: Colors.red.shade300,
+                        isSelected: _selectedColor == Colors.red.shade300,
                         onTap: () {
                           setState(() {
-                            _selectedColor = Colors.yellow.shade300;
+                            _selectedColor = Colors.red.shade300;
                           });
                         },
                       ),
                       ColorCircle(
-                        color: Colors.pink.shade300,
-                        isSelected: _selectedColor == Colors.pink.shade300,
+                        color: Colors.green.shade300,
+                        isSelected: _selectedColor == Colors.green.shade300,
                         onTap: () {
                           setState(() {
-                            _selectedColor = Colors.pink.shade300;
+                            _selectedColor = Colors.green.shade300;
                           });
                         },
                       ),
                     ],
                   ),
-                  const SizedBox(height: 80), // Add spacing for button
+                  const SizedBox(height: 20),
+                  myButton(
+                    label: "Create Task",
+                    onTap: _createTask,
+                  ),
                 ],
-              ),
-            ),
-          ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              width: MediaQuery.of(context).size.width,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: myButton(
-                label: "Create Task",
-                onTap: _createTask,
               ),
             ),
           ),

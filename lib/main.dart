@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:sp_test/Service/NotificationService.dart';
 import 'package:sp_test/Service/splachScreen.dart';
 import 'package:sp_test/Service/theme.dart';
 import 'package:sp_test/Service/themeProvider.dart';
@@ -15,6 +16,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   tz.initializeTimeZones();
+  await NotificationService.initialize();
   runApp(MyApp());
 }
 
@@ -25,9 +27,8 @@ class MyApp extends StatelessWidget {
   MyApp() {
     final initializationSettingsAndroid =
         AndroidInitializationSettings('app_icon');
-    final initializationSettingsIOS = IOSInitializationSettings();
-    final initializationSettings = InitializationSettings(
-        android: initializationSettingsAndroid, iOS: initializationSettingsIOS);
+    final initializationSettings =
+        InitializationSettings(android: initializationSettingsAndroid);
 
     flutterLocalNotificationsPlugin.initialize(initializationSettings);
   }
@@ -40,10 +41,9 @@ class MyApp extends StatelessWidget {
       importance: Importance.high,
       priority: Priority.high,
     );
-    final iOSPlatformChannelSpecifics = IOSNotificationDetails();
     final platformChannelSpecifics = NotificationDetails(
-        android: androidPlatformChannelSpecifics,
-        iOS: iOSPlatformChannelSpecifics);
+      android: androidPlatformChannelSpecifics,
+    );
 
     await flutterLocalNotificationsPlugin.show(
       0,
@@ -59,7 +59,6 @@ class MyApp extends StatelessWidget {
       create: (_) => ThemeProvider(),
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
-          // Add listener to the themeProvider
           themeProvider.addListener(() {
             _scheduleNotification(
                 'Theme changed to ${themeProvider.isDarkMode ? "Dark" : "Light"} mode');
@@ -104,17 +103,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
-
-//using theme provider//splach screen update//
-
-//myattheingimin3532@gmail.com
-//Myat@2019
-
-//wwp68706@doolk.com
-//Wwp68706@
-
-//yairzawhtun007@gmail.com
-//yairzawhtun12#
-
-
