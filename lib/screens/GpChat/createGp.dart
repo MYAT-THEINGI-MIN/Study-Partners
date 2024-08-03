@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:sp_test/screens/GpChat/EditGroup/addPartner.dart';
 
 class CreateGroup extends StatefulWidget {
   @override
@@ -27,15 +26,23 @@ class _CreateGroupState extends State<CreateGroup> {
     String? profileUrl;
 
     if (groupName.isEmpty || subject.isEmpty || _privacy == null) {
-      // Add validation or error handling if needed
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please fill out all fields')),
+      );
       return;
     }
 
     try {
       // Get current user details
       User? user = _auth.currentUser;
-      String adminId = user!.uid;
-      String adminName = user.displayName ?? "Admin"; // Default to 'Admin'
+      if (user == null) {
+        throw Exception('User not logged in');
+      }
+      String adminId = user.uid;
+      DocumentSnapshot userDoc =
+          await _firestore.collection('users').doc(adminId).get();
+      Map<String, dynamic>? userData = userDoc.data() as Map<String, dynamic>?;
+      String adminName = userData?['username'] ?? 'Admin';
 
       // Upload image file if selected
       if (_imageFile != null) {
@@ -55,23 +62,18 @@ class _CreateGroupState extends State<CreateGroup> {
         'StudyHardPoint': 100, // Initialize StudyHard points to 100
         'profileUrl': profileUrl ?? '',
         'adminId': adminId,
+        'adminName': adminName,
         'timestamp': FieldValue.serverTimestamp(),
         'members': [adminId],
         'leaderNote': _leaderNoteController.text.trim(), // Store leader note
         'privacy': _privacy, // Store privacy value
+        'joinRequests': [], // Initialize joinRequests as an empty array
       });
 
       // Add the admin to the group members array
       await groupRef.update({
         'members': FieldValue.arrayUnion([adminId]),
       });
-
-      // Ensure adminName is fetched and set correctly
-      if (adminName == null) {
-        // If displayName is null, fetch user info again (not expected to happen often)
-        User? updatedUser = await _auth.currentUser;
-        adminName = updatedUser!.displayName ?? "Admin";
-      }
 
       // Create the LeaderBoard collection under the group document
       await groupRef.collection('LeaderBoard').doc(adminId).set({
@@ -80,12 +82,16 @@ class _CreateGroupState extends State<CreateGroup> {
       });
 
       // Show snackbar and navigate back
-      showTopSnackBar(context, 'Group created successfully');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Group created successfully')),
+      );
       Navigator.pop(context);
     } catch (e) {
       // Handle errors
       print("Error creating group: $e");
-      showTopSnackBar(context, 'Failed to create group: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to create group: $e')),
+      );
     }
   }
 

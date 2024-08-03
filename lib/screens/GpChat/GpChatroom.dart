@@ -420,7 +420,7 @@ class _GpChatRoomState extends State<GpChatRoom> {
                 SizedBox(height: 8),
                 Text('Subject: ${groupDetails['subject']}'),
                 SizedBox(height: 8),
-                Text('Admin Name: ${groupDetails['adminId']}'),
+                Text('Admin Name: ${groupDetails['adminName']}'),
                 SizedBox(height: 8),
                 Text(
                     'Created At: ${DateFormat('yMMMd').format(groupDetails['timestamp'].toDate())}'),

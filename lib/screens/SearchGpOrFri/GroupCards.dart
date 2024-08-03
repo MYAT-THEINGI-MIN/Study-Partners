@@ -1,5 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:sp_test/screens/SearchGpOrFri/groupDetailPg.dart';
 
 class GroupCard extends StatefulWidget {
   final String profileUrl;
@@ -20,14 +21,15 @@ class GroupCard extends StatefulWidget {
 
 class _GroupCardState extends State<GroupCard> {
   int _membersCount = 0;
+  Map<String, dynamic>? _groupDetails;
 
   @override
   void initState() {
     super.initState();
-    _fetchMembersCount();
+    _fetchGroupDetails();
   }
 
-  Future<void> _fetchMembersCount() async {
+  Future<void> _fetchGroupDetails() async {
     try {
       DocumentSnapshot groupDoc = await FirebaseFirestore.instance
           .collection('groups')
@@ -35,13 +37,17 @@ class _GroupCardState extends State<GroupCard> {
           .get();
 
       if (groupDoc.exists) {
-        List<dynamic> members = groupDoc['members'] ?? [];
+        Map<String, dynamic> groupData =
+            groupDoc.data() as Map<String, dynamic>;
         setState(() {
-          _membersCount = members.length;
+          _membersCount = (groupData['members'] ?? []).length;
+          _groupDetails = groupData;
+          // Ensure groupId is included in groupDetails
+          _groupDetails!['groupId'] = widget.groupId;
         });
       }
     } catch (e) {
-      print("Error fetching members count: $e");
+      print("Error fetching group details: $e");
     }
   }
 
@@ -69,6 +75,18 @@ class _GroupCardState extends State<GroupCard> {
             ),
           ],
         ),
+        onTap: () {
+          if (_groupDetails != null) {
+            print('Group details being passed: $_groupDetails');
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    GroupDetailPage(groupDetails: _groupDetails!),
+              ),
+            );
+          }
+        },
       ),
     );
   }
