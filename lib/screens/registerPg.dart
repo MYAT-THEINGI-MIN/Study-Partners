@@ -4,8 +4,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sp_test/controllers/register/registerBloc.dart';
 import 'package:sp_test/controllers/register/registerEvent.dart';
 import 'package:sp_test/controllers/register/registerState.dart';
-import 'package:sp_test/screens/RegisterStep2.dart';
+import 'package:sp_test/screens/GpChat/EditGroup/addPartner.dart';
+import 'package:sp_test/screens/emailVerifyPg.dart';
+import 'package:sp_test/screens/loginOrRegiser.dart';
+import 'package:sp_test/widgets/selectSubjectField.dart';
 import 'package:sp_test/widgets/textfield.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import 'package:sp_test/widgets/topSnackBar.dart';
 
 class RegisterPg extends StatefulWidget {
@@ -21,65 +26,48 @@ class _RegisterPgState extends State<RegisterPg> {
   final TextEditingController _usernameController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool _obscureText = true;
+  File? _profileImage;
 
   final List<String> _predefinedSubjects = [
-    'Java',
     'Html',
-    'CSS',
+    'Css',
+    'Java',
     'Flutter',
-    'Art',
+    'AI',
+    'Graphic Design',
+    'UiUx',
+    'English',
     'Japanese',
     'Korean',
-    'Chinese',
-    'English'
+    'Chinese'
   ];
+
   List<String> _selectedSubjects = [];
 
-  void _addNewSubject(String subject) {
-    if (subject.isNotEmpty && !_selectedSubjects.contains(subject)) {
+  Future<void> _pickImage() async {
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
       setState(() {
-        _selectedSubjects.add(subject);
-        _predefinedSubjects.add(subject);
+        _profileImage = File(pickedFile.path);
       });
     }
-  }
-
-  void _showAddSubjectDialog(BuildContext context) {
-    final TextEditingController _newSubjectController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Add New Subject',
-              style: Theme.of(context).textTheme.bodyMedium),
-          content: TextField(
-            controller: _newSubjectController,
-            decoration: InputDecoration(hintText: "Enter subject name"),
-          ),
-          actions: <Widget>[
-            ElevatedButton(
-              child: Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            ElevatedButton(
-              child: Text('Add'),
-              onPressed: () {
-                _addNewSubject(_newSubjectController.text);
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => LoginOrRegister()),
+            );
+          },
+        ),
+      ),
       body: BlocProvider(
         create: (context) => RegisterBloc(auth: FirebaseAuth.instance),
         child: Padding(
@@ -89,25 +77,33 @@ class _RegisterPgState extends State<RegisterPg> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  _profileImage != null
+                      ? CircleAvatar(
+                          radius: 50,
+                          backgroundImage: FileImage(_profileImage!),
+                        )
+                      : CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Colors.grey.shade200,
+                          child: IconButton(
+                            icon: Icon(Icons.camera_alt),
+                            onPressed: _pickImage,
+                          ),
+                        ),
+                  const SizedBox(height: 24.0),
                   BlocConsumer<RegisterBloc, RegisterState>(
                     listener: (context, state) {
                       if (state is RegisterFailure) {
-                        TopSnackBarWiidget(
+                        showTopSnackBar(
                             context, 'Failed to register: ${state.error}');
                       } else if (state is RegisterSuccess) {
-                        (
-                          context,
-                          'Registration successful. Please verify your email.'
-                        );
+                        showTopSnackBar(context,
+                            'Registration successful. Please verify your email.');
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => UploadImageScreen(
-                              email: _emailController.text,
-                              password: _passwordController.text,
-                              username: _usernameController.text,
-                              subjects: _selectedSubjects.join(', '),
-                            ),
+                            builder: (context) => EmailVerificationScreen(
+                                email: _emailController.text),
                           ),
                         );
                       }
@@ -183,63 +179,14 @@ class _RegisterPgState extends State<RegisterPg> {
                               },
                             ),
                             const SizedBox(height: 16.0),
-                            DropdownButtonFormField<String>(
-                              decoration: InputDecoration(
-                                labelText: 'Select Subject',
-                                border: OutlineInputBorder(),
-                              ),
-                              items: _predefinedSubjects.map((String value) {
-                                return DropdownMenuItem<String>(
-                                  value: value,
-                                  child: Text(value,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall),
-                                );
-                              }).toList()
-                                ..add(
-                                  DropdownMenuItem<String>(
-                                    value: 'add_new',
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.add),
-                                        SizedBox(width: 8.0),
-                                        Text('Add New Subject',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              onChanged: (String? newValue) {
-                                if (newValue == 'add_new') {
-                                  _showAddSubjectDialog(context);
-                                } else if (newValue != null &&
-                                    !_selectedSubjects.contains(newValue)) {
-                                  setState(() {
-                                    _selectedSubjects.add(newValue);
-                                  });
-                                }
+                            SelectSubjectWidget(
+                              predefinedSubjects: _predefinedSubjects,
+                              selectedSubjects: _selectedSubjects,
+                              onSubjectsChanged: (subjects) {
+                                setState(() {
+                                  _selectedSubjects = subjects;
+                                });
                               },
-                            ),
-                            const SizedBox(height: 16.0),
-                            Wrap(
-                              spacing: 8.0,
-                              runSpacing: 4.0,
-                              children: _selectedSubjects.map((subject) {
-                                return Chip(
-                                  label: Text(subject,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall),
-                                  onDeleted: () {
-                                    setState(() {
-                                      _selectedSubjects.remove(subject);
-                                    });
-                                  },
-                                );
-                              }).toList(),
                             ),
                             const SizedBox(height: 16.0),
                             SizedBox(
@@ -258,31 +205,15 @@ class _RegisterPgState extends State<RegisterPg> {
                                             password: password,
                                             username: username,
                                             subjects: subjects,
+                                            profileImage: _profileImage,
                                           ),
                                         );
                                   }
                                 },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.deepPurple
-                                      .shade100, // Background color of the button
-                                  padding: EdgeInsets.symmetric(
-                                    vertical: 14.0,
-                                    horizontal:
-                                        16.0, // Adjust padding as needed
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(
-                                        20.0), // Button border radius
-                                  ),
+                                  backgroundColor: Colors.deepPurple.shade100,
                                 ),
-                                child: Container(
-                                  width: double.infinity, // Full width button
-                                  alignment: Alignment.center,
-                                  child: Text('Next',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall),
-                                ),
+                                child: Text('Register'),
                               ),
                             ),
                           ],

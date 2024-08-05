@@ -1,9 +1,5 @@
-import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:image_picker/image_picker.dart';
 
 void showTopSnackBar(BuildContext context, String message) {
   final overlay = Overlay.of(context);
@@ -69,6 +65,14 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
   }
 
   void _searchUsers(String query) async {
+    if (query.trim().isEmpty) {
+      setState(() {
+        _searchResults.clear();
+        _isLoading = false;
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
@@ -81,13 +85,13 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
           .where('username', isLessThanOrEqualTo: trimmedQuery + '\uf8ff')
           .get();
 
-      final filteredResults = result.docs
-          .where((user) => !_existingMembers.contains(user.id))
-          .toList();
-
       setState(() {
-        _searchResults = filteredResults;
+        _searchResults = result.docs;
       });
+
+      if (_searchResults.isEmpty) {
+        showTopSnackBar(context, 'No users found');
+      }
     } catch (e) {
       print('Error searching users: $e');
     } finally {
@@ -119,12 +123,13 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
           .collection('LeaderBoard')
           .doc(user.id)
           .set({
-        'name': user['username'],
+        'name': user['username'] ?? 'Unknown',
         'points': 0,
       });
 
       // Show a success message
-      showTopSnackBar(context, '${user['username']} added to the group');
+      showTopSnackBar(
+          context, '${user['username'] ?? 'Unknown'} added to the group');
     } catch (e) {
       // Handle errors
       print('Error adding partner: $e');
@@ -168,10 +173,12 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
 
                       return ListTile(
                         leading: CircleAvatar(
-                          backgroundImage:
-                              NetworkImage(user['profileImageUrl']),
+                          backgroundImage: NetworkImage(
+                            user['profileImageUrl'] ??
+                                'https://via.placeholder.com/150',
+                          ),
                         ),
-                        title: Text(user['username']),
+                        title: Text(user['username'] ?? 'Unknown'),
                         trailing: isExistingMember
                             ? Text('Already in group')
                             : IconButton(

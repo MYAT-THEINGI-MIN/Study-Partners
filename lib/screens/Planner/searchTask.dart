@@ -20,6 +20,7 @@ class _SearchTasksPageState extends State<SearchTasksPage> {
   Map<String, List<Map<String, dynamic>>> _groupedTasks = {};
   TextEditingController _searchController = TextEditingController();
   final TaskManagement _taskManagement = TaskManagement();
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -34,44 +35,9 @@ class _SearchTasksPageState extends State<SearchTasksPage> {
   }
 
   void _onSearchChanged() {
-    _searchTasks(_searchController.text);
-  }
-
-  void _searchTasks(String query) {
-    if (query.isNotEmpty) {
-      FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.uid)
-          .collection('tasks')
-          .where('title', isGreaterThanOrEqualTo: query)
-          .where('title', isLessThanOrEqualTo: query + '\uf8ff')
-          .get()
-          .then((QuerySnapshot snapshot) {
-        setState(() {
-          _searchResults = snapshot.docs
-              .map((doc) =>
-                  {'id': doc.id, ...doc.data() as Map<String, dynamic>})
-              .toList();
-          _groupTasksByDate();
-        });
-      });
-    } else {
-      setState(() {
-        _searchResults.clear();
-        _groupedTasks.clear();
-      });
-    }
-  }
-
-  void _groupTasksByDate() {
-    _groupedTasks.clear();
-    for (var task in _searchResults) {
-      String date = task['date'];
-      if (!_groupedTasks.containsKey(date)) {
-        _groupedTasks[date] = [];
-      }
-      _groupedTasks[date]!.add(task);
-    }
+    setState(() {
+      _searchQuery = _searchController.text;
+    });
   }
 
   @override
@@ -91,40 +57,88 @@ class _SearchTasksPageState extends State<SearchTasksPage> {
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: _groupedTasks.isEmpty
-                  ? Center(child: Text('No tasks found'))
-                  : ListView.builder(
-                      itemCount: _groupedTasks.keys.length,
-                      itemBuilder: (context, index) {
-                        String date = _groupedTasks.keys.elementAt(index);
-                        List<Map<String, dynamic>> tasks = _groupedTasks[date]!;
-                        return ExpansionTile(
-                          title: Text(
-                              DateFormat.yMMMMd().format(DateTime.parse(date))),
-                          children: tasks.map((task) {
-                            return TaskCard(
-                              id: task['id'],
-                              title: task['title'],
-                              note: task['note'],
-                              time: task['time'],
-                              color: task.containsKey('color') &&
-                                      task['color'] is String
-                                  ? int.parse(task['color'], radix: 16)
-                                  : task['color'],
-                              onDelete: _taskManagement.deleteTask,
-                              onDone: _taskManagement.markTaskAsDone,
-                              onEdit: _editTask,
-                              onUndone: _taskManagement.markTaskAsUndone,
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(widget.uid)
+                    .collection('tasks')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Center(child: Text('No tasks found'));
+                  }
+
+                  // Filter tasks based on the search query
+                  _searchResults = snapshot.data!.docs
+                      .where((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        final title = data['title'] ?? '';
+                        return title
+                            .toLowerCase()
+                            .contains(_searchQuery.toLowerCase());
+                      })
+                      .map((doc) =>
+                          {'id': doc.id, ...doc.data() as Map<String, dynamic>})
+                      .toList();
+
+                  _groupTasksByDate();
+
+                  return _groupedTasks.isEmpty
+                      ? Center(child: Text('No tasks found'))
+                      : ListView.builder(
+                          itemCount: _groupedTasks.keys.length,
+                          itemBuilder: (context, index) {
+                            String date = _groupedTasks.keys.elementAt(index);
+                            List<Map<String, dynamic>> tasks =
+                                _groupedTasks[date]!;
+                            return ExpansionTile(
+                              title: Text(DateFormat.yMMMMd()
+                                  .format(DateTime.parse(date))),
+                              children: tasks.map((task) {
+                                return TaskCard(
+                                  id: task['id'],
+                                  title: task['title'],
+                                  note: task['note'],
+                                  time: task['time'],
+                                  color: task.containsKey('color') &&
+                                          task['color'] is String
+                                      ? int.parse(task['color'], radix: 16)
+                                      : task['color'],
+                                  onDelete: _taskManagement.deleteTask,
+                                  onDone: _taskManagement.markTaskAsDone,
+                                  onEdit: _editTask,
+                                  onUndone: _taskManagement.markTaskAsUndone,
+                                );
+                              }).toList(),
                             );
-                          }).toList(),
+                          },
                         );
-                      },
-                    ),
+                },
+              ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  void _groupTasksByDate() {
+    _groupedTasks.clear();
+    for (var task in _searchResults) {
+      String date = task['date'];
+      if (!_groupedTasks.containsKey(date)) {
+        _groupedTasks[date] = [];
+      }
+      _groupedTasks[date]!.add(task);
+    }
   }
 
   void _editTask(String id) {
