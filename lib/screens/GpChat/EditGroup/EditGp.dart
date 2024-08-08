@@ -4,7 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:sp_test/screens/GpChat/EditGroup/addPartner.dart';
+import 'package:sp_test/widgets/topSnackBar.dart';
 
 class EditGroupPage extends StatefulWidget {
   final String groupId;
@@ -31,6 +31,7 @@ class _EditGroupPageState extends State<EditGroupPage> {
   bool _isSaving = false;
   String? _adminId;
   bool _isAdmin = false;
+  String _privacy = 'Public';
 
   @override
   void initState() {
@@ -60,6 +61,7 @@ class _EditGroupPageState extends State<EditGroupPage> {
         _groupNameController.text = data['groupName'] ?? widget.groupName;
         _groupSubjectController.text = data['subject'] ?? widget.groupSubject;
         _adminId = data['adminId'];
+        _privacy = data['privacy'] ?? 'Public'; // Fetch and set privacy
         checkIfAdmin();
         setState(() {
           _profileUrl = data['profileUrl'] ?? widget.gpProfileUrl;
@@ -132,6 +134,7 @@ class _EditGroupPageState extends State<EditGroupPage> {
           'groupName': _groupNameController.text,
           'subject': _groupSubjectController.text,
           'profileUrl': imageUrl,
+          'privacy': _privacy, // Update privacy field
         });
         Navigator.pop(context);
       } catch (e) {
@@ -176,16 +179,12 @@ class _EditGroupPageState extends State<EditGroupPage> {
                       .collection('groups')
                       .doc(widget.groupId)
                       .delete();
-                  showTopSnackBar(context, 'Group deleted successfully');
+                  TopSnackBarWiidget(context, 'Group deleted successfully');
                   Navigator.pop(context);
                 } catch (e) {
                   print('Error deleting group: $e');
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content:
-                          Text('Failed to delete group. Please try again.'),
-                    ),
-                  );
+                  TopSnackBarWiidget(
+                      context, 'Failed to delete group. Please try again.');
                 }
               },
               child: Text('Delete'),
@@ -262,6 +261,29 @@ class _EditGroupPageState extends State<EditGroupPage> {
                       borderSide: BorderSide(color: Colors.blue),
                     ),
                   ),
+                ),
+                SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _privacy,
+                  decoration: InputDecoration(
+                    labelText: 'Privacy',
+                    labelStyle: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepPurple, // Deep purple shade 200
+                    ),
+                  ),
+                  items: ['Public', 'Private']
+                      .map((privacy) => DropdownMenuItem<String>(
+                            value: privacy,
+                            child: Text(privacy),
+                          ))
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _privacy = value ?? 'Public';
+                    });
+                  },
                 ),
                 SizedBox(height: 70), // Space for the bottom button
               ],

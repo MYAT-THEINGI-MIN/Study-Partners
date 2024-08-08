@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:sp_test/widgets/topSnackBar.dart';
 
 class EditInterestsPage extends StatefulWidget {
   @override
@@ -11,15 +12,18 @@ class _EditInterestsPageState extends State<EditInterestsPage> {
   final TextEditingController _interestController = TextEditingController();
   List<String> _interests = [];
   final List<String> _predefinedSubjects = [
-    'Java',
     'Html',
-    'CSS',
+    'Css',
+    'Java',
     'Flutter',
+    'AI',
     'Art',
+    'Graphic Design',
+    'UiUx',
+    'English',
     'Japanese',
     'Korean',
     'Chinese',
-    'English'
   ];
   List<String> _selectedSubjects = [];
 
@@ -97,10 +101,7 @@ class _EditInterestsPageState extends State<EditInterestsPage> {
       _interests = List.from(_selectedSubjects);
       _updateInterests(_interests);
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Interests updated successfully!')),
-    );
-    Navigator.pop(context);
+    TopSnackBarWiidget(context, 'Interests updated successfully!');
   }
 
   @override

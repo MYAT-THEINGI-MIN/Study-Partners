@@ -22,8 +22,8 @@ class LoginOrRegister extends StatelessWidget {
             ),
           ),
           Positioned(
-            left: 0,
-            right: 0,
+            left: 10,
+            right: 10,
             bottom: 20,
             child: Column(
               children: [

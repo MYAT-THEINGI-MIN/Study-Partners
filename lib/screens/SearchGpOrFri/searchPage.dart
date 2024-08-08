@@ -202,6 +202,8 @@ class _SearchPartnerPgState extends State<SearchPage> {
                         FutureBuilder<QuerySnapshot>(
                           future: FirebaseFirestore.instance
                               .collection('groups')
+                              .where('privacy',
+                                  isEqualTo: 'Public') // Only public groups
                               .get(),
                           builder: (BuildContext context,
                               AsyncSnapshot<QuerySnapshot> snapshot) {

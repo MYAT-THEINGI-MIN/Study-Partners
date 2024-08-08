@@ -1,6 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class EmailVerificationScreen extends StatefulWidget {
   final String email;
@@ -13,31 +12,28 @@ class EmailVerificationScreen extends StatefulWidget {
 }
 
 class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
-  final TextEditingController _codeController = TextEditingController();
-  String _verificationMessage = '';
-  bool _isVerified = false;
+  bool _isEmailVerified = false;
+  bool _isChecking = true;
 
-  Future<void> _verifyCode() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+  @override
+  void initState() {
+    super.initState();
+    _checkEmailVerified();
+  }
 
-    final code = _codeController.text;
-    final doc = await FirebaseFirestore.instance
-        .collection('verification_codes')
-        .doc(user.uid)
-        .get();
-    if (doc.exists && doc['code'] == code) {
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-        'email': widget.email,
-        // other user details here
-      }, SetOptions(merge: true));
+  Future<void> _checkEmailVerified() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    await user?.reload();
+    user = FirebaseAuth.instance.currentUser;
+
+    if (user != null && user.emailVerified) {
       setState(() {
-        _isVerified = true;
-        _verificationMessage = 'Email verified successfully!';
+        _isEmailVerified = true;
+        _isChecking = false;
       });
     } else {
       setState(() {
-        _verificationMessage = 'Invalid code. Please try again.';
+        _isChecking = false;
       });
     }
   }
@@ -45,37 +41,45 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Email Verification')),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                  'A verification code has been sent to ${widget.email}. Please enter the code below.'),
-              const SizedBox(height: 16.0),
-              TextField(
-                controller: _codeController,
-                decoration: InputDecoration(labelText: 'Verification Code'),
-                keyboardType: TextInputType.number,
-                maxLength: 6,
-              ),
-              const SizedBox(height: 16.0),
-              if (_verificationMessage.isNotEmpty)
-                Text(
-                  _verificationMessage,
-                  style:
-                      TextStyle(color: _isVerified ? Colors.green : Colors.red),
-                ),
-              const SizedBox(height: 16.0),
-              ElevatedButton(
-                onPressed: _verifyCode,
-                child: const Text('Verify Code'),
-              ),
-            ],
-          ),
-        ),
+      appBar: AppBar(
+        title: Text('Verify your email'),
+      ),
+      body: Center(
+        child: _isChecking
+            ? CircularProgressIndicator()
+            : _isEmailVerified
+                ? Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Your email has been successfully verified!',
+                        style: TextStyle(fontSize: 16),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        child: Text('Continue'),
+                      ),
+                    ],
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'A verification email has been sent to ${widget.email}. Please check your inbox and verify your email.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: _checkEmailVerified,
+                        child: Text('I have verified my email'),
+                      ),
+                    ],
+                  ),
       ),
     );
   }

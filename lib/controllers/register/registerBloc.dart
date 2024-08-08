@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -7,12 +6,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:sp_test/Service/isStrongPswd.dart';
 import 'package:sp_test/controllers/register/registerEvent.dart';
 import 'package:sp_test/controllers/register/registerState.dart';
-
-// Generate a random 6-digit code
-String generateVerificationCode() {
-  final random = Random();
-  return List.generate(6, (_) => random.nextInt(10)).join();
-}
 
 class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
   final FirebaseAuth _auth;
@@ -55,20 +48,15 @@ class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
       );
 
       if (userCredential.user != null) {
-        final verificationCode = generateVerificationCode();
         final profileImageUrl = await _uploadProfileImage(event.profileImage);
 
-        // Store the verification code in Firestore
-        await _firestore
-            .collection('verification_codes')
-            .doc(userCredential.user!.uid)
-            .set({
-          'code': verificationCode,
-          'timestamp': FieldValue.serverTimestamp(),
+        // Store user data in Firestore
+        await _firestore.collection('users').doc(userCredential.user!.uid).set({
+          'username': event.username,
+          'email': event.email,
+          'subjects': event.subjects,
+          'profileImageUrl': profileImageUrl,
         });
-
-        // Send the verification code to user's email
-        // Note: You need to handle sending the email with code separately (e.g., using a cloud function or third-party email service)
 
         // Send the default Firebase email verification
         await userCredential.user!.sendEmailVerification();

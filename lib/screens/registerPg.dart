@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sp_test/controllers/register/registerBloc.dart';
 import 'package:sp_test/controllers/register/registerEvent.dart';
 import 'package:sp_test/controllers/register/registerState.dart';
-import 'package:sp_test/screens/GpChat/EditGroup/addPartner.dart';
 import 'package:sp_test/screens/emailVerifyPg.dart';
 import 'package:sp_test/screens/loginOrRegiser.dart';
 import 'package:sp_test/widgets/selectSubjectField.dart';
@@ -94,10 +93,10 @@ class _RegisterPgState extends State<RegisterPg> {
                   BlocConsumer<RegisterBloc, RegisterState>(
                     listener: (context, state) {
                       if (state is RegisterFailure) {
-                        showTopSnackBar(
+                        TopSnackBarWiidget(
                             context, 'Failed to register: ${state.error}');
                       } else if (state is RegisterSuccess) {
-                        showTopSnackBar(context,
+                        TopSnackBarWiidget(context,
                             'Registration successful. Please verify your email.');
                         Navigator.push(
                           context,

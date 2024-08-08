@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:sp_test/widgets/topSnackBar.dart';
 
 class CreateGroup extends StatefulWidget {
   @override
@@ -14,21 +15,55 @@ class _CreateGroupState extends State<CreateGroup> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final TextEditingController _groupNameController = TextEditingController();
-  final TextEditingController _subjectController = TextEditingController();
   final TextEditingController _leaderNoteController = TextEditingController();
+  final TextEditingController _subjectController = TextEditingController();
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
   String? _privacy = 'Public';
+  String? _subject;
+  bool _showSuggestions = false;
+
+  final List<String> _predefinedSubjects = [
+    'Html',
+    'Css',
+    'Java',
+    'Flutter',
+    'AI',
+    'Art',
+    'Graphic Design',
+    'UiUx',
+    'English',
+    'Japanese',
+    'Korean',
+    'Chinese',
+  ];
+
+  List<String> _filteredSubjects = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredSubjects = _predefinedSubjects;
+    _subjectController.addListener(_filterSubjects);
+  }
+
+  void _filterSubjects() {
+    setState(() {
+      String input = _subjectController.text.toLowerCase();
+      _filteredSubjects = _predefinedSubjects
+          .where((subject) => subject.toLowerCase().contains(input))
+          .toList();
+      _showSuggestions = _subjectController.text.isNotEmpty;
+    });
+  }
 
   void _createGroup() async {
     String groupName = _groupNameController.text.trim();
-    String subject = _subjectController.text.trim();
+    String subject = _subject?.trim() ?? '';
     String? profileUrl;
 
     if (groupName.isEmpty || subject.isEmpty || _privacy == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please fill out all fields')),
-      );
+      TopSnackBarWiidget(context, 'Please fill out all fields');
       return;
     }
 
@@ -82,16 +117,13 @@ class _CreateGroupState extends State<CreateGroup> {
       });
 
       // Show snackbar and navigate back
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Group created successfully')),
-      );
+      TopSnackBarWiidget(context, 'Group created successfully');
+
       Navigator.pop(context);
     } catch (e) {
       // Handle errors
       print("Error creating group: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to create group: $e')),
-      );
+      TopSnackBarWiidget(context, 'Failed to create group: $e');
     }
   }
 
@@ -102,6 +134,14 @@ class _CreateGroupState extends State<CreateGroup> {
         _imageFile = File(pickedFile.path);
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _groupNameController.dispose();
+    _leaderNoteController.dispose();
+    _subjectController.dispose();
+    super.dispose();
   }
 
   @override
@@ -140,7 +180,7 @@ class _CreateGroupState extends State<CreateGroup> {
               ),
             ),
             SizedBox(height: 16.0),
-            TextFormField(
+            TextField(
               controller: _subjectController,
               decoration: InputDecoration(
                 labelText: 'Subject',
@@ -151,6 +191,25 @@ class _CreateGroupState extends State<CreateGroup> {
                 ),
               ),
             ),
+            // Show suggestions list only if _showSuggestions is true
+            if (_showSuggestions)
+              Container(
+                height: 200.0,
+                child: ListView(
+                  children: _filteredSubjects.map((subject) {
+                    return ListTile(
+                      title: Text(subject),
+                      onTap: () {
+                        setState(() {
+                          _subject = subject;
+                          _subjectController.text = subject;
+                          _showSuggestions = false;
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
             SizedBox(height: 16.0),
             TextFormField(
               controller: _leaderNoteController,
@@ -196,13 +255,5 @@ class _CreateGroupState extends State<CreateGroup> {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _groupNameController.dispose();
-    _subjectController.dispose();
-    _leaderNoteController.dispose();
-    super.dispose();
   }
 }

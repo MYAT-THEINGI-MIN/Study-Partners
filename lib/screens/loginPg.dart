@@ -40,9 +40,10 @@ class _LoginPgState extends State<LoginPg> {
                         showTopSnackBar(
                             context, 'Incorrect! Please Check Again');
                       } else if (state is LoginSuccess) {
-                        Navigator.pushReplacement(
+                        Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(builder: (context) => HomePg()),
+                          (Route<dynamic> route) => false,
                         );
                       }
                     },

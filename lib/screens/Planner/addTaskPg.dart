@@ -275,22 +275,16 @@ class _AddTaskPageState extends State<AddTaskPage> {
                             _selectedRepeat = newValue!;
                           });
                         },
-                        items: <String>[
-                          'None',
-                          'Daily',
-                          'Weekly',
-                          'Monthly',
-                        ].map<DropdownMenuItem<String>>((String value) {
+                        items: <String>['None', 'Daily', 'Weekly', 'Monthly']
+                            .map<DropdownMenuItem<String>>((String value) {
                           return DropdownMenuItem<String>(
                             value: value,
-                            child: Text(value,
-                                style: TextStyle(color: Colors.deepPurple)),
+                            child: Text(value),
                           );
                         }).toList(),
                       ),
                     ],
                   ),
-                  SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -308,30 +302,19 @@ class _AddTaskPageState extends State<AddTaskPage> {
                           '10 minutes before',
                           '15 minutes before',
                           '30 minutes before',
-                          '1 hour before'
                         ].map<DropdownMenuItem<String>>((String value) {
                           return DropdownMenuItem<String>(
                             value: value,
-                            child: Text(value,
-                                style: TextStyle(color: Colors.deepPurple)),
+                            child: Text(value),
                           );
                         }).toList(),
                       ),
                     ],
                   ),
                   SizedBox(height: 20),
-                  Wrap(
-                    spacing: 25,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      ColorCircle(
-                        color: Colors.orange.shade300,
-                        isSelected: _selectedColor == Colors.orange.shade300,
-                        onTap: () {
-                          setState(() {
-                            _selectedColor = Colors.orange.shade300;
-                          });
-                        },
-                      ),
                       ColorCircle(
                         color: Colors.red.shade300,
                         isSelected: _selectedColor == Colors.red.shade300,
@@ -342,20 +325,21 @@ class _AddTaskPageState extends State<AddTaskPage> {
                         },
                       ),
                       ColorCircle(
-                        color: Colors.purple.shade300,
-                        isSelected: _selectedColor == Colors.purple.shade300,
-                        onTap: () {
-                          setState(() {
-                            _selectedColor = Colors.purple.shade300;
-                          });
-                        },
-                      ),
-                      ColorCircle(
                         color: Colors.blue.shade300,
                         isSelected: _selectedColor == Colors.blue.shade300,
                         onTap: () {
                           setState(() {
                             _selectedColor = Colors.blue.shade300;
+                          });
+                        },
+                      ),
+                      ColorCircle(
+                        color: Colors.deepPurple.shade300,
+                        isSelected:
+                            _selectedColor == Colors.deepPurple.shade300,
+                        onTap: () {
+                          setState(() {
+                            _selectedColor = Colors.deepPurple.shade300;
                           });
                         },
                       ),
@@ -377,22 +361,21 @@ class _AddTaskPageState extends State<AddTaskPage> {
                           });
                         },
                       ),
-                      // Add more colors as needed
+                      ColorCircle(
+                        color: Colors.orange.shade300,
+                        isSelected: _selectedColor == Colors.orange.shade300,
+                        onTap: () {
+                          setState(() {
+                            _selectedColor = Colors.orange.shade300;
+                          });
+                        },
+                      ),
                     ],
                   ),
                   SizedBox(height: 20),
-                  Padding(
-                    padding: const EdgeInsets.all(10.0),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _createTask,
-                            child: const Text('Create Task'),
-                          ),
-                        ),
-                      ],
-                    ),
+                  myButton(
+                    label: "Create Task",
+                    onTap: _createTask,
                   ),
                 ],
               ),
@@ -403,6 +386,3 @@ class _AddTaskPageState extends State<AddTaskPage> {
     );
   }
 }
-
-
-//////////NOTI NOT SHOWING////////////////

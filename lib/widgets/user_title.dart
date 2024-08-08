@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:sp_test/screens/chatRoom.dart';
 import 'package:sp_test/Service/chatService.dart';
+import 'package:sp_test/screens/chatRoom.dart';
 
 class UserTile extends StatelessWidget {
   final DocumentSnapshot userDoc;
@@ -19,9 +19,10 @@ class UserTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Map<String, dynamic> data = userDoc.data()! as Map<String, dynamic>;
-    String username = data['username'];
-    String uid = data['uid'];
+    String username = data['username'] ?? 'No Username';
+    String uid = data['uid'] ?? '';
     String? profileUrl = data['profileImageUrl'];
+    String status = data['status'] ?? 'No Status';
 
     return StreamBuilder<QuerySnapshot>(
       stream: chatService.getMessages(currentUserId, uid),
@@ -35,8 +36,9 @@ class UserTile extends StatelessWidget {
         }
 
         List<DocumentSnapshot> messages = messageSnapshot.data!.docs;
-        String recentMessage =
-            messages.isNotEmpty ? messages.last['message'] ?? '' : '';
+        String recentMessage = messages.isNotEmpty
+            ? (messages.last.data()! as Map<String, dynamic>)['message'] ?? ''
+            : '';
 
         return ListTile(
           leading: CircleAvatar(
@@ -45,7 +47,12 @@ class UserTile extends StatelessWidget {
                 : AssetImage('assets/default_profile.png') as ImageProvider,
           ),
           title: Text(username),
-          subtitle: Text(recentMessage),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(recentMessage),
+            ],
+          ),
           onTap: () {
             Navigator.push(
               context,

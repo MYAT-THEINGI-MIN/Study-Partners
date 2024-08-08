@@ -119,37 +119,97 @@ class _ChatUserListPgState extends State<ChatPg>
         builder: (context, userSnapshot) {
           if (userSnapshot.hasError) {
             print("Error: ${userSnapshot.error}");
-            return Text("Error");
+            return Center(child: Text("Error: ${userSnapshot.error}"));
           }
 
           if (userSnapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           }
 
-          // Filter out the current user's account and filter by search text
-          var filteredUserDocs = userSnapshot.data!.docs
-              .where((doc) => doc['email'] != _auth.currentUser!.email)
-              .where((doc) => doc['username']
-                  .toString()
-                  .toLowerCase()
-                  .contains(_searchText.toLowerCase()));
+          if (!userSnapshot.hasData || userSnapshot.data == null) {
+            return Center(child: Text("No data available"));
+          }
 
-          return ListView.builder(
-            controller: _scrollController, // Set the scroll controller
-            itemCount: filteredUserDocs.length,
-            itemBuilder: (context, index) {
-              var doc = filteredUserDocs.elementAt(index);
-              return UserTile(
-                userDoc: doc,
-                currentUserId: _auth.currentUser!.uid,
-                chatService: _chatService,
-                onDelete: _confirmDeleteChat,
+          // Get current user's ID
+          final currentUserId = _auth.currentUser!.uid;
+
+          // Fetch chats for sorting
+          return FutureBuilder<List<Map<String, dynamic>>>(
+            future: _fetchChatsForSorting(currentUserId),
+            builder: (context, chatSnapshot) {
+              if (chatSnapshot.connectionState == ConnectionState.waiting) {
+                return Center(child: CircularProgressIndicator());
+              }
+
+              if (chatSnapshot.hasError) {
+                print("Error: ${chatSnapshot.error}");
+                return Center(child: Text("Error: ${chatSnapshot.error}"));
+              }
+
+              if (!chatSnapshot.hasData || chatSnapshot.data == null) {
+                return Center(child: Text("No data available"));
+              }
+
+              // Create a map of last communication timestamps for users
+              Map<String, Timestamp?> lastCommunications = {};
+              for (var chat in chatSnapshot.data!) {
+                lastCommunications[chat['userId']] =
+                    chat['lastMessageTimestamp'];
+              }
+
+              // Display all users without filtering, but sort by last communication
+              var allUserDocs = userSnapshot.data!.docs
+                  .where((doc) =>
+                      doc['email'] !=
+                      _auth.currentUser!.email) // Exclude current user
+                  .toList();
+
+              allUserDocs.sort((a, b) {
+                Timestamp? timestampA = lastCommunications[a.id];
+                Timestamp? timestampB = lastCommunications[b.id];
+                return timestampB?.compareTo(timestampA ?? Timestamp.now()) ??
+                    1;
+              });
+
+              return ListView.builder(
+                controller: _scrollController, // Set the scroll controller
+                itemCount: allUserDocs.length,
+                itemBuilder: (context, index) {
+                  var doc = allUserDocs[index];
+                  return UserTile(
+                    userDoc: doc,
+                    currentUserId: _auth.currentUser!.uid,
+                    chatService: _chatService,
+                    onDelete: _confirmDeleteChat,
+                  );
+                },
               );
             },
           );
         },
       ),
     );
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchChatsForSorting(
+      String currentUserId) async {
+    try {
+      // Fetch chats with last communication timestamps
+      QuerySnapshot chatSnapshot = await FirebaseFirestore.instance
+          .collection('chats')
+          .where('members', arrayContains: currentUserId)
+          .get();
+
+      return chatSnapshot.docs.map((doc) {
+        return {
+          'userId': doc.id,
+          'lastMessageTimestamp': doc['lastMessageTimestamp'] as Timestamp?
+        };
+      }).toList();
+    } catch (e) {
+      print('Error fetching chat data: $e');
+      return [];
+    }
   }
 
   Widget _buildGroupList() {
