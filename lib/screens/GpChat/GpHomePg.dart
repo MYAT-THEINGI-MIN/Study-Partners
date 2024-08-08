@@ -7,6 +7,7 @@ import 'package:sp_test/screens/GpChat/GpChatroom.dart';
 import 'package:sp_test/screens/GpChat/GpPlans/GpPlans.dart';
 import 'package:sp_test/screens/GpChat/LeaderBoard.dart';
 import 'package:sp_test/screens/GpChat/MemberList.dart';
+import 'package:sp_test/screens/GpChat/Notes/NotePg.dart';
 
 class GroupHomePage extends StatelessWidget {
   final String groupId;
@@ -225,7 +226,13 @@ class GroupHomePage extends StatelessWidget {
                           leading: const Icon(Icons.book_rounded),
                           title: const Text('Notes'),
                           onTap: () {
-                            // Add your navigation or functionality here
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    NotePage(groupId: groupId),
+                              ),
+                            );
                           },
                         ),
                         ListTile(
