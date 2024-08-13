@@ -26,6 +26,7 @@ class EditGroupPage extends StatefulWidget {
 class _EditGroupPageState extends State<EditGroupPage> {
   late TextEditingController _groupNameController;
   late TextEditingController _groupSubjectController;
+  late TextEditingController _leaderNoteController;
   File? _imageFile;
   String? _profileUrl;
   bool _isSaving = false;
@@ -38,6 +39,8 @@ class _EditGroupPageState extends State<EditGroupPage> {
     super.initState();
     _groupNameController = TextEditingController();
     _groupSubjectController = TextEditingController();
+    _leaderNoteController =
+        TextEditingController(); // Initialize leaderNote controller
     _profileUrl = widget.gpProfileUrl;
     fetchGroupDetails();
   }
@@ -46,6 +49,7 @@ class _EditGroupPageState extends State<EditGroupPage> {
   void dispose() {
     _groupNameController.dispose();
     _groupSubjectController.dispose();
+    _leaderNoteController.dispose(); // Dispose leaderNote controller
     super.dispose();
   }
 
@@ -60,6 +64,8 @@ class _EditGroupPageState extends State<EditGroupPage> {
         final data = docSnapshot.data()!;
         _groupNameController.text = data['groupName'] ?? widget.groupName;
         _groupSubjectController.text = data['subject'] ?? widget.groupSubject;
+        _leaderNoteController.text =
+            data['leaderNote'] ?? ''; // Fetch leaderNote
         _adminId = data['adminId'];
         _privacy = data['privacy'] ?? 'Public'; // Fetch and set privacy
         checkIfAdmin();
@@ -134,7 +140,9 @@ class _EditGroupPageState extends State<EditGroupPage> {
           'groupName': _groupNameController.text,
           'subject': _groupSubjectController.text,
           'profileUrl': imageUrl,
-          'privacy': _privacy, // Update privacy field
+          if (_isAdmin)
+            'leaderNote': _leaderNoteController.text, // Save leaderNote
+          if (_isAdmin) 'privacy': _privacy, // Save privacy if admin
         });
         Navigator.pop(context);
       } catch (e) {
@@ -203,7 +211,7 @@ class _EditGroupPageState extends State<EditGroupPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Edit Group'), // Update app bar title
+        title: Text('Edit Group'),
         actions: _isAdmin
             ? [
                 IconButton(
@@ -263,29 +271,45 @@ class _EditGroupPageState extends State<EditGroupPage> {
                   ),
                 ),
                 SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: _privacy,
-                  decoration: InputDecoration(
-                    labelText: 'Privacy',
-                    labelStyle: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.deepPurple, // Deep purple shade 200
+                if (_isAdmin)
+                  TextField(
+                    controller: _leaderNoteController,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 18,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Edit Leader Note',
+                      border: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.blue),
+                      ),
                     ),
                   ),
-                  items: ['Public', 'Private']
-                      .map((privacy) => DropdownMenuItem<String>(
-                            value: privacy,
-                            child: Text(privacy),
-                          ))
-                      .toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _privacy = value ?? 'Public';
-                    });
-                  },
-                ),
-                SizedBox(height: 70), // Space for the bottom button
+                SizedBox(height: 16),
+                if (_isAdmin)
+                  DropdownButtonFormField<String>(
+                    value: _privacy,
+                    decoration: InputDecoration(
+                      labelText: 'Privacy',
+                      labelStyle: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.deepPurple,
+                      ),
+                    ),
+                    items: ['Public', 'Private']
+                        .map((privacy) => DropdownMenuItem<String>(
+                              value: privacy,
+                              child: Text(privacy),
+                            ))
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _privacy = value ?? 'Public';
+                      });
+                    },
+                  ),
+                SizedBox(height: 70),
               ],
             ),
           ),
@@ -299,15 +323,11 @@ class _EditGroupPageState extends State<EditGroupPage> {
               child: ElevatedButton(
                 onPressed: _isSaving ? null : _saveChanges,
                 style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
+                  padding: EdgeInsets.symmetric(vertical: 16.0),
                 ),
-                child: Text(
-                  'Save Changes',
-                  style: TextStyle(fontSize: 16),
-                ),
+                child: _isSaving
+                    ? CircularProgressIndicator()
+                    : Text('Save Changes'),
               ),
             ),
           ),

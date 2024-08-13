@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:sp_test/widgets/topSnackBar.dart';
 
 void showTopSnackBar(BuildContext context, String message) {
   final overlay = Overlay.of(context);
@@ -90,10 +91,10 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
       });
 
       if (_searchResults.isEmpty) {
-        showTopSnackBar(context, 'No users found');
+        TopSnackBarWiidget(context, 'No users found');
       }
     } catch (e) {
-      print('Error searching users: $e');
+      TopSnackBarWiidget(context, 'Error searching users: $e');
     } finally {
       setState(() {
         _isLoading = false;
@@ -128,12 +129,12 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
       });
 
       // Show a success message
-      showTopSnackBar(
-          context, '${user['username'] ?? 'Unknown'} added to the group');
+      TopSnackBarWiidget(
+          context, '${user['username'] ?? 'Unknown'} is added to the group');
     } catch (e) {
       // Handle errors
-      print('Error adding partner: $e');
-      showTopSnackBar(context, 'Failed to add partner');
+      TopSnackBarWiidget(context, 'Error adding partner: $e');
+      TopSnackBarWiidget(context, 'Failed to add partner');
     }
   }
 

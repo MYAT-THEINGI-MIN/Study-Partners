@@ -8,6 +8,9 @@ import 'package:sp_test/screens/GpChat/GpPlans/GpPlans.dart';
 import 'package:sp_test/screens/GpChat/LeaderBoard.dart';
 import 'package:sp_test/screens/GpChat/MemberList.dart';
 import 'package:sp_test/screens/GpChat/Notes/NotePg.dart';
+import 'package:sp_test/screens/GpChat/QuizSection/createQuiz.dart';
+import 'package:sp_test/screens/GpChat/QuizSection/showQuizPg.dart';
+import 'package:sp_test/screens/GpChat/Study%20Timer/Timer.dart';
 
 class GroupHomePage extends StatelessWidget {
   final String groupId;
@@ -173,163 +176,217 @@ class GroupHomePage extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(
-                  height: 15,
-                ),
+                const SizedBox(height: 15),
                 Container(
                   padding: EdgeInsets.only(left: 20),
                   width: 400,
-                  child: Row(
-                    children: [
-                      const Icon(Icons.credit_score, color: Colors.deepPurple),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'StudyHard Points',
-                        style: TextStyle(
-                          color: Colors.deepPurple,
-                          fontSize: 18,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        studyHardPoints.toString(),
-                        style: const TextStyle(
-                          color: Colors.deepPurple,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Padding(
-                  padding: const EdgeInsets.only(left: 20, top: 20),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Container(
+                    padding: EdgeInsets.only(left: 10, right: 10),
+                    child: Row(
+                      // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        ListTile(
-                          leading: const Icon(Icons.task_rounded),
-                          title: const Text('Group Plans'),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => GpPlans(groupId: groupId),
-                              ),
-                            );
-                          },
+                        const Icon(Icons.credit_score,
+                            color: Colors.deepPurple),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Group StudyHard Score:',
+                          style: TextStyle(
+                            color: Colors.deepPurple,
+                            fontSize: 18,
+                          ),
                         ),
-                        ListTile(
-                          leading: const Icon(Icons.book_rounded),
-                          title: const Text('Notes'),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    NotePage(groupId: groupId),
-                              ),
-                            );
-                          },
-                        ),
-                        ListTile(
-                          leading: const Icon(Icons.quiz_rounded),
-                          title: const Text('Quiz'),
-                          onTap: () {
-                            // Add your navigation or functionality here
-                          },
-                        ),
-                        ListTile(
-                          leading: const Icon(Icons.lightbulb),
-                          title: const Text('Flash Card'),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    FlashcardsPage(groupId: groupId),
-                              ),
-                            );
-                          },
-                        ),
-                        ListTile(
-                          leading: const Icon(Icons.leaderboard),
-                          title: const Text('LeaderBoard'),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    LeaderboardPage(groupId: groupId),
-                              ),
-                            );
-                          },
-                        ),
-                        ListTile(
-                          leading: const Icon(Icons.group),
-                          title: const Text('Members'),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => MemberList(
-                                  groupId: groupId,
-                                  isAdmin: adminId ==
-                                      FirebaseAuth.instance.currentUser?.uid,
-                                ),
-                              ),
-                            );
-                          },
+                        const SizedBox(width: 8),
+                        Text(
+                          studyHardPoints.toString(),
+                          style: const TextStyle(
+                            color: Colors.deepPurple,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ),
+                const SizedBox(
+                    height:
+                        15), // Increased padding to match the space below the first row
+                const Divider(thickness: 2, height: 30),
+
+                Container(
+                  padding: EdgeInsets.only(left: 20, right: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildCircularIcon(
+                        context,
+                        icon: Icons.task_rounded,
+                        label: 'Plans',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => GpPlans(groupId: groupId),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildCircularIcon(
+                        context,
+                        icon: Icons.book_rounded,
+                        label: 'Notes',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => NotePage(groupId: groupId),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildCircularIcon(
+                        context,
+                        icon: Icons.quiz_rounded,
+                        label: 'Quiz',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  ShowQuizPage(groupId: groupId),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildCircularIcon(
+                        context,
+                        icon: Icons.lightbulb,
+                        label: 'FlashCard',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  FlashcardsPage(groupId: groupId),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 15),
+                const Divider(thickness: 2, height: 30),
+                Container(
+                  padding: EdgeInsets.only(left: 20, right: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildCircularIcon(
+                        context,
+                        icon: Icons.timer,
+                        label: 'Timer',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => TimerPage(groupId: groupId),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildCircularIcon(
+                        context,
+                        icon: Icons.leaderboard,
+                        label: 'LeadBoard',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  LeaderboardPage(groupId: groupId),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildCircularIcon(
+                        context,
+                        icon: Icons.group,
+                        label: 'Members',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => MemberList(
+                                groupId: groupId,
+                                isAdmin: adminId ==
+                                    FirebaseAuth.instance.currentUser?.uid,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildCircularIcon(
+                        context,
+                        icon: Icons.chat_bubble,
+                        label: 'Chat',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => GpChatRoom(
+                                groupId: groupId,
+                                groupName: groupName,
+                                gpProfileUrl: profileUrl,
+                                adminId: adminId,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Divider(thickness: 2, height: 30),
               ],
             );
           },
         ),
       ),
-      floatingActionButton: FutureBuilder<DocumentSnapshot>(
-        future:
-            FirebaseFirestore.instance.collection('groups').doc(groupId).get(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const CircularProgressIndicator();
-          }
+    );
+  }
 
-          if (snapshot.hasError ||
-              !snapshot.hasData ||
-              !snapshot.data!.exists) {
-            return const Icon(Icons.error);
-          }
-
-          var groupData = snapshot.data!.data() as Map<String, dynamic>;
-          String groupName = groupData['groupName'];
-          String profileUrl = groupData['profileUrl'];
-          String adminId = groupData['adminId'];
-
-          return FloatingActionButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => GpChatRoom(
-                    groupId: groupId,
-                    groupName: groupName,
-                    gpProfileUrl: profileUrl,
-                    adminId: adminId,
-                  ),
-                ),
-              );
-            },
-            child: const Icon(Icons.chat),
-          );
-        },
-      ),
+  Widget _buildCircularIcon(BuildContext context,
+      {required IconData icon,
+      required String label,
+      required VoidCallback onTap}) {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.deepPurple,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Icon(icon, color: Colors.white, size: 24),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.black,
+                fontWeight: FontWeight.normal,
+              ),
+        ),
+      ],
     );
   }
 }
