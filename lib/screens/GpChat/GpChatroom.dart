@@ -22,6 +22,7 @@ class GpChatRoom extends StatefulWidget {
     required this.groupName,
     required this.gpProfileUrl,
     required String adminId,
+    required String subject,
   });
 
   @override

@@ -1,41 +1,55 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 class StudyRecordCard extends StatelessWidget {
-  final String recordId; // ID of the study record
-  final String groupId; // ID of the group for fetching user details
+  final String recordId;
+  final String groupId;
+  final String formattedDate;
+  final int totalTime;
+  final int totalBreaks;
+  final int breakTime;
 
-  StudyRecordCard({
+  const StudyRecordCard({
+    Key? key,
     required this.recordId,
     required this.groupId,
-    required formattedDate,
-    required totalTime,
-    required totalBreaks,
-    required breakTime,
-  });
+    required this.formattedDate,
+    required this.totalTime,
+    required this.totalBreaks,
+    required this.breakTime,
+  }) : super(key: key);
 
   Future<Map<String, dynamic>> _fetchUserData() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      // Fetching user details from Firestore
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-      return userDoc.data()!;
+      try {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        return userDoc.data() ?? {};
+      } catch (e) {
+        print('Error fetching user data: $e');
+        return {};
+      }
     }
     return {};
   }
 
   Future<Map<String, dynamic>> _fetchRecordData() async {
-    final recordDoc = await FirebaseFirestore.instance
-        .collection('groups')
-        .doc(groupId)
-        .collection('StudyRecord')
-        .doc(recordId)
-        .get();
-    return recordDoc.data()!;
+    try {
+      final recordDoc = await FirebaseFirestore.instance
+          .collection('groups')
+          .doc(groupId)
+          .collection('StudyRecord')
+          .doc(recordId)
+          .get();
+      return recordDoc.data() ?? {};
+    } catch (e) {
+      print('Error fetching record data: $e');
+      return {};
+    }
   }
 
   @override
@@ -52,15 +66,23 @@ class StudyRecordCard extends StatelessWidget {
       }),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
         }
 
-        final data = snapshot.data!;
-        final user = data['user']!;
-        final record = data['record']!;
+        final data = snapshot.data;
+        if (data == null) {
+          return const Center(child: Text('No data available.'));
+        }
+
+        final user = data['user'] as Map<String, dynamic>?;
+        final record = data['record'] as Map<String, dynamic>?;
+
+        if (user == null || record == null) {
+          return const Center(child: Text('User or record data is missing.'));
+        }
 
         return Card(
           margin: const EdgeInsets.all(16),
@@ -73,9 +95,10 @@ class StudyRecordCard extends StatelessWidget {
                 Row(
                   children: [
                     CircleAvatar(
-                      backgroundImage: user['profileUrl'] != null
-                          ? NetworkImage(user['profileUrl'])
-                          : AssetImage('assets/default_profile.png')
+                      backgroundImage: (user['profileImageUrl'] != null &&
+                              user['profileImageUrl'].isNotEmpty)
+                          ? NetworkImage(user['profileImageUrl'])
+                          : const AssetImage('assets/default_profile.png')
                               as ImageProvider,
                       radius: 30,
                     ),

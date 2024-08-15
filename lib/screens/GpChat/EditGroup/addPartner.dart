@@ -10,11 +10,11 @@ void showTopSnackBar(BuildContext context, String message) {
       left: MediaQuery.of(context).size.width * 0.1,
       right: MediaQuery.of(context).size.width * 0.1,
       child: Material(
-        color: Colors.grey,
+        color: Colors.transparent,
         child: Container(
           padding: EdgeInsets.all(10.0),
           decoration: BoxDecoration(
-            color: Color.fromARGB(221, 210, 210, 210),
+            color: Colors.grey[800],
             borderRadius: BorderRadius.circular(10.0),
           ),
           child: Text(
@@ -91,10 +91,10 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
       });
 
       if (_searchResults.isEmpty) {
-        TopSnackBarWiidget(context, 'No users found');
+        showTopSnackBar(context, 'No users found');
       }
     } catch (e) {
-      TopSnackBarWiidget(context, 'Error searching users: $e');
+      showTopSnackBar(context, 'Error searching users: $e');
     } finally {
       setState(() {
         _isLoading = false;
@@ -103,18 +103,20 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
   }
 
   void _addPartner(DocumentSnapshot user) async {
+    if (_existingMembers.contains(user.id)) {
+      showTopSnackBar(context, '${user['username']} is already in the group');
+      return;
+    }
+
     try {
+      final userId = user.id;
+
       // Update the 'members' array in the 'groups' collection
       await FirebaseFirestore.instance
           .collection('groups')
           .doc(widget.groupId)
           .update({
-        'members': FieldValue.arrayUnion([user.id])
-      });
-
-      // Update the local state to reflect the new member
-      setState(() {
-        _existingMembers.add(user.id);
+        'members': FieldValue.arrayUnion([userId])
       });
 
       // Add the user to the LeaderBoard collection under the group
@@ -122,19 +124,21 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
           .collection('groups')
           .doc(widget.groupId)
           .collection('LeaderBoard')
-          .doc(user.id)
+          .doc(userId)
           .set({
         'name': user['username'] ?? 'Unknown',
+        'uid': userId,
         'points': 0,
       });
 
-      // Show a success message
-      TopSnackBarWiidget(
-          context, '${user['username'] ?? 'Unknown'} is added to the group');
+      setState(() {
+        _existingMembers.add(userId);
+      });
+
+      showTopSnackBar(
+          context, '${user['username']} has been added to the group');
     } catch (e) {
-      // Handle errors
-      TopSnackBarWiidget(context, 'Error adding partner: $e');
-      TopSnackBarWiidget(context, 'Failed to add partner');
+      showTopSnackBar(context, 'Error adding partner: $e');
     }
   }
 
@@ -158,6 +162,7 @@ class _AddPartnerPageState extends State<AddPartnerPage> {
               controller: _searchController,
               decoration: InputDecoration(
                 labelText: 'Search New Partner',
+                border: OutlineInputBorder(),
               ),
               onChanged: _searchUsers,
             ),

@@ -50,6 +50,7 @@ class _AddNewFolderNotePageState extends State<AddNewFolderNotePage> {
       String uid = FirebaseAuth.instance.currentUser!.uid;
       List<String> fileUrls = await _uploadFiles();
 
+      // Add the note to Firestore
       await FirebaseFirestore.instance
           .collection('groups')
           .doc(widget.groupId)
@@ -58,8 +59,11 @@ class _AddNewFolderNotePageState extends State<AddNewFolderNotePage> {
         'title': _titleController.text,
         'files': fileUrls,
         'timestamp': FieldValue.serverTimestamp(),
-        'uid': uid, // Add the UID of the user
+        'uid': uid,
       });
+
+      // Update the points for the current user
+      await _updateUserPoints(uid);
 
       setState(() {
         isUploading = false;
@@ -92,6 +96,56 @@ class _AddNewFolderNotePageState extends State<AddNewFolderNotePage> {
     }
 
     return fileUrls;
+  }
+
+  Future<void> _updateUserPoints(String uid) async {
+    try {
+      // Get the LeaderBoard document for the current group
+      DocumentSnapshot groupDoc = await FirebaseFirestore.instance
+          .collection('groups')
+          .doc(widget.groupId)
+          .get();
+      List<String> memberIds = List<String>.from(groupDoc['members']);
+
+      // Ensure the user is in the members list
+      if (memberIds.contains(uid)) {
+        DocumentSnapshot leaderboardDoc = await FirebaseFirestore.instance
+            .collection('groups')
+            .doc(widget.groupId)
+            .collection('LeaderBoard')
+            .doc(uid)
+            .get();
+
+        if (leaderboardDoc.exists) {
+          // Cast the data to Map<String, dynamic> to access fields
+          Map<String, dynamic> data =
+              leaderboardDoc.data() as Map<String, dynamic>;
+          int currentPoints = data['points'] as int;
+
+          await FirebaseFirestore.instance
+              .collection('groups')
+              .doc(widget.groupId)
+              .collection('LeaderBoard')
+              .doc(uid)
+              .update({
+            'points': currentPoints + 1,
+          });
+        } else {
+          // If the user is not yet in the leaderboard, add them with 1 point
+          await FirebaseFirestore.instance
+              .collection('groups')
+              .doc(widget.groupId)
+              .collection('LeaderBoard')
+              .doc(uid)
+              .set({
+            'name': FirebaseAuth.instance.currentUser!.displayName ?? 'Unknown',
+            'points': 1,
+          });
+        }
+      }
+    } catch (e) {
+      print('Failed to update user points: $e');
+    }
   }
 
   @override

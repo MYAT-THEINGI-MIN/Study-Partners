@@ -8,31 +8,15 @@ import 'package:sp_test/screens/GpChat/GpPlans/GpPlans.dart';
 import 'package:sp_test/screens/GpChat/LeaderBoard.dart';
 import 'package:sp_test/screens/GpChat/MemberList.dart';
 import 'package:sp_test/screens/GpChat/Notes/NotePg.dart';
-import 'package:sp_test/screens/GpChat/QuizSection/createQuiz.dart';
 import 'package:sp_test/screens/GpChat/QuizSection/showQuizPg.dart';
 import 'package:sp_test/screens/GpChat/Study%20Timer/Timer.dart';
+import 'package:sp_test/screens/GpChat/Study%20Timer/todayRecords.dart';
+import 'package:sp_test/widgets/circularIcon.dart';
 
 class GroupHomePage extends StatelessWidget {
   final String groupId;
 
   GroupHomePage({required this.groupId});
-
-  Future<void> _leaveGroup(BuildContext context) async {
-    String currentUserId = FirebaseAuth.instance.currentUser!.uid;
-    try {
-      await FirebaseFirestore.instance
-          .collection('groups')
-          .doc(groupId)
-          .update({
-        'members': FieldValue.arrayRemove([currentUserId])
-      });
-      Navigator.of(context).pop();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to leave group: $e')),
-      );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -178,12 +162,11 @@ class GroupHomePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 15),
                 Container(
-                  padding: EdgeInsets.only(left: 20),
+                  padding: const EdgeInsets.only(left: 20),
                   width: 400,
                   child: Container(
-                    padding: EdgeInsets.only(left: 10, right: 10),
+                    padding: const EdgeInsets.only(left: 10, right: 10),
                     child: Row(
-                      // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Icon(Icons.credit_score,
                             color: Colors.deepPurple),
@@ -208,18 +191,16 @@ class GroupHomePage extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(
-                    height:
-                        15), // Increased padding to match the space below the first row
+                const SizedBox(height: 15),
                 const Divider(thickness: 2, height: 30),
 
-                Container(
-                  padding: EdgeInsets.only(left: 20, right: 20),
+                // First row of icons
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildCircularIcon(
-                        context,
+                      CircularIcon(
                         icon: Icons.task_rounded,
                         label: 'Plans',
                         onTap: () {
@@ -231,8 +212,7 @@ class GroupHomePage extends StatelessWidget {
                           );
                         },
                       ),
-                      _buildCircularIcon(
-                        context,
+                      CircularIcon(
                         icon: Icons.book_rounded,
                         label: 'Notes',
                         onTap: () {
@@ -244,8 +224,7 @@ class GroupHomePage extends StatelessWidget {
                           );
                         },
                       ),
-                      _buildCircularIcon(
-                        context,
+                      CircularIcon(
                         icon: Icons.quiz_rounded,
                         label: 'Quiz',
                         onTap: () {
@@ -258,8 +237,7 @@ class GroupHomePage extends StatelessWidget {
                           );
                         },
                       ),
-                      _buildCircularIcon(
-                        context,
+                      CircularIcon(
                         icon: Icons.lightbulb,
                         label: 'FlashCard',
                         onTap: () {
@@ -278,13 +256,14 @@ class GroupHomePage extends StatelessWidget {
 
                 const SizedBox(height: 15),
                 const Divider(thickness: 2, height: 30),
-                Container(
-                  padding: EdgeInsets.only(left: 20, right: 20),
+
+                // Second row of icons
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildCircularIcon(
-                        context,
+                      CircularIcon(
                         icon: Icons.timer,
                         label: 'Timer',
                         onTap: () {
@@ -296,8 +275,7 @@ class GroupHomePage extends StatelessWidget {
                           );
                         },
                       ),
-                      _buildCircularIcon(
-                        context,
+                      CircularIcon(
                         icon: Icons.leaderboard,
                         label: 'LeadBoard',
                         onTap: () {
@@ -310,10 +288,27 @@ class GroupHomePage extends StatelessWidget {
                           );
                         },
                       ),
-                      _buildCircularIcon(
-                        context,
-                        icon: Icons.group,
-                        label: 'Members',
+                      CircularIcon(
+                        icon: Icons.chat_rounded,
+                        label: 'Chat',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => GpChatRoom(
+                                groupId: groupId,
+                                groupName: groupName,
+                                gpProfileUrl: profileUrl,
+                                adminId: adminId,
+                                subject: subject,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      CircularIcon(
+                        icon: Icons.add_circle,
+                        label: 'Member',
                         onTap: () {
                           Navigator.push(
                             context,
@@ -327,29 +322,39 @@ class GroupHomePage extends StatelessWidget {
                           );
                         },
                       ),
-                      _buildCircularIcon(
-                        context,
-                        icon: Icons.chat_bubble,
-                        label: 'Chat',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => GpChatRoom(
-                                groupId: groupId,
-                                groupName: groupName,
-                                gpProfileUrl: profileUrl,
-                                adminId: adminId,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
+
+                const SizedBox(height: 15),
                 const Divider(thickness: 2, height: 30),
+
+                // List of study records
+                SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          " Today's Study Records",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepPurple,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height *
+                              0.7, // Adjust height as needed
+                          child: AllStudyRecordsList(groupId: groupId),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                )
               ],
             );
           },
@@ -358,35 +363,16 @@ class GroupHomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildCircularIcon(BuildContext context,
-      {required IconData icon,
-      required String label,
-      required VoidCallback onTap}) {
-    return Column(
-      children: [
-        GestureDetector(
-          onTap: onTap,
-          child: Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: Colors.deepPurple,
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Icon(icon, color: Colors.white, size: 24),
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.black,
-                fontWeight: FontWeight.normal,
-              ),
-        ),
-      ],
-    );
+  void _leaveGroup(BuildContext context) async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId != null) {
+      await FirebaseFirestore.instance
+          .collection('groups')
+          .doc(groupId)
+          .update({
+        'members': FieldValue.arrayRemove([userId]),
+      });
+      Navigator.pop(context);
+    }
   }
 }

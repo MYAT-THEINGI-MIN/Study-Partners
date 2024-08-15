@@ -113,6 +113,7 @@ class _CreateGroupState extends State<CreateGroup> {
       // Create the LeaderBoard collection under the group document
       await groupRef.collection('LeaderBoard').doc(adminId).set({
         'name': adminName,
+        'id': adminId,
         'points': 0,
       });
 

@@ -6,6 +6,8 @@ import 'package:sensors_plus/sensors_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:sp_test/screens/GpChat/Study%20Timer/timerWidget.dart';
+import 'package:sp_test/screens/GpChat/Study%20Timer/todayRecords.dart';
+import 'package:sp_test/widgets/circularIcon.dart';
 
 class TimerPage extends StatefulWidget {
   final String groupId;
@@ -25,6 +27,7 @@ class _TimerPageState extends State<TimerPage> {
   bool _isBreak = false;
   bool _isDeviceMoved = false;
   static const double _movementThreshold = 15;
+  static const int _minimumStudyTimeForPoints = 15; // in minutes
 
   @override
   void initState() {
@@ -119,29 +122,74 @@ class _TimerPageState extends State<TimerPage> {
   Future<void> _saveRecordToFirestore() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      final studyRecord = {
-        'userId': user.uid,
-        'timestamp': Timestamp.now(),
-        'totalTime': _elapsedTime,
-        'totalBreaks': _breakCount,
-        'breakTime': _breakTime,
-        'formattedDate': DateFormat.yMMMd().add_jm().format(DateTime.now()),
-      };
+      // Convert elapsed time to minutes
+      final elapsedTimeInMinutes = _elapsedTime ~/ 60;
 
-      try {
-        print('Saving record to groupId: ${widget.groupId}');
-        await FirebaseFirestore.instance
-            .collection('groups')
-            .doc(widget.groupId)
-            .collection('StudyRecord')
-            .add(studyRecord);
+      // Save record only if study time exceeds 15 minutes
+      if (elapsedTimeInMinutes > _minimumStudyTimeForPoints) {
+        final studyRecord = {
+          'userId': user.uid,
+          'timestamp': Timestamp.now(),
+          'totalTime': _elapsedTime,
+          'totalBreaks': _breakCount,
+          'breakTime': _breakTime,
+          'formattedDate': DateFormat.yMMMd().add_jm().format(DateTime.now()),
+        };
 
-        print('Study record saved successfully!');
-      } catch (e) {
-        print('Error saving study record: $e');
+        try {
+          print('Saving record to groupId: ${widget.groupId}');
+          await FirebaseFirestore.instance
+              .collection('groups')
+              .doc(widget.groupId)
+              .collection('StudyRecord')
+              .add(studyRecord);
+
+          print('Study record saved successfully!');
+
+          // Calculate points starting from 16 minutes
+          final points =
+              max(0, elapsedTimeInMinutes - _minimumStudyTimeForPoints);
+
+          // Update leaderboard points
+          await _updateLeaderboardPoints(user.uid, points);
+        } catch (e) {
+          print('Error saving study record: $e');
+        }
+      } else {
+        print('Study time does not exceed 15 minutes. Record not saved.');
       }
     } else {
       print('No user is currently logged in.');
+    }
+  }
+
+  Future<void> _updateLeaderboardPoints(String userId, int points) async {
+    try {
+      // Navigate to the path for the LeaderBoard subcollection
+      final leaderBoardCollection = FirebaseFirestore.instance
+          .collection('groups')
+          .doc(widget.groupId)
+          .collection('LeaderBoard');
+
+      final leaderBoardDoc = await leaderBoardCollection
+          .where('id', isEqualTo: userId)
+          .limit(1)
+          .get();
+
+      if (leaderBoardDoc.docs.isNotEmpty) {
+        final doc = leaderBoardDoc.docs.first;
+        final currentPoints = doc['points'] as int;
+
+        await doc.reference.update({
+          'points': currentPoints + points,
+        });
+
+        print('Leaderboard points updated successfully!');
+      } else {
+        print('No Leader Board Exist.');
+      }
+    } catch (e) {
+      print('Error updating leaderboard points: $e');
     }
   }
 
@@ -228,6 +276,20 @@ class _TimerPageState extends State<TimerPage> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Study Timer'),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        AllStudyRecordsList(groupId: widget.groupId),
+                  ),
+                );
+              },
+              child: const Text('Records'),
+            ),
+          ],
         ),
         body: Center(
           child: Column(

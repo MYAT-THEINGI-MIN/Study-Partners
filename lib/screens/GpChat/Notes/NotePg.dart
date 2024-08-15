@@ -46,6 +46,9 @@ class _NotePageState extends State<NotePage> {
           'files': FieldValue.arrayUnion(fileUrls),
         });
 
+        // Increment user points by 1
+        await _updateUserPoints(1);
+
         setState(() {
           isUploading = false;
         });
@@ -56,6 +59,33 @@ class _NotePageState extends State<NotePage> {
         });
         TopSnackBarWiidget(context, 'Failed to add files: $e');
       }
+    }
+  }
+
+  Future<void> _updateUserPoints(int change) async {
+    try {
+      DocumentReference userDoc = FirebaseFirestore.instance
+          .collection('groups')
+          .doc(widget.groupId)
+          .collection('LeaderBoard')
+          .doc(currentUserId);
+
+      DocumentSnapshot userSnapshot = await userDoc.get();
+
+      if (userSnapshot.exists) {
+        int currentPoints = userSnapshot['points'] ?? 0;
+        await userDoc.update({
+          'points': currentPoints + change,
+        });
+      } else {
+        await userDoc.set({
+          'uid': currentUserId,
+          'points': change,
+          // Additional fields like name can be set here if needed
+        });
+      }
+    } catch (e) {
+      TopSnackBarWiidget(context, 'Failed to update points: $e');
     }
   }
 
@@ -104,6 +134,10 @@ class _NotePageState extends State<NotePage> {
 
         // Remove file from Firebase Storage
         await FirebaseStorage.instance.refFromURL(fileUrl).delete();
+
+        // Decrement user points by 1
+        await _updateUserPoints(-1);
+
         TopSnackBarWiidget(context, 'File deleted successfully!');
       } catch (e) {
         TopSnackBarWiidget(context, 'Failed to delete file: $e');
@@ -116,6 +150,16 @@ class _NotePageState extends State<NotePage> {
         'Are you sure you want to delete this note?');
     if (confirmed) {
       try {
+        // Get the number of files in the note
+        DocumentSnapshot noteSnapshot = await FirebaseFirestore.instance
+            .collection('groups')
+            .doc(widget.groupId)
+            .collection('notes')
+            .doc(noteId)
+            .get();
+
+        List<String> files = List<String>.from(noteSnapshot['files'] ?? []);
+
         // Remove note document from Firestore
         await FirebaseFirestore.instance
             .collection('groups')
@@ -123,6 +167,9 @@ class _NotePageState extends State<NotePage> {
             .collection('notes')
             .doc(noteId)
             .delete();
+
+        // Decrement user points by the number of files
+        await _updateUserPoints(-files.length);
 
         TopSnackBarWiidget(context, 'Note deleted successfully!');
       } catch (e) {
@@ -136,15 +183,15 @@ class _NotePageState extends State<NotePage> {
           context: context,
           builder: (context) {
             return AlertDialog(
-              title: Text('Confirmation'),
+              title: const Text('Confirmation'),
               content: Text(message),
               actions: [
                 TextButton(
-                  child: Text('Cancel'),
+                  child: const Text('Cancel'),
                   onPressed: () => Navigator.of(context).pop(false),
                 ),
                 TextButton(
-                  child: Text('Delete'),
+                  child: const Text('Delete'),
                   onPressed: () => Navigator.of(context).pop(true),
                 ),
               ],
@@ -157,7 +204,7 @@ class _NotePageState extends State<NotePage> {
   void _showBottomSheet(BuildContext context, String noteId, bool canDelete) {
     showModalBottomSheet(
       context: context,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(16.0),
         ),
@@ -169,8 +216,8 @@ class _NotePageState extends State<NotePage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: Icon(Icons.add, color: Colors.blue),
-                title: Text('Add Files'),
+                leading: const Icon(Icons.add, color: Colors.blue),
+                title: const Text('Add Files'),
                 onTap: () {
                   Navigator.pop(context); // Close the bottom sheet
                   _pickAndUploadFiles(noteId);
@@ -178,8 +225,8 @@ class _NotePageState extends State<NotePage> {
               ),
               if (canDelete)
                 ListTile(
-                  leading: Icon(Icons.delete, color: Colors.red),
-                  title: Text('Delete Note'),
+                  leading: const Icon(Icons.delete, color: Colors.red),
+                  title: const Text('Delete Note'),
                   onTap: () {
                     Navigator.pop(context); // Close the bottom sheet
                     _deleteNote(noteId);
@@ -204,25 +251,29 @@ class _NotePageState extends State<NotePage> {
       fileIcon = Icons.insert_drive_file;
     }
 
+    Color textColor = Theme.of(context).brightness == Brightness.dark
+        ? Colors.grey // Light blue for dark mode
+        : Colors.black;
+
     return ListTile(
       leading: Icon(fileIcon, color: Colors.grey),
       title: Text(
         fileName,
         style: TextStyle(
           fontSize: 16,
-          color: Colors.black87,
+          color: textColor, // Now applied correctly without const
         ),
       ),
       subtitle: Text(
         'Size: ${(fileUrl.length / 1024).toStringAsFixed(2)} KB',
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 12,
           color: Colors.grey,
         ),
       ),
       trailing: canDelete
           ? IconButton(
-              icon: Icon(Icons.delete, color: Colors.red),
+              icon: const Icon(Icons.delete, color: Colors.red),
               onPressed: () => _deleteFile(noteId, fileUrl),
             )
           : null,
@@ -234,7 +285,7 @@ class _NotePageState extends State<NotePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Notes'),
+        title: const Text('Notes'),
         actions: [
           ElevatedButton(
             onPressed: () {
@@ -246,13 +297,10 @@ class _NotePageState extends State<NotePage> {
                 ),
               );
             },
-            child: Text(
+            child: const Text(
               'Add New Folder',
               style: TextStyle(color: Colors.deepPurple),
             ),
-            // style: ElevatedButton.styleFrom(
-            //   backgroundColor: Colors.white, // Background color
-            // ),
           ),
         ],
       ),
@@ -263,59 +311,56 @@ class _NotePageState extends State<NotePage> {
                 .collection('groups')
                 .doc(widget.groupId)
                 .collection('notes')
-                .orderBy('timestamp', descending: true)
                 .snapshots(),
             builder: (context, snapshot) {
               if (!snapshot.hasData) {
-                return Center(
-                  child: CircularProgressIndicator(),
-                );
+                return const Center(child: CircularProgressIndicator());
               }
 
-              final notes = snapshot.data!.docs;
+              return ListView(
+                children: snapshot.data!.docs.map((doc) {
+                  String noteId = doc.id;
+                  String noteTitle = doc['title'];
+                  List<dynamic> files = doc['files'] ?? [];
+                  String createdBy = doc['uid'];
+                  bool canDelete = currentUserId == createdBy;
 
-              return ListView.builder(
-                itemCount: notes.length,
-                itemBuilder: (context, index) {
-                  var note = notes[index];
-                  var noteId = note.id;
-                  var title = note['title'];
-                  var files = List<String>.from(note['files'] ?? []);
-                  var creatorUid = note['uid'];
-
-                  return Card(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                    child: ExpansionTile(
-                      title: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(title),
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.more_vert),
-                            onPressed: () => _showBottomSheet(
-                                context, noteId, creatorUid == currentUserId),
-                          ),
-                        ],
+                  return ExpansionTile(
+                    title: GestureDetector(
+                      onTap: () => _showBottomSheet(context, noteId, canDelete),
+                      child: Text(
+                        noteTitle,
+                        style: Theme.of(context).textTheme.bodyLarge,
                       ),
-                      children: files
-                          .map((fileUrl) => _buildFileListTile(
-                              noteId, fileUrl, creatorUid == currentUserId))
-                          .toList(),
                     ),
+                    children: files
+                        .map<Widget>((fileUrl) =>
+                            _buildFileListTile(noteId, fileUrl, canDelete))
+                        .toList(),
                   );
-                },
+                }).toList(),
               );
             },
           ),
           if (isUploading)
-            Container(
-              color: Colors.black54,
-              child: Center(
-                child: CircularProgressIndicator(),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                color: Colors.black54,
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    CircularProgressIndicator(),
+                    SizedBox(width: 16.0),
+                    Text(
+                      'Uploading...',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ],
+                ),
               ),
             ),
         ],
