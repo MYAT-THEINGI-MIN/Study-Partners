@@ -4,29 +4,42 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sp_test/widgets/FlashCardWidget.dart';
 import 'package:sp_test/widgets/textfield.dart';
 
-class CreateFlashcardPage extends StatefulWidget {
+class EditFlashcardPage extends StatefulWidget {
   final String groupId;
+  final String flashcardId;
 
-  CreateFlashcardPage({required this.groupId});
+  EditFlashcardPage({
+    required this.groupId,
+    required this.flashcardId,
+  });
 
   @override
-  _CreateFlashcardPageState createState() => _CreateFlashcardPageState();
+  _EditFlashcardPageState createState() => _EditFlashcardPageState();
 }
 
-class _CreateFlashcardPageState extends State<CreateFlashcardPage> {
+class _EditFlashcardPageState extends State<EditFlashcardPage> {
   final _formKey = GlobalKey<FormState>();
-  final _flashcards = <Map<String, String>>[];
+  final _flashcards = <Map<String, dynamic>>[];
   final _titleController = TextEditingController();
   final _questionController = TextEditingController();
   final _answerController = TextEditingController();
   bool _showBack = false;
   int _editIndex = -1;
   String? _username;
+  late ScrollController _scrollController;
 
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController();
     _fetchUsername();
+    _loadFlashcardData();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchUsername() async {
@@ -36,6 +49,30 @@ class _CreateFlashcardPageState extends State<CreateFlashcardPage> {
     setState(() {
       _username = userDoc['username'];
     });
+  }
+
+  Future<void> _loadFlashcardData() async {
+    DocumentSnapshot flashcardDoc = await FirebaseFirestore.instance
+        .collection('groups')
+        .doc(widget.groupId)
+        .collection('Flashcards')
+        .doc(widget.flashcardId)
+        .get();
+
+    if (flashcardDoc.exists) {
+      setState(() {
+        _titleController.text = flashcardDoc['title'];
+      });
+
+      QuerySnapshot qaPairsSnapshot =
+          await flashcardDoc.reference.collection('QAPairs').get();
+      setState(() {
+        _flashcards.addAll(qaPairsSnapshot.docs.map((doc) => {
+              'question': doc['question'],
+              'answer': doc['answer'],
+            }));
+      });
+    }
   }
 
   void _addFlashcard() {
@@ -60,10 +97,19 @@ class _CreateFlashcardPageState extends State<CreateFlashcardPage> {
 
   void _editFlashcard(int index) {
     setState(() {
-      _questionController.text = _flashcards[index]['question']!;
-      _answerController.text = _flashcards[index]['answer']!;
+      _questionController.text = _flashcards[index]['question'];
+      _answerController.text = _flashcards[index]['answer'];
       _editIndex = index;
       _showBack = false;
+    });
+
+    // Scroll to the editing card
+    Future.delayed(Duration(milliseconds: 300), () {
+      _scrollController.animateTo(
+        index * 120.0, // Adjust the scroll offset based on card height
+        duration: Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
     });
   }
 
@@ -88,51 +134,32 @@ class _CreateFlashcardPageState extends State<CreateFlashcardPage> {
     if (_formKey.currentState!.validate() && _flashcards.length >= 5) {
       String title = _titleController.text;
       String groupId = widget.groupId;
-      String uid = FirebaseAuth.instance.currentUser!.uid;
-      DateTime now = DateTime.now();
+      String flashcardId = widget.flashcardId;
 
-      // Create the flashcard document
-      DocumentReference flashcardDoc = await FirebaseFirestore.instance
+      // Update the flashcard document
+      DocumentReference flashcardDoc = FirebaseFirestore.instance
           .collection('groups')
           .doc(groupId)
           .collection('Flashcards')
-          .add({
+          .doc(flashcardId);
+
+      // Save title and updated QAPairs
+      await flashcardDoc.update({
         'title': title,
-        'creatorUid': uid,
-        'creatorUsername': _username,
-        'createdDate': now,
       });
 
-      // Add each question-answer pair as a separate document in a sub-collection
+      // Delete existing QAPairs and add the updated ones
+      final existingPairs = await flashcardDoc.collection('QAPairs').get();
+      for (var doc in existingPairs.docs) {
+        await doc.reference.delete();
+      }
+
       for (var flashcard in _flashcards) {
         await flashcardDoc.collection('QAPairs').add({
           'question': flashcard['question'],
           'answer': flashcard['answer'],
         });
       }
-
-      // Update the leaderboard to add a point to the creator
-      DocumentReference leaderboardRef = FirebaseFirestore.instance
-          .collection('groups')
-          .doc(groupId)
-          .collection('LeaderBoard')
-          .doc(uid);
-
-      // Get the current points and update them
-      await FirebaseFirestore.instance.runTransaction((transaction) async {
-        DocumentSnapshot leaderboardSnapshot =
-            await transaction.get(leaderboardRef);
-        if (leaderboardSnapshot.exists) {
-          int currentPoints = leaderboardSnapshot.get('points') ?? 0;
-          transaction.update(leaderboardRef, {'points': currentPoints + 1});
-        } else {
-          // If the user doesn't exist in the leaderboard, create a new entry
-          transaction.set(leaderboardRef, {
-            'name': _username,
-            'points': 1,
-          });
-        }
-      });
 
       Navigator.pop(context);
     } else if (_flashcards.length < 5) {
@@ -150,7 +177,7 @@ class _CreateFlashcardPageState extends State<CreateFlashcardPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Create Flashcard'),
+        title: Text('Edit Flashcard'),
         actions: [
           ElevatedButton(
             onPressed: _saveFlashcards,
@@ -180,6 +207,7 @@ class _CreateFlashcardPageState extends State<CreateFlashcardPage> {
               SizedBox(height: 20),
               Expanded(
                 child: ListView.builder(
+                  controller: _scrollController,
                   scrollDirection: Axis.vertical,
                   itemCount: _flashcards.length + 1,
                   itemBuilder: (context, index) {
@@ -187,11 +215,12 @@ class _CreateFlashcardPageState extends State<CreateFlashcardPage> {
                       return _buildNewCardInput();
                     } else {
                       return FlashcardWidget(
-                        question: _flashcards[index]['question']!,
-                        answer: _flashcards[index]['answer']!,
+                        question: _flashcards[index]['question'],
+                        answer: _flashcards[index]['answer'],
                         onEdit: () => _editFlashcard(index),
                         onDelete: () => _deleteFlashcard(index),
-                        isHighlighted: _editIndex == index,
+                        isHighlighted:
+                            _editIndex == index, // Highlight the editing card
                       );
                     }
                   },
