@@ -12,6 +12,8 @@ class PlanDetailPage extends StatelessWidget {
   final DateTime deadline;
   final int taskCount;
   final List<Map<String, dynamic>> tasks;
+  final String description; // Added description parameter
+  final String note; // Added note parameter
 
   PlanDetailPage({
     required this.planId,
@@ -21,21 +23,47 @@ class PlanDetailPage extends StatelessWidget {
     required this.deadline,
     required this.taskCount,
     required this.tasks,
+    required this.description, // Added description parameter
+    required this.note, // Added note parameter
   });
 
   Future<void> _deletePlan(BuildContext context) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        await FirebaseFirestore.instance
+        int pointsToDeduct = taskCount;
+
+        final planRef = FirebaseFirestore.instance
             .collection('groups')
             .doc(groupId)
             .collection('plans')
-            .doc(planId)
-            .delete();
-        Navigator.pop(context); // Go back to the previous screen
+            .doc(planId);
+        final leaderboardRef = FirebaseFirestore.instance
+            .collection('groups')
+            .doc(groupId)
+            .collection('LeaderBoard')
+            .doc(user.uid);
+
+        DocumentSnapshot leaderboardSnapshot = await leaderboardRef.get();
+
+        int currentPoints = leaderboardSnapshot.exists
+            ? (leaderboardSnapshot.get('points') as int)
+            : 0;
+        int newPoints = currentPoints - pointsToDeduct;
+        if (newPoints < 0) newPoints = 0;
+
+        await FirebaseFirestore.instance.runTransaction((transaction) async {
+          transaction.delete(planRef);
+
+          if (leaderboardSnapshot.exists) {
+            transaction.update(leaderboardRef, {'points': newPoints});
+          }
+        });
+
+        Navigator.pop(context);
       }
     } catch (e) {
+      print('Error deleting plan: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error deleting plan: $e')),
       );
@@ -44,7 +72,6 @@ class PlanDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Format the deadline date for the plan to 'day.month.year'
     String formattedPlanDeadline = DateFormat('dd.MM.yyyy').format(deadline);
 
     return Scaffold(
@@ -76,7 +103,7 @@ class PlanDetailPage extends StatelessWidget {
                 }
               }
 
-              return SizedBox
+              return const SizedBox
                   .shrink(); // Return an empty widget if no delete icon should be shown
             },
           ),
@@ -90,6 +117,16 @@ class PlanDetailPage extends StatelessWidget {
             Text(
               'Plan Name: $planName',
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '$description',
+              style: const TextStyle(fontSize: 18),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Note: $note',
+              style: const TextStyle(fontSize: 18),
             ),
             const SizedBox(height: 16),
             Text(
@@ -126,14 +163,38 @@ class PlanDetailPage extends StatelessWidget {
                       itemCount: tasks.length,
                       itemBuilder: (context, index) {
                         final task = tasks[index];
+
+                        final title = task['title'] is String
+                            ? task['title']
+                            : 'Untitled Task';
+
+                        DateTime deadline;
+                        try {
+                          deadline = DateTime.parse(task['deadline']);
+                        } catch (e) {
+                          deadline = DateTime.now();
+                        }
+
+                        int completedCount = 0;
+                        List<Map<String, dynamic>> completed = [];
+                        if (task['completed'] is List) {
+                          completed = (task['completed'] as List)
+                              .where((e) => e is Map<String, dynamic>)
+                              .map((e) => e as Map<String, dynamic>)
+                              .toList();
+                          completedCount = completed.length;
+                        }
+
                         return PlanTaskCard(
-                          title: task['title'],
-                          deadline: DateTime.parse(task['deadline']),
-                          completed: List<String>.from(task['completed']),
-                          uid: currentUserUid, // Pass the current user UID
-                          groupId: groupId, // Pass groupId
-                          planId: planId, // Pass planId
-                          taskIndex: index, // Pass taskIndex
+                          title: title,
+                          deadline: deadline,
+                          completedCount: completedCount,
+                          uid: currentUserUid,
+                          currentUserUid: currentUserUid,
+                          groupId: groupId,
+                          planId: planId,
+                          taskIndex: index,
+                          completed: completed,
                         );
                       },
                     );

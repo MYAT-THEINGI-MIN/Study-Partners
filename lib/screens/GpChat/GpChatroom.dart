@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -8,7 +7,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:sp_test/Service/chatService.dart';
 import 'package:sp_test/Service/messageItem.dart';
 import 'package:sp_test/screens/GpChat/EditGroup/EditGp.dart';
-import 'package:sp_test/screens/GpChat/EditGroup/LeaveGp.dart';
 import 'package:sp_test/widgets/messageInput.dart';
 
 class GpChatRoom extends StatefulWidget {

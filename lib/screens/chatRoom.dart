@@ -43,13 +43,21 @@ class _ChatRoomState extends State<ChatRoom> {
   }
 
   Future<void> _fetchReceiverProfile() async {
-    DocumentSnapshot userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(widget.receiverUserId)
-        .get();
-    setState(() {
-      _receiverProfileUrl = userDoc['profileImageUrl'];
-    });
+    try {
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.receiverUserId)
+          .get();
+      if (userDoc.exists) {
+        setState(() {
+          _receiverProfileUrl = userDoc['profileImageUrl'] ?? '';
+        });
+      } else {
+        print('User document does not exist.');
+      }
+    } catch (e) {
+      print('Error fetching receiver profile: $e');
+    }
   }
 
   Future<void> _pickImage() async {
@@ -182,10 +190,10 @@ class _ChatRoomState extends State<ChatRoom> {
                 value: 'delete_chat',
                 child: Text('Delete Chat'),
               ),
-              PopupMenuItem(
-                value: 'block_user',
-                child: Text('Block User'),
-              ),
+              // PopupMenuItem(
+              //   value: 'block_user',
+              //   child: Text('Block User'),
+              // ),
             ],
             onSelected: (value) {
               if (value == 'delete_chat') {
@@ -269,7 +277,7 @@ class _ChatRoomState extends State<ChatRoom> {
           return const Text('Loading...');
         }
 
-        final messages = snapshot.data!.docs;
+        final messages = snapshot.data?.docs ?? [];
         List<Widget> messageWidgets = [];
         String? lastDate;
 

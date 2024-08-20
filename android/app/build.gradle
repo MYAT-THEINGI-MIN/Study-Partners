@@ -24,10 +24,8 @@ if (flutterVersionName == null) {
 }
 
 android {
-    compileSdkVersion 31
+    compileSdkVersion 34 // Updated to SDK version 34
     namespace 'com.example.sp_test'
-
-    compileSdkVersion 33
     ndkVersion "23.0.7599858"
 
     compileOptions {
@@ -45,10 +43,10 @@ android {
 
     defaultConfig {
         applicationId "com.example.sp_test"
-        minSdkVersion flutter.minSdkVersion
-        targetSdkVersion 33
-        versionCode 1 // Set the versionCode directly
-        versionName "1.0" // Set the versionName directly
+        minSdkVersion 21 
+        targetSdkVersion 34 // Updated to SDK version 34
+        versionCode flutterVersionCode.toInteger() // Use flutterVersionCode from local.properties
+        versionName flutterVersionName // Use flutterVersionName from local.properties
         multiDexEnabled true
     }
 

@@ -25,11 +25,24 @@ class _ShareTasksPageState extends State<ShareTasksPage> {
   DateTime? _startDate;
   DateTime? _endDate;
   List<DocumentSnapshot> _groups = [];
+  String? _username; // Store the username
 
   @override
   void initState() {
     super.initState();
     _loadGroups();
+    _fetchUsername(); // Fetch the username when the page initializes
+  }
+
+  void _fetchUsername() async {
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.uid)
+        .get();
+
+    setState(() {
+      _username = userDoc['username']; // Store the username
+    });
   }
 
   void _loadGroups() {
@@ -135,6 +148,16 @@ class _ShareTasksPageState extends State<ShareTasksPage> {
       return;
     }
 
+    if (_username == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to fetch username. Please try again later.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -148,6 +171,7 @@ class _ShareTasksPageState extends State<ShareTasksPage> {
           uid: widget.uid,
           planName: _planNameController.text,
           note: _noteController.text,
+          // username: _username!, // Pass the fetched username
         );
       },
     ).then((_) {
@@ -255,13 +279,17 @@ class _ShareTasksPageState extends State<ShareTasksPage> {
                                 color: Colors.deepPurple, width: 1.0),
                           ),
                           child: ListTile(
-                            title: Text(task['title']),
-                            subtitle: Text(task['note']),
+                            title: Text(
+                              task['title'] ?? 'No title',
+                              style: const TextStyle(fontSize: 16.0),
+                            ),
+                            subtitle: Text(
+                              task['note'] ?? '',
+                              style: const TextStyle(fontSize: 14.0),
+                            ),
                             trailing: IconButton(
                               icon: const Icon(Icons.remove_circle),
-                              onPressed: () {
-                                _removeTask(task['id']);
-                              },
+                              onPressed: () => _removeTask(task['id']),
                             ),
                           ),
                         );
@@ -285,6 +313,8 @@ class _ShareTasksPageState extends State<ShareTasksPage> {
               ],
             ),
           ),
+          const SizedBox(height: 10.0),
+          const SizedBox(height: 10.0),
         ],
       ),
     );

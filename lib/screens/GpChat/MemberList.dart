@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sp_test/Service/RefreshIndicator.dart';
 import 'package:sp_test/screens/GpChat/EditGroup/addPartner.dart';
+
 import 'package:sp_test/widgets/topSnackBar.dart'; // Adjust import path as needed
 
 class MemberList extends StatefulWidget {
@@ -77,6 +78,7 @@ class _MemberListState extends State<MemberList> {
 
   Future<void> _removeMember(String memberId) async {
     try {
+      // Confirm the action
       bool confirmed = await showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -98,16 +100,27 @@ class _MemberListState extends State<MemberList> {
       );
 
       if (confirmed ?? false) {
+        // Remove the user from the 'members' array
         await FirebaseFirestore.instance
             .collection('groups')
             .doc(widget.groupId)
             .update({
           'members': FieldValue.arrayRemove([memberId]),
         });
+
+        // Remove the user from the 'LeaderBoard' sub-collection
+        await FirebaseFirestore.instance
+            .collection('groups')
+            .doc(widget.groupId)
+            .collection('LeaderBoard')
+            .doc(memberId)
+            .delete();
+
         setState(() {
           _members.removeWhere((member) => member['uid'] == memberId);
           _memberCount = _members.length;
         });
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Member removed successfully.')),
         );

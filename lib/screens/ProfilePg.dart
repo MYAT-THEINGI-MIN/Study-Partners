@@ -62,7 +62,7 @@ class _ProfilePgState extends State<ProfilePg> {
                     child: CircleAvatar(
                       radius: 50,
                       backgroundImage: NetworkImage(
-                        userData['profilePicUrl'] ??
+                        userData['profileImageUrl'] ??
                             'https://example.com/default.jpg',
                       ),
                     ),

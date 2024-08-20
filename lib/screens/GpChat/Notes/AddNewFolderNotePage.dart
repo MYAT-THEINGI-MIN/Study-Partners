@@ -77,6 +77,13 @@ class _AddNewFolderNotePageState extends State<AddNewFolderNotePage> {
       });
       TopSnackBarWiidget(context, 'Failed to add note: $e');
     }
+
+    // Update the group's last activity timestamp
+    final groupRef =
+        FirebaseFirestore.instance.collection('groups').doc(widget.groupId);
+    await groupRef.update({
+      'lastActivityTimestamp': Timestamp.now(),
+    });
   }
 
   Future<List<String>> _uploadFiles() async {

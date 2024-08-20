@@ -24,6 +24,26 @@ class ShareTasksSheet extends StatelessWidget {
     return userDoc['username'] ?? 'Unknown User';
   }
 
+  Future<void> _updatePoints(String groupId) async {
+    final leaderboardRef = FirebaseFirestore.instance
+        .collection('groups')
+        .doc(groupId)
+        .collection('LeaderBoard')
+        .doc(uid);
+
+    final userDoc = await leaderboardRef.get();
+    int currentPoints = 0;
+
+    if (userDoc.exists) {
+      currentPoints = userDoc['points'] ?? 0;
+    }
+
+    await leaderboardRef.set({
+      'name': await _getUsername(uid),
+      'points': currentPoints + tasks.length,
+    }, SetOptions(merge: true));
+  }
+
   Future<void> _shareTasks(String groupId) async {
     if (tasks.isEmpty || planName.isEmpty) {
       ScaffoldMessenger.of(parentContext).showSnackBar(
@@ -54,8 +74,10 @@ class ShareTasksSheet extends StatelessWidget {
           .toList(),
     });
 
+    await _updatePoints(groupId);
+
     ScaffoldMessenger.of(parentContext).showSnackBar(
-      const SnackBar(content: Text('Tasks shared successfully!')),
+      const SnackBar(content: Text('Tasks shared and points awarded!')),
     );
   }
 

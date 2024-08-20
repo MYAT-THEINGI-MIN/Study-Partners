@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart'; // Import for color wheel
 import 'package:sp_test/Service/NotificationService.dart';
-import 'package:sp_test/screens/GpChat/EditGroup/addPartner.dart';
 import 'package:sp_test/screens/Planner/InputField.dart';
 import 'package:sp_test/screens/Planner/button.dart';
 import 'package:sp_test/screens/Planner/colorCircle.dart';
@@ -110,14 +110,11 @@ class _AddTaskPageState extends State<AddTaskPage> {
 
       final notificationIdBase =
           DateTime.now().millisecondsSinceEpoch % 2147483647;
-      print(
-          'Creating tasks and notifications for repeat option: $_selectedRepeat');
 
       switch (_selectedRepeat) {
         case 'Daily':
           for (int i = 0; i < 30; i++) {
             final taskDate = scheduledDateTime.add(Duration(days: i));
-            TopSnackBarWiidget(context, 'Creating daily task at: $taskDate');
             await _firebaseService.saveTask(
               uid: widget.uid,
               title: title,
@@ -128,8 +125,6 @@ class _AddTaskPageState extends State<AddTaskPage> {
               remind: _selectedRemind,
               color: _selectedColor?.value ?? Colors.blue.value,
             );
-            TopSnackBarWiidget(
-                context, 'Scheduling notification at: $taskDate');
             await NotificationService.scheduleNotification(
               id: notificationIdBase + i,
               title: 'Task Reminder',
@@ -141,9 +136,9 @@ class _AddTaskPageState extends State<AddTaskPage> {
 
         case 'Weekly':
           for (int i = 0; i < 4; i++) {
+            // Add 7 days for each iteration to create tasks for each week
             final taskDate = scheduledDateTime.add(Duration(days: 7 * i));
 
-            TopSnackBarWiidget(context, 'Creating weekly task at: $taskDate');
             await _firebaseService.saveTask(
               uid: widget.uid,
               title: title,
@@ -155,8 +150,6 @@ class _AddTaskPageState extends State<AddTaskPage> {
               color: _selectedColor?.value ?? Colors.blue.value,
             );
 
-            TopSnackBarWiidget(
-                context, 'Scheduling notification at: $taskDate');
             await NotificationService.scheduleNotification(
               id: notificationIdBase + i,
               title: 'Task Reminder',
@@ -167,40 +160,32 @@ class _AddTaskPageState extends State<AddTaskPage> {
           break;
 
         case 'Monthly':
-          for (int i = 0; i < 3; i++) {
-            final taskDate = DateTime(
-              scheduledDateTime.year,
-              scheduledDateTime.month + i,
-              scheduledDateTime.day,
-              scheduledDateTime.hour,
-              scheduledDateTime.minute,
-            );
-            TopSnackBarWiidget(context, 'Creating monthly task at: $taskDate');
+          DateTime currentMonth = DateTime(scheduledDateTime.year,
+              scheduledDateTime.month, scheduledDateTime.day);
+          while (currentMonth.year == scheduledDateTime.year) {
             await _firebaseService.saveTask(
               uid: widget.uid,
               title: title,
               note: note,
-              date: taskDate,
+              date: currentMonth,
               time: timeString,
               repeat: _selectedRepeat,
               remind: _selectedRemind,
               color: _selectedColor?.value ?? Colors.blue.value,
             );
-
-            TopSnackBarWiidget(
-                context, 'Scheduling notification at: $taskDate');
             await NotificationService.scheduleNotification(
-              id: notificationIdBase + i,
+              id: notificationIdBase + currentMonth.month,
               title: 'Task Reminder',
               body: 'Reminder for task: $title',
-              scheduledDate: notifyDateTime.add(Duration(days: 30 * i)),
+              scheduledDate: notifyDateTime.add(Duration(
+                  days: 30 * (currentMonth.month - scheduledDateTime.month))),
             );
+            currentMonth = DateTime(
+                currentMonth.year, currentMonth.month + 1, currentMonth.day);
           }
           break;
 
         case 'None':
-          TopSnackBarWiidget(
-              context, 'Creating single task at: $scheduledDateTime');
           await _firebaseService.saveTask(
             uid: widget.uid,
             title: title,
@@ -211,8 +196,6 @@ class _AddTaskPageState extends State<AddTaskPage> {
             remind: _selectedRemind,
             color: _selectedColor?.value ?? Colors.blue.value,
           );
-
-          print('Scheduling single notification for: $scheduledDateTime');
           await NotificationService.scheduleNotification(
             id: notificationIdBase,
             title: 'Task Reminder',
@@ -221,13 +204,39 @@ class _AddTaskPageState extends State<AddTaskPage> {
           );
           break;
       }
-      TopSnackBarWiidget(
-          context, 'Tasks saved to Firestore and notifications scheduled.');
-      print('Tasks saved to Firestore and notifications scheduled.');
       Navigator.pop(context);
     } catch (e) {
       print('Error creating task: $e');
     }
+  }
+
+  void _openColorPicker(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Select Task Color'),
+          content: SingleChildScrollView(
+            child: BlockPicker(
+              pickerColor: _selectedColor ?? Colors.blue,
+              onColorChanged: (Color color) {
+                setState(() {
+                  _selectedColor = color;
+                });
+              },
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Close'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -301,7 +310,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
                           '5 minutes before',
                           '10 minutes before',
                           '15 minutes before',
-                          '30 minutes before',
+                          '30 minutes before'
                         ].map<DropdownMenuItem<String>>((String value) {
                           return DropdownMenuItem<String>(
                             value: value,
@@ -313,69 +322,36 @@ class _AddTaskPageState extends State<AddTaskPage> {
                   ),
                   SizedBox(height: 20),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      ColorCircle(
-                        color: Colors.red.shade300,
-                        isSelected: _selectedColor == Colors.red.shade300,
-                        onTap: () {
-                          setState(() {
-                            _selectedColor = Colors.red.shade300;
-                          });
-                        },
-                      ),
-                      ColorCircle(
-                        color: Colors.blue.shade300,
-                        isSelected: _selectedColor == Colors.blue.shade300,
-                        onTap: () {
-                          setState(() {
-                            _selectedColor = Colors.blue.shade300;
-                          });
-                        },
-                      ),
-                      ColorCircle(
-                        color: Colors.deepPurple.shade300,
-                        isSelected:
-                            _selectedColor == Colors.deepPurple.shade300,
-                        onTap: () {
-                          setState(() {
-                            _selectedColor = Colors.deepPurple.shade300;
-                          });
-                        },
-                      ),
-                      ColorCircle(
-                        color: Colors.green.shade300,
-                        isSelected: _selectedColor == Colors.green.shade300,
-                        onTap: () {
-                          setState(() {
-                            _selectedColor = Colors.green.shade300;
-                          });
-                        },
-                      ),
-                      ColorCircle(
-                        color: Colors.yellow.shade300,
-                        isSelected: _selectedColor == Colors.yellow.shade300,
-                        onTap: () {
-                          setState(() {
-                            _selectedColor = Colors.yellow.shade300;
-                          });
-                        },
-                      ),
-                      ColorCircle(
-                        color: Colors.orange.shade300,
-                        isSelected: _selectedColor == Colors.orange.shade300,
-                        onTap: () {
-                          setState(() {
-                            _selectedColor = Colors.orange.shade300;
-                          });
-                        },
+                      Text('Task Color:',
+                          style: Theme.of(context).textTheme.bodyMedium),
+                      SizedBox(width: 10),
+                      GestureDetector(
+                        onTap: () => _openColorPicker(context),
+                        child: Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: _selectedColor ?? Colors.blue,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 20),
-                  myButton(
-                    label: "Create Task",
-                    onTap: _createTask,
+                  Padding(
+                    padding: const EdgeInsets.all(10.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _createTask,
+                            child: const Text('Add Task'),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),

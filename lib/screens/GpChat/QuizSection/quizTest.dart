@@ -15,6 +15,7 @@ class QuizTestPage extends StatefulWidget {
 class _QuizTestPageState extends State<QuizTestPage> {
   late Future<DocumentSnapshot> _quizData;
   final Map<int, int?> _userAnswers = {}; // Store answers for each question
+  int? _previousScore;
 
   @override
   void initState() {
@@ -25,11 +26,83 @@ class _QuizTestPageState extends State<QuizTestPage> {
         .collection('Quiz')
         .doc(widget.quizId)
         .get();
+
+    _checkPreviousScore();
+  }
+
+  Future<void> _checkPreviousScore() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return;
+
+    final quizSnapshot = await _quizData;
+    final quizData = quizSnapshot.data() as Map<String, dynamic>;
+    final marks = quizData['marks'] as Map<String, dynamic>;
+
+    if (marks.containsKey(userId)) {
+      setState(() {
+        _previousScore = marks[userId] as int?;
+      });
+    }
   }
 
   Future<void> _submitAnswers() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+
+    if (userId == null) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Error'),
+          content: Text('User not logged in'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    if (_previousScore != null) {
+      final quizSnapshot = await _quizData;
+      final quizData = quizSnapshot.data() as Map<String, dynamic>;
+      final questions = quizData['questions'] as List<dynamic>;
+
+      int currentScore = 0;
+      for (int i = 0; i < questions.length; i++) {
+        final question = questions[i] as Map<String, dynamic>;
+        final correctAnswerIndex = question['correctAnswerIndex'] as int;
+
+        if (_userAnswers[i] == correctAnswerIndex) {
+          currentScore++;
+        }
+      }
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Quiz Already Taken'),
+          content: Text(
+            'You have already taken this quiz. Your previous score is $_previousScore.\n'
+            'Your current score is $currentScore. The previous score is retained.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close dialog
+                Navigator.pop(context); // Go back to the previous screen
+              },
+              child: Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     try {
-      // Calculate marks
       final quizSnapshot = await _quizData;
       final quizData = quizSnapshot.data() as Map<String, dynamic>;
       final questions = quizData['questions'] as List<dynamic>;
@@ -44,24 +117,28 @@ class _QuizTestPageState extends State<QuizTestPage> {
         }
       }
 
-      // Get user ID from authentication
-      final userId = FirebaseAuth.instance.currentUser?.uid;
-
-      if (userId == null) {
-        // Handle case where user is not logged in
-        throw Exception('User not logged in');
-      }
-
-      await FirebaseFirestore.instance
+      final batch = FirebaseFirestore.instance.batch();
+      final quizRef = FirebaseFirestore.instance
           .collection('groups')
           .doc(widget.groupId)
           .collection('Quiz')
-          .doc(widget.quizId)
-          .update({
+          .doc(widget.quizId);
+      final leaderboardRef = FirebaseFirestore.instance
+          .collection('groups')
+          .doc(widget.groupId)
+          .collection('LeaderBoard')
+          .doc(userId);
+
+      batch.update(quizRef, {
         'marks.$userId': score,
       });
 
-      // Show success dialog
+      batch.update(leaderboardRef, {
+        'points': FieldValue.increment(score),
+      });
+
+      await batch.commit();
+
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -81,7 +158,6 @@ class _QuizTestPageState extends State<QuizTestPage> {
       );
     } catch (e) {
       print('Error submitting answers: $e');
-      // Show error dialog
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -98,6 +174,12 @@ class _QuizTestPageState extends State<QuizTestPage> {
         ),
       );
     }
+    // Update the group's last activity timestamp
+    final groupRef =
+        FirebaseFirestore.instance.collection('groups').doc(widget.groupId);
+    await groupRef.update({
+      'lastActivityTimestamp': Timestamp.now(),
+    });
   }
 
   @override
@@ -124,6 +206,17 @@ class _QuizTestPageState extends State<QuizTestPage> {
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
+                if (_previousScore != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    child: Text(
+                      'You have already taken this quiz. Your previous score is $_previousScore.',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(color: Colors.red),
+                    ),
+                  ),
                 Expanded(
                   child: ListView.builder(
                     itemCount: questions.length,

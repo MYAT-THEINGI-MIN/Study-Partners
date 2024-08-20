@@ -161,6 +161,13 @@ class _TimerPageState extends State<TimerPage> {
     } else {
       print('No user is currently logged in.');
     }
+
+    // Update the group's last activity timestamp
+    final groupRef =
+        FirebaseFirestore.instance.collection('groups').doc(widget.groupId);
+    await groupRef.update({
+      'lastActivityTimestamp': Timestamp.now(),
+    });
   }
 
   Future<void> _updateLeaderboardPoints(String userId, int points) async {
@@ -276,20 +283,20 @@ class _TimerPageState extends State<TimerPage> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Study Timer'),
-          actions: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        AllStudyRecordsList(groupId: widget.groupId),
-                  ),
-                );
-              },
-              child: const Text('Records'),
-            ),
-          ],
+          // actions: [
+          //   ElevatedButton(
+          //     onPressed: () {
+          //       Navigator.push(
+          //         context,
+          //         MaterialPageRoute(
+          //           builder: (context) =>
+          //               AllStudyRecordsList(groupId: widget.groupId),
+          //         ),
+          //       );
+          //     },
+          //     child: const Text('Records'),
+          //   ),
+          // ],
         ),
         body: Center(
           child: Column(

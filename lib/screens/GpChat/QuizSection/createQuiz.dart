@@ -62,22 +62,49 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
       };
     }).toList();
 
-    await FirebaseFirestore.instance
-        .collection('groups')
-        .doc(widget.groupId)
-        .collection('Quiz')
-        .doc(quizId)
-        .set({
-      'quizId': quizId,
-      'title': _quizTitleController.text,
-      'questions': questionsData,
-      'marks': {}, // Initially, no marks stored
-      'creatorUid': currentUserId, // Save the current user UID as creator
-    });
+    try {
+      // Save the quiz to Firestore with the current date
+      await FirebaseFirestore.instance
+          .collection('groups')
+          .doc(widget.groupId)
+          .collection('Quiz')
+          .doc(quizId)
+          .set({
+        'quizId': quizId,
+        'title': _quizTitleController.text,
+        'questions': questionsData,
+        'marks': {}, // Initially, no marks stored
+        'creatorUid': currentUserId, // Save the current user UID as creator
+        'creationDate': FieldValue.serverTimestamp(), // Save the current date
+      });
 
-    TopSnackBarWiidget(context, 'Quiz created successfully!');
+      // Update leaderboard points
+      await FirebaseFirestore.instance
+          .collection('groups')
+          .doc(widget.groupId)
+          .collection('LeaderBoard')
+          .doc(currentUserId) // Assuming the document ID is the user UID
+          .update({
+        'points': FieldValue.increment(2), // Increment points by 2
+      }).then((_) {
+        TopSnackBarWiidget(
+            context, 'Quiz created and points updated successfully!');
+      }).catchError((e) {
+        TopSnackBarWiidget(context, 'Failed to update leaderboard points.');
+        print('Error updating points: $e');
+      });
+    } catch (e) {
+      TopSnackBarWiidget(context, 'Failed to create quiz.');
+      print('Error creating quiz: $e');
+    }
 
     Navigator.pop(context);
+    // Update the group's last activity timestamp
+    final groupRef =
+        FirebaseFirestore.instance.collection('groups').doc(widget.groupId);
+    await groupRef.update({
+      'lastActivityTimestamp': Timestamp.now(),
+    });
   }
 
   @override
@@ -105,53 +132,67 @@ class _CreateQuizPageState extends State<CreateQuizPage> {
                   int index = entry.key;
                   Map<String, dynamic> question = entry.value;
 
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      CustomTextField(
-                        controller: question['question'],
-                        labelText: 'Question ${index + 1}',
-                        obscureText: false,
-                        onSuffixIconPressed: () {},
-                        showSuffixIcon:
-                            false, // Hide suffix icon for this field
-                      ),
-                      SizedBox(height: 8.0),
-                      ...question['answers'].asMap().entries.map((answerEntry) {
-                        int answerIndex = answerEntry.key;
-                        TextEditingController answerController =
-                            answerEntry.value;
-
-                        return RadioListTile<int>(
-                          title: CustomTextField(
-                            controller: answerController,
-                            labelText: 'Answer ${answerIndex + 1}',
+                  return Card(
+                    color: Colors.deepPurple[100], // Deep purple shade
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(20), // Rounded corners
+                    ),
+                    margin: EdgeInsets.only(bottom: 16.0),
+                    elevation: 4, // Add some shadow
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CustomTextField(
+                            controller: question['question'],
+                            labelText: 'Question ${index + 1}',
                             obscureText: false,
                             onSuffixIconPressed: () {},
                             showSuffixIcon:
                                 false, // Hide suffix icon for this field
                           ),
-                          value: answerIndex,
-                          groupValue: question['correctAnswerIndex'],
-                          onChanged: (value) {
-                            setState(() {
-                              question['correctAnswerIndex'] = value!;
-                            });
-                          },
-                        );
-                      }).toList(),
-                      SizedBox(height: 16.0),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.delete),
-                            onPressed: () => _removeQuestion(index),
+                          SizedBox(height: 8.0),
+                          ...question['answers']
+                              .asMap()
+                              .entries
+                              .map((answerEntry) {
+                            int answerIndex = answerEntry.key;
+                            TextEditingController answerController =
+                                answerEntry.value;
+
+                            return RadioListTile<int>(
+                              title: CustomTextField(
+                                controller: answerController,
+                                labelText: 'Answer ${answerIndex + 1}',
+                                obscureText: false,
+                                onSuffixIconPressed: () {},
+                                showSuffixIcon:
+                                    false, // Hide suffix icon for this field
+                              ),
+                              value: answerIndex,
+                              groupValue: question['correctAnswerIndex'],
+                              onChanged: (value) {
+                                setState(() {
+                                  question['correctAnswerIndex'] = value!;
+                                });
+                              },
+                            );
+                          }).toList(),
+                          SizedBox(height: 16.0),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.delete),
+                                onPressed: () => _removeQuestion(index),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                      Divider(),
-                    ],
+                    ),
                   );
                 }).toList(),
                 SizedBox(height: 16.0),

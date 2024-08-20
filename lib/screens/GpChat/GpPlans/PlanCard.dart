@@ -9,7 +9,9 @@ class PlanCard extends StatelessWidget {
   final String username;
   final DateTime deadline;
   final int taskCount;
-  final List<Map<String, dynamic>> tasks; // Add tasks parameter
+  final List<Map<String, dynamic>> tasks;
+  final String description; // Add this
+  final String note; // Add this
 
   PlanCard({
     required this.planId,
@@ -18,19 +20,21 @@ class PlanCard extends StatelessWidget {
     required this.username,
     required this.deadline,
     required this.taskCount,
-    required this.tasks, // Add tasks parameter
+    required this.tasks,
+    required this.description, // Add this
+    required this.note, // Add this
   });
 
   @override
   Widget build(BuildContext context) {
-    // Format the deadline date to 'day.month.year'
     String formattedDeadline = DateFormat('dd.MM.yyyy').format(deadline);
 
     return Card(
       child: ListTile(
         title: Text(planName),
         subtitle: Text(
-            'Created by: $username\nDeadline: $formattedDeadline\nTasks: $taskCount'),
+          'Created by: $username\nDeadline: $formattedDeadline\nTasks: $taskCount',
+        ),
         onTap: () {
           Navigator.push(
             context,
@@ -42,7 +46,9 @@ class PlanCard extends StatelessWidget {
                 username: username,
                 deadline: deadline,
                 taskCount: taskCount,
-                tasks: tasks, // Pass tasks list here
+                tasks: tasks,
+                description: description, // Add this
+                note: note, // Add this
               ),
             ),
           );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sp_test/screens/GpChat/GpPlans/PlanCard.dart';
 import 'package:sp_test/screens/GpChat/GpPlans/addNewGpPlan.dart';
@@ -80,87 +81,74 @@ class _GpPlansState extends State<GpPlans> with SingleTickerProviderStateMixin {
         }
 
         List<DocumentSnapshot> plans = snapshot.data!.docs;
-
-        List<Widget> planWidgets = [];
-
         DateTime now = DateTime.now();
         DateTime startOfToday = DateTime(now.year, now.month, now.day);
 
-        for (var plan in plans) {
+        List<Widget> planWidgets = plans.map((plan) {
           var planData = plan.data() as Map<String, dynamic>?;
 
-          if (planData != null) {
-            try {
-              String planName = planData['planName'] ?? 'No name';
-              String creatorName = planData['username'] ?? 'Unknown';
-              List<Map<String, dynamic>> tasks =
-                  List<Map<String, dynamic>>.from(planData['tasks'] ?? []);
-
-              List<Map<String, dynamic>> filteredTasks = [];
-
-              for (var task in tasks) {
-                DateTime taskDeadline = DateTime.parse(task['deadline']);
-                if ((showPassedDeadline &&
-                        taskDeadline.isBefore(startOfToday)) ||
-                    (!showPassedDeadline &&
-                        (taskDeadline.isAfter(startOfToday) ||
-                            taskDeadline.isAtSameMomentAs(startOfToday)))) {
-                  filteredTasks.add(task);
-                }
-              }
-
-              filteredTasks.sort((a, b) => DateTime.parse(a['deadline'])
-                  .compareTo(DateTime.parse(b['deadline'])));
-
-              DateTime latestDeadline = startOfToday;
-              if (filteredTasks.isNotEmpty) {
-                latestDeadline = DateTime.parse(filteredTasks.last['deadline']);
-              }
-
-              if (showPassedDeadline && filteredTasks.isNotEmpty) {
-                planWidgets.add(Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20.0, vertical: 8.0),
-                  child: PlanCard(
-                    planId: plan.id,
-                    groupId: widget.groupId,
-                    planName: planName,
-                    username: creatorName,
-                    deadline: latestDeadline,
-                    taskCount: filteredTasks.length,
-                    tasks: filteredTasks,
-                  ),
-                ));
-              } else if (!showPassedDeadline && filteredTasks.isNotEmpty) {
-                planWidgets.add(Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20.0, vertical: 8.0),
-                  child: PlanCard(
-                    planId: plan.id,
-                    groupId: widget.groupId,
-                    planName: planName,
-                    username: creatorName,
-                    deadline: latestDeadline,
-                    taskCount: filteredTasks.length,
-                    tasks: filteredTasks,
-                  ),
-                ));
-              }
-            } catch (e) {
-              print('Error processing plan data: $e');
-              planWidgets.add(const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-                child: Text('Error displaying plan'),
-              ));
-            }
-          } else {
-            print('Invalid plan data: ${plan.data()}');
-            planWidgets.add(const Padding(
+          if (planData == null) {
+            return const Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
               child: Text('Invalid plan data'),
-            ));
+            );
           }
-        }
+
+          try {
+            String planName = planData['planName'] ?? 'No name';
+            String creatorName = planData['username'] ?? 'Unknown';
+            String description = planData['description'] ??
+                'No description available'; // Extract description
+            String note =
+                planData['note'] ?? 'No note available'; // Extract note
+            List<Map<String, dynamic>> tasks =
+                List<Map<String, dynamic>>.from(planData['tasks'] ?? []);
+
+            List<Map<String, dynamic>> filteredTasks = tasks.where((task) {
+              DateTime taskDeadline = DateTime.parse(task['deadline']);
+              return (showPassedDeadline &&
+                      taskDeadline.isBefore(startOfToday)) ||
+                  (!showPassedDeadline &&
+                      (taskDeadline.isAfter(startOfToday) ||
+                          taskDeadline.isAtSameMomentAs(startOfToday)));
+            }).toList();
+
+            filteredTasks.sort((a, b) => DateTime.parse(a['deadline'])
+                .compareTo(DateTime.parse(b['deadline'])));
+
+            DateTime latestDeadline = filteredTasks.isNotEmpty
+                ? DateTime.parse(filteredTasks.last['deadline'])
+                : startOfToday;
+
+            if (filteredTasks.isEmpty) {
+              return SizedBox.shrink(); // No need to display empty plans
+            }
+
+            return Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+              child: PlanCard(
+                planId: plan.id,
+                groupId: widget.groupId,
+                planName: planName,
+                username: creatorName,
+                deadline: latestDeadline,
+                taskCount: filteredTasks.length,
+                tasks: filteredTasks,
+                description: description, // Pass the description
+                note: note, // Pass the note
+              ),
+            );
+          } catch (e) {
+            print('Error processing plan data: $e');
+            return const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+              child: Text('Error displaying plan'),
+            );
+          }
+        }).toList();
+
+        planWidgets.removeWhere((widget) => widget is SizedBox);
 
         if (planWidgets.isEmpty) {
           return const Center(child: Text('No plans available'));

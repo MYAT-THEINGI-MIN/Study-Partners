@@ -77,6 +77,9 @@ class _AddNewPlanState extends State<AddNewPlan> {
           'uid': uid, // Save uid outside of tasks array
         });
 
+        // Update the points of the user in the LeaderBoard collection
+        await _updateUserPoints(uid, groupId);
+
         Navigator.pop(context);
       } catch (e) {
         print('Error adding plan: $e');
@@ -86,6 +89,45 @@ class _AddNewPlanState extends State<AddNewPlan> {
       }
     } else {
       print('Form validation failed');
+    }
+    // Update the group's last activity timestamp
+    final groupRef =
+        FirebaseFirestore.instance.collection('groups').doc(widget.groupId);
+    await groupRef.update({
+      'lastActivityTimestamp': Timestamp.now(),
+    });
+  }
+
+  Future<void> _updateUserPoints(String uid, String groupId) async {
+    try {
+      // Reference to the LeaderBoard collection for the specific group
+      final leaderboardRef = FirebaseFirestore.instance
+          .collection('groups')
+          .doc(groupId)
+          .collection('LeaderBoard')
+          .doc(uid);
+
+      // Fetch the current leaderboard entry for the user
+      DocumentSnapshot leaderboardSnapshot = await leaderboardRef.get();
+
+      if (leaderboardSnapshot.exists) {
+        // If the entry exists, update the points
+        await leaderboardRef.update({
+          'points': FieldValue.increment(1), // Increment points by 1
+        });
+      } else {
+        // If the entry does not exist, create a new one with 1 point
+        await leaderboardRef.set({
+          'name': 'User Name', // Replace with actual user's name if necessary
+          'points': 1,
+          'uid': uid,
+        });
+      }
+    } catch (e) {
+      print('Error updating user points: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update user points.')),
+      );
     }
   }
 
@@ -149,12 +191,12 @@ class _AddNewPlanState extends State<AddNewPlan> {
                   labelText: 'Note',
                   onSuffixIconPressed: () {},
                   showSuffixIcon: false,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a note';
-                    }
-                    return null;
-                  },
+                  // validator: (value) {
+                  //   if (value == null || value.isEmpty) {
+                  //     return 'Please enter a note';
+                  //   }
+                  //   return null;
+                  // },
                 ),
                 SizedBox(height: 20),
                 Row(

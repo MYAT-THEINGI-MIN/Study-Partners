@@ -134,6 +134,13 @@ class _CreateFlashcardPageState extends State<CreateFlashcardPage> {
         }
       });
 
+      // Update the last activity timestamp
+      final groupRef =
+          FirebaseFirestore.instance.collection('groups').doc(groupId);
+      await groupRef.update({
+        'lastActivityTimestamp': Timestamp.now(),
+      });
+
       Navigator.pop(context);
     } else if (_flashcards.length < 5) {
       ScaffoldMessenger.of(context).showSnackBar(
