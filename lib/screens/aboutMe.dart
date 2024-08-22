@@ -58,7 +58,7 @@ class AboutMePg extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             const Text(
-              '• Myat Theingi Min\n• Ye Zaw Htun\n• Pyae Sone Phyo',
+              '• Myat Theingi Min\n• Ye Zaw Tun\n• Pyae Sone Phyo',
               style: TextStyle(
                 fontSize: 16.0,
               ),
@@ -74,7 +74,7 @@ class AboutMePg extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             const Text(
-              'Thank you for using my app! I’ve worked really hard on it and hope it helps you in your studies. ❤️',
+              'Thank you for using my app! I’ve worked really hard on it and hope it helps you in your studies.❤️',
               style: TextStyle(
                 fontSize: 16.0,
                 fontWeight: FontWeight.bold,

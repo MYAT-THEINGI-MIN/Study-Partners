@@ -3,8 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sp_test/Service/RefreshIndicator.dart';
 import 'package:sp_test/screens/GpChat/EditGroup/addPartner.dart';
-
-import 'package:sp_test/widgets/topSnackBar.dart'; // Adjust import path as needed
+import 'package:sp_test/screens/chatroomUserInfo.dart';
+import 'package:sp_test/widgets/topSnackBar.dart';
 
 class MemberList extends StatefulWidget {
   final String groupId;
@@ -64,10 +64,16 @@ class _MemberListState extends State<MemberList> {
 
       setState(() {
         _members = usersSnapshot.docs
-            .map((doc) => doc.data() as Map<String, dynamic>)
+            .map((doc) => {
+                  'uid': doc.id,
+                  ...doc.data() as Map<String, dynamic>,
+                })
             .toList();
         _joinRequests = requestDocs
-            .map((doc) => doc.data() as Map<String, dynamic>)
+            .map((doc) => {
+                  'uid': doc.id,
+                  ...doc.data() as Map<String, dynamic>,
+                })
             .toList();
         _memberCount = _members.length;
       });
@@ -78,7 +84,6 @@ class _MemberListState extends State<MemberList> {
 
   Future<void> _removeMember(String memberId) async {
     try {
-      // Confirm the action
       bool confirmed = await showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -100,7 +105,6 @@ class _MemberListState extends State<MemberList> {
       );
 
       if (confirmed ?? false) {
-        // Remove the user from the 'members' array
         await FirebaseFirestore.instance
             .collection('groups')
             .doc(widget.groupId)
@@ -108,7 +112,6 @@ class _MemberListState extends State<MemberList> {
           'members': FieldValue.arrayRemove([memberId]),
         });
 
-        // Remove the user from the 'LeaderBoard' sub-collection
         await FirebaseFirestore.instance
             .collection('groups')
             .doc(widget.groupId)
@@ -294,6 +297,17 @@ class _MemberListState extends State<MemberList> {
                     ),
                     title: Text(member['username'] ?? ''),
                     subtitle: Text(member['subjects'] ?? ''),
+                    onTap: () {
+                      // Navigate to the ChatroomUserInfo page when a member is tapped
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChatroomUserInfo(
+                            userId: member['uid'],
+                          ),
+                        ),
+                      );
+                    },
                     trailing: widget.isAdmin
                         ? PopupMenuButton(
                             itemBuilder: (context) => [

@@ -132,7 +132,7 @@ class GroupDetailPage extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'StudyHard Point: ${groupDetails['StudyHardPoint'] ?? 'N/A'}',
+                'Last Active: ${groupDetails['lastActivityTimestamp'] != null ? DateFormat('yMMMd').add_jm().format(groupDetails['lastActivityTimestamp'].toDate()) : 'N/A'}',
                 style: const TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 8),

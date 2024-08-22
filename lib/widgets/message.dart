@@ -1,4 +1,3 @@
-import 'dart:core';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Message {
@@ -6,37 +5,43 @@ class Message {
   final String senderEmail;
   final String receiverId;
   final String message;
-  final String? imageUrl; // Make this field nullable
   final Timestamp timestamp;
+  final String? imageUrl;
+  final bool isLink; // Add this field to track if the message contains a URL
 
   Message({
     required this.senderId,
     required this.senderEmail,
     required this.receiverId,
     required this.message,
-    this.imageUrl, // Accept null value for non-image messages
     required this.timestamp,
+    this.imageUrl,
+    required this.isLink, // Initialize this field in the constructor
   });
 
+  // Convert Message to a Map for Firestore
   Map<String, dynamic> toMap() {
     return {
       'senderId': senderId,
       'senderEmail': senderEmail,
       'receiverId': receiverId,
       'message': message,
-      'imageUrl': imageUrl, // Include imageUrl in the map
       'timestamp': timestamp,
+      'imageUrl': imageUrl,
+      'isLink': isLink, // Include this field in the map
     };
   }
 
+  // Create a Message from a Map for Firestore
   factory Message.fromMap(Map<String, dynamic> map) {
     return Message(
       senderId: map['senderId'],
       senderEmail: map['senderEmail'],
       receiverId: map['receiverId'],
       message: map['message'],
-      imageUrl: map['imageUrl'], // Include imageUrl in the factory
       timestamp: map['timestamp'],
+      imageUrl: map['imageUrl'],
+      isLink: map['isLink'] ?? false, // Handle default value
     );
   }
 }

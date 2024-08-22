@@ -7,7 +7,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:sp_test/Service/chatService.dart';
 import 'package:sp_test/Service/messageItem.dart';
 import 'package:sp_test/screens/GpChat/EditGroup/EditGp.dart';
+import 'package:sp_test/screens/GpChat/EditGroup/addPartner.dart';
 import 'package:sp_test/widgets/messageInput.dart';
+import 'package:sp_test/widgets/topSnackBar.dart';
 
 class GpChatRoom extends StatefulWidget {
   final String groupId;
@@ -132,7 +134,7 @@ class _GpChatRoomState extends State<GpChatRoom> {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
-        duration: Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 300),
         curve: Curves.easeOut,
       );
     }
@@ -197,21 +199,16 @@ class _GpChatRoomState extends State<GpChatRoom> {
                     ),
                   ),
                 );
-
-                // Handle any result if needed from EditGroupPage
-                if (result != null) {
-                  // Perform any necessary updates
-                }
               },
               child: widget.gpProfileUrl.isNotEmpty
                   ? CircleAvatar(
                       backgroundImage: NetworkImage(widget.gpProfileUrl),
                     )
-                  : CircleAvatar(
+                  : const CircleAvatar(
                       child: Icon(Icons.group),
                     ),
             ),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             Text(widget.groupName),
           ],
         ),
@@ -219,7 +216,7 @@ class _GpChatRoomState extends State<GpChatRoom> {
           // Popup menu button for details and leave group
           PopupMenuButton(
             itemBuilder: (context) => [
-              PopupMenuItem(
+              const PopupMenuItem(
                 child: Row(
                   children: [
                     Icon(Icons.info),
@@ -229,7 +226,7 @@ class _GpChatRoomState extends State<GpChatRoom> {
                 ),
                 value: 'details',
               ),
-              PopupMenuItem(
+              const PopupMenuItem(
                 child: Row(
                   children: [
                     Icon(Icons.exit_to_app),
@@ -260,8 +257,8 @@ class _GpChatRoomState extends State<GpChatRoom> {
               padding: const EdgeInsets.all(8.0),
               child: Column(
                 children: [
-                  Text('Images selected:'),
-                  SizedBox(height: 8),
+                  const Text('Images selected:'),
+                  const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -280,7 +277,7 @@ class _GpChatRoomState extends State<GpChatRoom> {
                             top: 0,
                             right: 0,
                             child: IconButton(
-                              icon: Icon(Icons.close, color: Colors.red),
+                              icon: const Icon(Icons.close, color: Colors.red),
                               onPressed: () => _removeImage(index),
                             ),
                           ),
@@ -290,7 +287,7 @@ class _GpChatRoomState extends State<GpChatRoom> {
                   ),
                   TextButton(
                     onPressed: _pickImage,
-                    child: Text('Add More'),
+                    child: const Text('Add More'),
                   ),
                 ],
               ),
@@ -316,7 +313,7 @@ class _GpChatRoomState extends State<GpChatRoom> {
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Column(
+          return const Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -361,7 +358,8 @@ class _GpChatRoomState extends State<GpChatRoom> {
               future: _fetchUserProfileUrl(msg['senderId']),
               builder: (context, AsyncSnapshot<String> snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return SizedBox.shrink(); // Hide until profile URL is fetched
+                  return const SizedBox
+                      .shrink(); // Hide until profile URL is fetched
                 }
                 if (snapshot.hasError) {
                   return Text('Error: ${snapshot.error}');
@@ -376,7 +374,7 @@ class _GpChatRoomState extends State<GpChatRoom> {
                       CircleAvatar(
                         backgroundImage: NetworkImage(snapshot.data ?? ''),
                       ),
-                    SizedBox(width: 10),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: MessageItem(
                         document: msg,
@@ -410,20 +408,20 @@ class _GpChatRoomState extends State<GpChatRoom> {
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: Text('Group Details'),
+            title: const Text('Group Details'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Group Name: ${groupDetails['groupName']}'),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text('Subject: ${groupDetails['subject']}'),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text('Admin Name: ${groupDetails['adminName']}'),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text(
                     'Created At: ${DateFormat('yMMMd').format(groupDetails['timestamp'].toDate())}'),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text('Member Count: ${groupDetails['members'].length}'),
               ],
             ),
@@ -432,25 +430,95 @@ class _GpChatRoomState extends State<GpChatRoom> {
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
-                child: Text('Close'),
+                child: const Text('Close'),
               ),
             ],
           );
         },
       );
     } else {
-      // Handle case where group details couldn't be fetched
       print('Failed to fetch group details.');
     }
   }
 
   Future<void> _leaveGroup() async {
     try {
-      // Implement logic to leave the group
-      // For example:
-      // LeaveGroupService leaveGroupService = LeaveGroupService();
-      // await leaveGroupService.leaveGroup(widget.groupId);
-      Navigator.pop(context); // Navigate back to previous screen
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+
+      if (userId == null) {
+        print('User is not logged in');
+        return;
+      }
+
+      final groupDocRef =
+          FirebaseFirestore.instance.collection('groups').doc(widget.groupId);
+
+      // Get the group document to check if the user is the admin
+      final groupDoc = await groupDocRef.get();
+      if (!groupDoc.exists) {
+        print('Group does not exist');
+        return;
+      }
+
+      final groupData = groupDoc.data()!;
+      final adminId = groupData['adminId'] as String;
+      final members = List<String>.from(groupData['members'] as List<dynamic>);
+
+      if (userId == adminId) {
+        // Handle if the current user is the admin
+        TopSnackBarWiidget(context, 'Admin cannot leave the group');
+        return;
+      }
+
+      // Show a confirmation dialog
+      final shouldLeave = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false, // Prevent dismissing by tapping outside
+        builder: (context) => AlertDialog(
+          title: Text('Confirm Leave'),
+          content: Text('Are you sure you want to leave this group?'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text('Leave'),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldLeave != true) {
+        // User canceled the dialog
+        return;
+      }
+
+      // Remove the user from the members array
+      members.remove(userId);
+      await groupDocRef.update({'members': members});
+
+      // Remove the user from LeaderBoard
+      final leaderboardRef =
+          FirebaseFirestore.instance.collection('LeaderBoard');
+      final leaderboardSnapshot =
+          await leaderboardRef.where('userId', isEqualTo: userId).get();
+      for (var doc in leaderboardSnapshot.docs) {
+        await doc.reference.delete();
+      }
+
+      // Remove the user from StudyRecord
+      final studyRecordRef =
+          FirebaseFirestore.instance.collection('StudyRecord');
+      final studyRecordSnapshot =
+          await studyRecordRef.where('userId', isEqualTo: userId).get();
+      for (var doc in studyRecordSnapshot.docs) {
+        await doc.reference.delete();
+      }
+
+      // Navigate back to the previous screen
+      Navigator.pop(context);
     } catch (e) {
       print('Error leaving group: $e');
       // Handle error leaving group

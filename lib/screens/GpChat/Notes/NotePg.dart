@@ -110,8 +110,10 @@ class _NotePageState extends State<NotePage> {
   }
 
   Future<void> _openFile(String url) async {
-    if (await canLaunch(url)) {
-      await launch(url);
+    final Uri uri = Uri.parse(url); // Use Uri.parse() for URL parsing
+    if (await canLaunchUrl(uri)) {
+      // Use canLaunchUrl() instead of canLaunch()
+      await launchUrl(uri); // Use launchUrl() instead of launch()
     } else {
       throw 'Could not launch $url';
     }

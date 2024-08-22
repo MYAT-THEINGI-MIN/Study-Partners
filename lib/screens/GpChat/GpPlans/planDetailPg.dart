@@ -12,8 +12,8 @@ class PlanDetailPage extends StatelessWidget {
   final DateTime deadline;
   final int taskCount;
   final List<Map<String, dynamic>> tasks;
-  final String description; // Added description parameter
-  final String note; // Added note parameter
+  final String description;
+  final String note;
 
   PlanDetailPage({
     required this.planId,
@@ -23,8 +23,8 @@ class PlanDetailPage extends StatelessWidget {
     required this.deadline,
     required this.taskCount,
     required this.tasks,
-    required this.description, // Added description parameter
-    required this.note, // Added note parameter
+    required this.description,
+    required this.note,
   });
 
   Future<void> _deletePlan(BuildContext context) async {
@@ -103,8 +103,7 @@ class PlanDetailPage extends StatelessWidget {
                 }
               }
 
-              return const SizedBox
-                  .shrink(); // Return an empty widget if no delete icon should be shown
+              return const SizedBox.shrink();
             },
           ),
         ],
@@ -120,7 +119,7 @@ class PlanDetailPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              '$description',
+              description,
               style: const TextStyle(fontSize: 18),
             ),
             const SizedBox(height: 16),
@@ -149,58 +148,48 @@ class PlanDetailPage extends StatelessWidget {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             Expanded(
-              child: FutureBuilder<User?>(
-                future: _getCurrentUser(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+              child: ListView.builder(
+                itemCount: tasks.length,
+                itemBuilder: (context, index) {
+                  final task = tasks[index];
+                  final title =
+                      task['title'] is String ? task['title'] : 'Untitled Task';
+
+                  DateTime taskDeadline;
+                  try {
+                    taskDeadline = DateTime.parse(task['deadline']);
+                  } catch (e) {
+                    taskDeadline = DateTime.now();
                   }
 
-                  if (snapshot.hasData && snapshot.data != null) {
-                    final currentUserUid = snapshot.data!.uid;
-
-                    return ListView.builder(
-                      itemCount: tasks.length,
-                      itemBuilder: (context, index) {
-                        final task = tasks[index];
-
-                        final title = task['title'] is String
-                            ? task['title']
-                            : 'Untitled Task';
-
-                        DateTime deadline;
-                        try {
-                          deadline = DateTime.parse(task['deadline']);
-                        } catch (e) {
-                          deadline = DateTime.now();
-                        }
-
-                        int completedCount = 0;
-                        List<Map<String, dynamic>> completed = [];
-                        if (task['completed'] is List) {
-                          completed = (task['completed'] as List)
-                              .where((e) => e is Map<String, dynamic>)
-                              .map((e) => e as Map<String, dynamic>)
-                              .toList();
-                          completedCount = completed.length;
-                        }
-
-                        return PlanTaskCard(
-                          title: title,
-                          deadline: deadline,
-                          completedCount: completedCount,
-                          uid: currentUserUid,
-                          currentUserUid: currentUserUid,
-                          groupId: groupId,
-                          planId: planId,
-                          taskIndex: index,
-                          completed: completed,
-                        );
-                      },
-                    );
+                  int completedCount = 0;
+                  List<Map<String, dynamic>> completed = [];
+                  if (task['completed'] is List) {
+                    completed = (task['completed'] as List)
+                        .where((e) => e is Map<String, dynamic>)
+                        .map((e) => e as Map<String, dynamic>)
+                        .toList();
+                    completedCount = completed.length;
                   }
 
-                  return const Center(child: Text('Error fetching user data'));
+                  // Fetch the plan creator's UID
+                  final isOwner =
+                      FirebaseAuth.instance.currentUser?.uid == task['uid'];
+
+                  return PlanTaskCard(
+                    title: title,
+                    deadline: taskDeadline,
+                    completedCount: completedCount,
+                    uid: task['uid'] ?? '',
+                    currentUserUid:
+                        FirebaseAuth.instance.currentUser?.uid ?? '',
+                    groupId: groupId,
+                    planId: planId,
+                    taskIndex: index,
+                    completed: List<Map<String, dynamic>>.from(
+                        task['completed'] ?? []),
+                    isOwner: isOwner, // Pass the boolean value
+                  );
                 },
               ),
             ),
@@ -208,9 +197,5 @@ class PlanDetailPage extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Future<User?> _getCurrentUser() async {
-    return FirebaseAuth.instance.currentUser;
   }
 }

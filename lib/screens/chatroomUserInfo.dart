@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'chatroom.dart'; // Import the ChatRoom screen
+import 'chatroom.dart';
 
 class ChatroomUserInfo extends StatelessWidget {
   final String userId;
@@ -12,7 +12,7 @@ class ChatroomUserInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('User Info'),
+        title: const Text('User Info'),
       ),
       body: FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
         future:
@@ -20,7 +20,7 @@ class ChatroomUserInfo extends StatelessWidget {
         builder: (context,
             AsyncSnapshot<DocumentSnapshot<Map<String, dynamic>>> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (snapshot.hasError) {
@@ -28,7 +28,7 @@ class ChatroomUserInfo extends StatelessWidget {
           }
 
           if (!snapshot.hasData || snapshot.data!.data() == null) {
-            return Center(child: Text('No user data found.'));
+            return const Center(child: Text('No user data found.'));
           }
 
           var userData = snapshot.data!.data()!;
@@ -49,28 +49,29 @@ class ChatroomUserInfo extends StatelessWidget {
                     image: DecorationImage(
                       image: userData['profileImageUrl'] != null
                           ? NetworkImage(userData['profileImageUrl'])
-                          : AssetImage('assets/default_avatar.png')
+                          : const AssetImage('assets/default_avatar.png')
                               as ImageProvider,
                       fit: BoxFit.cover,
                     ),
                   ),
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 Text(
                   'Username: ${userData['username']}',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Text(
                   'Subjects: ${userData['subjects'] ?? 'Not specified'}',
-                  style: TextStyle(fontSize: 16),
+                  style: const TextStyle(fontSize: 16),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Text(
                   'Status: ${userData['status'] ?? 'Not specified'}',
-                  style: TextStyle(fontSize: 16),
+                  style: const TextStyle(fontSize: 16),
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 // Chat Button
                 SizedBox(
                   width: double.infinity, // Full width button
@@ -88,8 +89,9 @@ class ChatroomUserInfo extends StatelessWidget {
                     },
                     style:
                         ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                    child: Text('Chat',
-                        style: TextStyle(fontSize: 16, color: Colors.white)),
+                    child: const Text('Chat',
+                        style:
+                            const TextStyle(fontSize: 16, color: Colors.white)),
                   ),
                 ),
               ],

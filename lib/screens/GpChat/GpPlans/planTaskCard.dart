@@ -1,45 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:sp_test/screens/GpChat/GpPlans/TaskCompletionPage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:sp_test/screens/GpChat/EditGroup/addPartner.dart';
 import 'package:sp_test/screens/Planner/addTaskPg.dart';
+import 'package:sp_test/screens/GpChat/GpPlans/TaskCompletionPage.dart';
 
 class PlanTaskCard extends StatelessWidget {
   final String title;
   final DateTime deadline;
   final int completedCount;
-  final String uid;
-  final String currentUserUid; // The UID of the currently logged-in user
+  final String uid; // Task owner UID
+  final String currentUserUid; // Currently logged-in user UID
   final String groupId;
   final String planId;
   final int taskIndex;
-  final List<Map<String, dynamic>> completed; // Handle completed data structure
+  final List<Map<String, dynamic>> completed; // Completed list
+  final bool isOwner; // Whether the current user is the owner of the task
 
   PlanTaskCard({
     required this.title,
     required this.deadline,
     required this.completedCount,
     required this.uid,
-    required this.currentUserUid, // Pass the current user's UID
+    required this.currentUserUid,
     required this.groupId,
     required this.planId,
     required this.taskIndex,
-    required this.completed, // Handle the completed array properly
+    required this.completed,
+    required this.isOwner,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Check if the current user UID is in the completed list
     bool isCompletedByUser =
         completed.any((entry) => entry['uid'] == currentUserUid);
 
-    // Format the deadline date for the task to 'day.month.year'
     String formattedTaskDeadline = DateFormat('dd.MM.yyyy').format(deadline);
 
     return Card(
-      color: isCompletedByUser
-          ? Colors.white
-          : Colors
-              .deepPurple.shade200, // Change color based on completion status
+      color: isCompletedByUser ? Colors.white : Colors.deepPurple.shade200,
       child: ListTile(
         title: Text(title),
         subtitle: Text(
@@ -68,7 +67,7 @@ class PlanTaskCard extends StatelessWidget {
                 leading: const Icon(Icons.calendar_today),
                 title: const Text('Add to Calendar'),
                 onTap: () {
-                  Navigator.pop(context); // Close the bottom sheet
+                  Navigator.pop(context);
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -82,26 +81,77 @@ class PlanTaskCard extends StatelessWidget {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.check_circle),
-                title: const Text('Complete Task'),
+                leading: const Icon(Icons.check),
+                title: const Text('Mark as Completed'),
                 onTap: () {
-                  Navigator.pop(context); // Close the bottom sheet
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => TaskCompletionPage(
-                        groupId: groupId,
-                        planId: planId,
-                        taskIndex: taskIndex,
-                      ),
-                    ),
-                  );
+                  Navigator.pop(context);
+                  _markAsCompleted(context);
                 },
               ),
+              if (isOwner) // Show delete option only if the current user is the owner
+                ListTile(
+                  leading: const Icon(Icons.delete),
+                  title: const Text('Delete Task'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _deleteTask(context);
+                  },
+                ),
             ],
           ),
         );
       },
     );
+  }
+
+  void _markAsCompleted(BuildContext context) {
+    if (deadline.isAfter(DateTime.now())) {
+      Navigator.pop(context);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TaskCompletionPage(
+            groupId: groupId,
+            planId: planId,
+            taskIndex: taskIndex,
+          ),
+        ),
+      );
+    } else {
+      showTopSnackBar(
+        context,
+        'Task deadline has passed.',
+      );
+    }
+  }
+
+  void _deleteTask(BuildContext context) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('groups')
+          .doc(groupId)
+          .collection('plans')
+          .doc(planId)
+          .collection('tasks')
+          .doc('$taskIndex')
+          .delete();
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUserUid)
+          .update({
+        'points': FieldValue.increment(-1),
+      });
+
+      showTopSnackBar(
+        context,
+        'Task deleted successfully and points updated.',
+      );
+    } catch (e) {
+      showTopSnackBar(
+        context,
+        'Failed to delete task: $e',
+      );
+    }
   }
 }

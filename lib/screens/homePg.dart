@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:sp_test/screens/GpAndFriChatPg.dart';
 import 'package:sp_test/screens/Planner/plannerPg.dart';
 import 'package:sp_test/screens/ProfilePg.dart';
-import 'package:sp_test/screens/chatPg.dart';
 import 'package:sp_test/screens/linkRCMpg.dart';
 import 'package:sp_test/screens/SearchGpOrFri/searchPage.dart';
 import 'package:sp_test/widgets/drawer.dart';
@@ -29,9 +29,9 @@ class _HomePgState extends State<HomePg> {
         _uid = uid;
         _widgetOptions = <Widget>[
           PlannerPage(),
-          ChatPg(),
+          GpAndFriChatPg(),
           SearchPage(),
-          LinkRecommendationPage(uid: _uid), // Pass the UID here
+          LinkRecommendationPage(),
         ];
       });
     });

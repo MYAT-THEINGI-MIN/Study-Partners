@@ -6,7 +6,6 @@ import 'package:sensors_plus/sensors_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:sp_test/screens/GpChat/Study%20Timer/timerWidget.dart';
-import 'package:sp_test/screens/GpChat/Study%20Timer/todayRecords.dart';
 import 'package:sp_test/widgets/circularIcon.dart';
 
 class TimerPage extends StatefulWidget {

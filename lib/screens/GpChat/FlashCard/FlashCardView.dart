@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sp_test/screens/GpChat/FlashCard/editFlashCard.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class FlashCardView extends StatefulWidget {
   final String groupId;
@@ -15,7 +16,7 @@ class FlashCardView extends StatefulWidget {
 }
 
 class _FlashCardViewState extends State<FlashCardView> {
-  late List<DocumentSnapshot> qaPairs;
+  late List<DocumentSnapshot> qaPairs = [];
   int currentIndex = -1;
   bool showBack = false;
   bool canEditOrDelete = false;
@@ -29,7 +30,7 @@ class _FlashCardViewState extends State<FlashCardView> {
     fetchAdminId();
   }
 
-  void checkUserPermission() async {
+  Future<void> checkUserPermission() async {
     currentUserUid = FirebaseAuth.instance.currentUser?.uid;
     if (currentUserUid != null) {
       DocumentSnapshot flashcardSnapshot = await FirebaseFirestore.instance
@@ -47,7 +48,7 @@ class _FlashCardViewState extends State<FlashCardView> {
     }
   }
 
-  void fetchAdminId() async {
+  Future<void> fetchAdminId() async {
     DocumentSnapshot groupSnapshot = await FirebaseFirestore.instance
         .collection('groups')
         .doc(widget.groupId)
@@ -58,7 +59,7 @@ class _FlashCardViewState extends State<FlashCardView> {
     });
   }
 
-  void updatePoints() async {
+  Future<void> updatePoints() async {
     if (currentUserUid != null) {
       DocumentReference leaderboardRef = FirebaseFirestore.instance
           .collection('groups')
@@ -78,7 +79,7 @@ class _FlashCardViewState extends State<FlashCardView> {
     }
   }
 
-  void deleteFlashcard() async {
+  Future<void> deleteFlashcard() async {
     await FirebaseFirestore.instance
         .collection('groups')
         .doc(widget.groupId)
@@ -86,23 +87,25 @@ class _FlashCardViewState extends State<FlashCardView> {
         .doc(widget.flashcardId)
         .delete();
 
-    updatePoints();
+    await updatePoints();
 
     Navigator.pop(context);
   }
 
   void nextCard() {
     setState(() {
-      // Get a new random index for the next card
-      int newIndex;
-      do {
-        newIndex = Random().nextInt(qaPairs.length);
-      } while (newIndex == currentIndex);
+      if (qaPairs.isNotEmpty) {
+        // Ensure the next card is different from the current card
+        int newIndex;
+        do {
+          newIndex = Random().nextInt(qaPairs.length);
+        } while (newIndex == currentIndex);
 
-      currentIndex = newIndex;
+        currentIndex = newIndex;
 
-      // Ensure the card flips back to front when navigating
-      showBack = false;
+        // Ensure the card flips back to front when navigating
+        showBack = false;
+      }
     });
   }
 
@@ -233,7 +236,7 @@ class _FlashCardViewState extends State<FlashCardView> {
 
                         qaPairs = snapshot.data!.docs;
 
-                        if (currentIndex == -1) {
+                        if (currentIndex == -1 && qaPairs.isNotEmpty) {
                           currentIndex = Random().nextInt(qaPairs.length);
                         }
 
@@ -265,27 +268,30 @@ class _FlashCardViewState extends State<FlashCardView> {
                             },
                             child: Container(
                               key: ValueKey(showBack),
-                              width: 250, // Adjust the width for smaller card
-                              height: 250, // Adjust the height for smaller card
+                              width: 350,
+                              height: 350,
                               padding: EdgeInsets.all(16.0),
                               decoration: BoxDecoration(
                                 color: Colors.deepPurple.shade300,
                                 borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    showBack
-                                        ? qaPairs[currentIndex]['answer'] ??
-                                            'N/A'
-                                        : qaPairs[currentIndex]['question'] ??
-                                            'N/A',
-                                    style: TextStyle(fontSize: 30),
-                                    textAlign: TextAlign.center,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.5),
+                                    blurRadius: 8,
+                                    offset: Offset(0, 4),
                                   ),
                                 ],
+                              ),
+                              child: Center(
+                                child: Text(
+                                  showBack
+                                      ? qaPairs[currentIndex]['answer'] ?? 'N/A'
+                                      : qaPairs[currentIndex]['question'] ??
+                                          'N/A',
+                                  style: TextStyle(
+                                      fontSize: 24, color: Colors.white),
+                                  textAlign: TextAlign.center,
+                                ),
                               ),
                             ),
                           ),

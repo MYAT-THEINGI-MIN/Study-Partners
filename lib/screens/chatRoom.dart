@@ -1,13 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:sp_test/Service/chatService.dart';
 import 'package:sp_test/Service/messageItem.dart';
-import 'package:sp_test/screens/chatroomUserInfo.dart';
 import 'package:sp_test/widgets/messageInput.dart';
+import 'package:sp_test/screens/chatroomUserInfo.dart';
 
 class ChatRoom extends StatefulWidget {
   final String receiverUserName;
@@ -21,7 +21,7 @@ class ChatRoom extends StatefulWidget {
 
 class _ChatRoomState extends State<ChatRoom> {
   final TextEditingController _messageController = TextEditingController();
-  final Chatservice _chatservice = Chatservice();
+  final Chatservice _chatService = Chatservice(); 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final ScrollController _scrollController = ScrollController();
   List<File> _imageFiles = [];
@@ -52,8 +52,6 @@ class _ChatRoomState extends State<ChatRoom> {
         setState(() {
           _receiverProfileUrl = userDoc['profileImageUrl'] ?? '';
         });
-      } else {
-        print('User document does not exist.');
       }
     } catch (e) {
       print('Error fetching receiver profile: $e');
@@ -74,8 +72,6 @@ class _ChatRoomState extends State<ChatRoom> {
           pickedImages.map((pickedImage) => File(pickedImage.path)).toList(),
         );
       });
-      print(
-          'Images selected: ${_imageFiles.map((image) => image.path).toList()}');
     }
   }
 
@@ -87,54 +83,48 @@ class _ChatRoomState extends State<ChatRoom> {
       setState(() {
         _imageFiles.add(File(pickedImage.path));
       });
-      print('Photo taken: ${pickedImage.path}');
     }
   }
 
   Future<void> sendMessage() async {
     final user = _auth.currentUser;
-    if (user == null) {
-      print("User not authenticated.");
-      return;
-    }
+    if (user == null) return;
 
     if (_messageController.text.isNotEmpty || _imageFiles.isNotEmpty) {
       setState(() {
-        _isLoading = true; // Start loading
+        _isLoading = true;
       });
 
       try {
         if (_imageFiles.isNotEmpty) {
           for (var imageFile in _imageFiles) {
-            await _chatservice.sendImageMessage(
-                widget.receiverUserId, imageFile);
+            await _chatService.sendImageMessage(
+              widget.receiverUserId,
+              imageFile,
+            );
           }
           setState(() {
-            _imageFiles = []; // Reset the image files after sending
+            _imageFiles = [];
           });
         } else {
-          await _chatservice.sendMessage(
-              widget.receiverUserId, _messageController.text);
+          await _chatService.sendMessage(
+            widget.receiverUserId,
+            _messageController.text,
+          );
         }
         _messageController.clear();
-        print("Message sent successfully");
         _scrollToBottom();
-      } catch (e) {
-        print("Error sending message: $e");
       } finally {
         setState(() {
-          _isLoading = false; // Stop loading
+          _isLoading = false;
         });
       }
-    } else {
-      print("Message is empty");
     }
   }
 
   void _deleteMessage(DocumentReference messageRef) async {
     try {
       await messageRef.delete();
-      print("Message deleted successfully");
     } catch (e) {
       print("Error deleting message: $e");
     }
@@ -183,29 +173,6 @@ class _ChatRoomState extends State<ChatRoom> {
             Text(widget.receiverUserName),
           ],
         ),
-        actions: [
-          PopupMenuButton(
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'delete_chat',
-                child: Text('Delete Chat'),
-              ),
-              // PopupMenuItem(
-              //   value: 'block_user',
-              //   child: Text('Block User'),
-              // ),
-            ],
-            onSelected: (value) {
-              if (value == 'delete_chat') {
-                // Implement delete chat logic here
-                print('Delete Chat');
-              } else if (value == 'block_user') {
-                // Implement block user logic here
-                print('Block User');
-              }
-            },
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -257,7 +224,7 @@ class _ChatRoomState extends State<ChatRoom> {
             onSend: sendMessage,
             onPickImage: _pickImage,
             onTakePhoto: _takePhoto,
-            isLoading: _isLoading, // Pass the loading state
+            isLoading: _isLoading,
           ),
         ],
       ),
@@ -266,7 +233,7 @@ class _ChatRoomState extends State<ChatRoom> {
 
   Widget _buildMessageList() {
     return StreamBuilder(
-      stream: _chatservice.getMessages(
+      stream: _chatService.getMessages(
           _auth.currentUser!.uid, widget.receiverUserId),
       builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
         if (snapshot.hasError) {

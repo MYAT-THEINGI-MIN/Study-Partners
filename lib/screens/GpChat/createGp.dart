@@ -94,10 +94,10 @@ class _CreateGroupState extends State<CreateGroup> {
       DocumentReference groupRef = await _firestore.collection('groups').add({
         'groupName': groupName,
         'subject': subject,
-        'StudyHardPoint': 100, // Initialize StudyHard points to 100
         'profileUrl': profileUrl ?? '',
         'adminId': adminId,
         'adminName': adminName,
+        'lastActivityTimestamp': Timestamp.now(),
         'timestamp': FieldValue.serverTimestamp(),
         'members': [adminId],
         'leaderNote': _leaderNoteController.text.trim(), // Store leader note

@@ -55,6 +55,8 @@ class _TaskCompletionPageState extends State<TaskCompletionPage> {
 
         String currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
+        _completedUsers.clear();
+
         for (var completion in completed) {
           if (completion['uid'] == currentUserId) {
             setState(() {
@@ -63,7 +65,6 @@ class _TaskCompletionPageState extends State<TaskCompletionPage> {
             });
           }
 
-          // Fetch additional user details
           DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
               .collection('users')
               .doc(completion['uid'])
@@ -77,7 +78,6 @@ class _TaskCompletionPageState extends State<TaskCompletionPage> {
           });
         }
 
-        // Sort the current user to the top
         _completedUsers.sort((a, b) => a['uid'] == currentUserId ? -1 : 1);
       }
     } catch (e) {
@@ -88,7 +88,6 @@ class _TaskCompletionPageState extends State<TaskCompletionPage> {
       });
     }
 
-    // Update the group's last activity timestamp
     final groupRef =
         FirebaseFirestore.instance.collection('groups').doc(widget.groupId);
     await groupRef.update({
@@ -96,31 +95,17 @@ class _TaskCompletionPageState extends State<TaskCompletionPage> {
     });
   }
 
-  Future<void> _pickImage() async {
+  Future<void> _completeTask() async {
     setState(() {
       _isLoading = true;
     });
 
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    try {
+      final XFile? pickedImage =
+          await _picker.pickImage(source: ImageSource.gallery);
 
-    if (image != null) {
-      setState(() {
-        _image = File(image.path);
-      });
-    }
-
-    setState(() {
-      _isLoading = false;
-    });
-  }
-
-  Future<void> _completeTask() async {
-    if (_image != null) {
-      setState(() {
-        _isLoading = true;
-      });
-
-      try {
+      if (pickedImage != null) {
+        _image = File(pickedImage.path);
         String fileName = DateTime.now().millisecondsSinceEpoch.toString();
         Reference firebaseStorageRef =
             FirebaseStorage.instance.ref().child('completed_tasks/$fileName');
@@ -152,33 +137,34 @@ class _TaskCompletionPageState extends State<TaskCompletionPage> {
 
           await docRef.update({'tasks': tasks});
 
-          // Increment user's points in the LeaderBoard
           await _incrementUserPoints();
 
           setState(() {
             _isCompleted = true;
             _submittedImageUrl = downloadURL;
-            _image = null; // Clear the local image file after uploading
+            _image = null;
           });
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Task marked as complete')),
           );
+
+          await _fetchTaskCompletionDetails();
         }
-      } catch (e) {
-        print('Error: $e');
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to complete task')),
+          SnackBar(content: Text('No image selected')),
         );
-      } finally {
-        setState(() {
-          _isLoading = false;
-        });
       }
-    } else {
+    } catch (e) {
+      print('Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No image selected')),
+        SnackBar(content: Text('Failed to complete task')),
       );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -194,11 +180,9 @@ class _TaskCompletionPageState extends State<TaskCompletionPage> {
     DocumentSnapshot leaderboardSnapshot = await leaderboardRef.get();
 
     if (leaderboardSnapshot.exists) {
-      // User exists in the leaderboard, increment points
       int currentPoints = leaderboardSnapshot['points'] ?? 0;
       await leaderboardRef.update({'points': currentPoints + 1});
     } else {
-      // User does not exist, create entry with 1 point
       await leaderboardRef.set({
         'points': 1,
         'name': FirebaseAuth.instance.currentUser?.displayName ?? 'Unknown',
@@ -238,16 +222,18 @@ class _TaskCompletionPageState extends State<TaskCompletionPage> {
 
         await docRef.update({'tasks': tasks});
 
-        // Decrement user's points in the LeaderBoard
         await _decrementUserPoints();
 
         setState(() {
           _isCompleted = false;
           _submittedImageUrl = null;
         });
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Task completion removed')),
         );
+
+        await _fetchTaskCompletionDetails();
       }
     } catch (e) {
       print('Error: $e');
@@ -260,7 +246,6 @@ class _TaskCompletionPageState extends State<TaskCompletionPage> {
       });
     }
 
-    // Update the group's last activity timestamp
     final groupRef =
         FirebaseFirestore.instance.collection('groups').doc(widget.groupId);
     await groupRef.update({
@@ -280,32 +265,11 @@ class _TaskCompletionPageState extends State<TaskCompletionPage> {
     DocumentSnapshot leaderboardSnapshot = await leaderboardRef.get();
 
     if (leaderboardSnapshot.exists) {
-      // User exists in the leaderboard, decrement points
       int currentPoints = leaderboardSnapshot['points'] ?? 0;
       int newPoints = currentPoints - 1;
-      if (newPoints < 0) newPoints = 0; // Ensure points don't go negative
+      if (newPoints < 0) newPoints = 0;
       await leaderboardRef.update({'points': newPoints});
     }
-  }
-
-  void _showFullImage(String imageUrl) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          insetPadding: EdgeInsets.all(0), // Remove padding
-          child: Container(
-            child: InteractiveViewer(
-              child: Image.network(
-                imageUrl,
-                fit: BoxFit
-                    .contain, // Ensure the image fits within the container
-              ),
-            ),
-          ),
-        );
-      },
-    );
   }
 
   @override
@@ -318,90 +282,98 @@ class _TaskCompletionPageState extends State<TaskCompletionPage> {
           ? Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  SizedBox(height: 16), // Space at the top
+                  if (_submittedImageUrl != null)
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Center(
+                        child: Image.network(_submittedImageUrl!),
+                      ),
+                    ),
+                  if (!_isCompleted)
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: _completeTask,
+                        child: Text('Complete Task'),
+                      ),
+                    ),
                   if (_isCompleted)
-                    Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text(
-                            'Your Submission',
-                            style: Theme.of(context).textTheme.bodyMedium,
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: _deleteTask,
+                        child: Text('Remove Completion'),
+                      ),
+                    ),
+                  const Divider(
+                    thickness: 2,
+                    height: 30,
+                    color: Colors.deepPurple,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Center(
+                      child: Text(
+                        'Completed Members',
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  _completedUsers.isNotEmpty
+                      ? SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: _completedUsers.map((user) {
+                              return Container(
+                                width: 360,
+                                margin: EdgeInsets.symmetric(horizontal: 8),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      children: [
+                                        CircleAvatar(
+                                          backgroundImage: NetworkImage(
+                                              user['profileImageUrl']),
+                                          radius: 20,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          user['username'],
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 4),
+                                    if (user['imageURL'] != null)
+                                      Image.network(
+                                        user['imageURL'],
+                                      ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
                           ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            _showFullImage(_submittedImageUrl!);
-                          },
-                          child: Container(
-                            margin: EdgeInsets.symmetric(vertical: 10),
-                            height: 200,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              image: DecorationImage(
-                                image: NetworkImage(_submittedImageUrl!),
-                                fit: BoxFit.cover,
-                              ),
+                        )
+                      : Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Center(
+                            child: Text(
+                              'No one has completed this task yet.',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    color: Color.fromARGB(255, 122, 122, 122),
+                                  ),
                             ),
                           ),
                         ),
-                        TextButton(
-                          onPressed: _deleteTask,
-                          child: Text('Remove Completion'),
-                        ),
-                      ],
-                    )
-                  else
-                    Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text(
-                            'Submit Your Completion',
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                        ),
-                        _image != null
-                            ? Image.file(
-                                _image!,
-                                height: 200,
-                              )
-                            : SizedBox(height: 200),
-                        TextButton(
-                          onPressed: _pickImage,
-                          child: Text('Select Image'),
-                        ),
-                        ElevatedButton(
-                          onPressed: _completeTask,
-                          child: Text('Mark as Complete'),
-                        ),
-                      ],
-                    ),
-                  Divider(),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Text(
-                      'Completed Users',
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                  ),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    itemCount: _completedUsers.length,
-                    itemBuilder: (context, index) {
-                      var user = _completedUsers[index];
-                      return ListTile(
-                        leading: CircleAvatar(
-                          backgroundImage:
-                              NetworkImage(user['profileImageUrl']),
-                        ),
-                        title: Text(user['username']),
-                        onTap: () => _showFullImage(user['imageURL']),
-                      );
-                    },
-                  ),
+                  SizedBox(height: 16), // Space at the bottom
                 ],
               ),
             ),

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sp_test/Service/themeProvider.dart';
 import 'package:sp_test/screens/GpChat/createGp.dart';
+import 'package:sp_test/screens/PrivacyPolicyPg.dart';
 import 'package:sp_test/screens/aboutMe.dart';
 import 'package:sp_test/screens/loginPg.dart';
 import 'package:sp_test/screens/userGuidePg.dart';
@@ -126,6 +127,21 @@ class AppDrawer extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => UserGuidePg()),
+                  );
+                },
+              ),
+              ListTile(
+                leading:
+                    const Icon(Icons.privacy_tip), // Update the icon if needed
+                title: Text(
+                  'Privacy and Policy',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => PrivacyPolicyPage()),
                   );
                 },
               ),

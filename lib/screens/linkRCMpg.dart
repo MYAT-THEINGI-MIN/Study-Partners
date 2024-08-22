@@ -1,117 +1,106 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class LinkRecommendationPage extends StatefulWidget {
-  final String uid;
-
-  const LinkRecommendationPage({Key? key, required this.uid}) : super(key: key);
-
   @override
   _LinkRecommendationPageState createState() => _LinkRecommendationPageState();
 }
 
 class _LinkRecommendationPageState extends State<LinkRecommendationPage> {
-  List<String> subjects = [];
+  final FirebaseFirestore _firebaseFirestore = FirebaseFirestore.instance;
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchUserSubjects();
-  }
+  Future<List<Map<String, dynamic>>> getPopularLinks() async {
+    try {
+      final querySnapshot = await _firebaseFirestore
+          .collection('LinksRecommendation')
+          .orderBy('count', descending: true) // Sort by popularity
+          .limit(20) // Limit the number of results to 20
+          .get();
 
-  Future<void> _fetchUserSubjects() async {
-    DocumentSnapshot userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(widget.uid)
-        .get();
-    String subjectString = userDoc['subjects'];
-    setState(() {
-      subjects = subjectString.split(',').map((s) => s.trim()).toList();
-    });
+      return querySnapshot.docs
+          .map((doc) => doc.data() as Map<String, dynamic>)
+          .toList();
+    } catch (e) {
+      print('Error fetching popular links: $e');
+      return [];
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Links Recommendations'),
+        title: Text('Popular Study Links'),
+        // actions: [
+        //   IconButton(
+        //     icon: Icon(Icons.refresh),
+        //     onPressed: () {
+        //       setState(() {}); // Refresh the page
+        //     },
+        //   ),
+        // ],
       ),
-      body: subjects.isEmpty
-          ? Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: subjects.length,
-              itemBuilder: (context, index) {
-                String subject = subjects[index];
-                String courseLink = _getCourseLink(subject);
-                String tutorialLink = _getTutorialLink(subject);
-                String jobLink = _getJobLink(subject);
+      body: RefreshIndicator(
+        onRefresh: () async {
+          setState(() {}); // Refresh the data
+        },
+        child: FutureBuilder<List<Map<String, dynamic>>>(
+          future: getPopularLinks(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            }
 
-                return Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Subject: $subject',
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                          SizedBox(height: 8),
-                          Text('Recommended Online Courses:'),
-                          InkWell(
-                            child: Text(
-                              courseLink,
-                              style: TextStyle(color: Colors.blue),
-                            ),
-                            onTap: () => _launchURL(courseLink),
-                          ),
-                          SizedBox(height: 8),
-                          Text('YouTube Tutorials:'),
-                          InkWell(
-                            child: Text(
-                              tutorialLink,
-                              style: TextStyle(color: Colors.blue),
-                            ),
-                            onTap: () => _launchURL(tutorialLink),
-                          ),
-                          SizedBox(height: 8),
-                          Text('Job Opportunities:'),
-                          InkWell(
-                            child: Text(
-                              jobLink,
-                              style: TextStyle(color: Colors.blue),
-                            ),
-                            onTap: () => _launchURL(jobLink),
-                          ),
-                        ],
+            if (snapshot.hasError) {
+              return Center(child: Text('Error fetching links.'));
+            }
+
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Center(child: Text('No popular links available.'));
+            }
+
+            final popularLinks = snapshot.data!;
+
+            return ListView.builder(
+              itemCount: popularLinks.length,
+              itemBuilder: (context, index) {
+                final link = popularLinks[index];
+                final domain = link['domain'] as String;
+                final count = link['count'] as int;
+
+                return Card(
+                  margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  elevation: 5,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.all(16),
+                    leading: Icon(Icons.link, color: Colors.blue),
+                    title: Text(
+                      domain,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
+                    subtitle: Text('Popularity: $count'),
+                    onTap: () {
+                      // Optionally, launch the link or show more details
+                      _launchURL(domain);
+                    },
                   ),
                 );
               },
-            ),
+            );
+          },
+        ),
+      ),
     );
   }
 
-  String _getCourseLink(String subject) {
-    return "https://www.coursera.org/search?query=$subject";
-  }
-
-  String _getTutorialLink(String subject) {
-    return "https://www.youtube.com/results?search_query=$subject+tutorial";
-  }
-
-  String _getJobLink(String subject) {
-    return "https://www.jobnet.com.mm/search?keyword=$subject";
-  }
-
-  void _launchURL(String url) async {
-    if (await canLaunch(url)) {
-      await launch(url);
+  void _launchURL(String domain) async {
+    final url = Uri.parse('https://$domain');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
     } else {
       throw 'Could not launch $url';
     }

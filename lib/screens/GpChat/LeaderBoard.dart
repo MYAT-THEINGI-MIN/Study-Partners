@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LeaderboardPage extends StatelessWidget {
   final String groupId;
@@ -21,11 +22,84 @@ class LeaderboardPage extends StatelessWidget {
     return userDetails;
   }
 
+  Future<String> _fetchAdminId() async {
+    final groupDoc = await FirebaseFirestore.instance
+        .collection('groups')
+        .doc(groupId)
+        .get();
+    return groupDoc.get('adminId') as String;
+  }
+
+  Future<void> _resetPoints(BuildContext context) async {
+    final confirmReset = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Confirm Reset'),
+        content: Text('Are you sure you want to reset all points to 0?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmReset ?? false) {
+      // Reset all points to 0
+      final groupCollection = FirebaseFirestore.instance.collection('groups');
+      final leaderboardCollection =
+          groupCollection.doc(groupId).collection('LeaderBoard');
+
+      final documents = await leaderboardCollection.get();
+
+      for (var doc in documents.docs) {
+        await doc.reference.update({'points': 0});
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Points have been reset.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Leaderboard'),
+        backgroundColor: Colors.deepPurple.shade100,
+        actions: [
+          FutureBuilder<String>(
+            future: _fetchAdminId(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return SizedBox.shrink();
+              }
+
+              if (snapshot.hasError) {
+                return SizedBox.shrink();
+              }
+
+              final adminId = snapshot.data;
+
+              // Check if the current user is the admin
+              final currentUserUid = FirebaseAuth.instance.currentUser?.uid;
+              if (adminId == currentUserUid) {
+                return IconButton(
+                  icon: Icon(Icons.restore),
+                  onPressed: () => _resetPoints(context),
+                );
+              }
+
+              return SizedBox.shrink();
+            },
+          ),
+        ],
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
@@ -67,8 +141,16 @@ class LeaderboardPage extends StatelessWidget {
 
               final userDetails = userSnapshot.data!;
               final sortedDocuments = documents
-                ..sort((a, b) =>
-                    (b.get('points') as int).compareTo(a.get('points') as int));
+                ..sort((a, b) {
+                  final pointsA = a.get('points') as int;
+                  final pointsB = b.get('points') as int;
+
+                  if (pointsA == pointsB) {
+                    // Break ties by user ID
+                    return a.id.compareTo(b.id);
+                  }
+                  return pointsB.compareTo(pointsA);
+                });
 
               return Column(
                 children: [
@@ -90,22 +172,76 @@ class LeaderboardPage extends StatelessWidget {
                               userDetails[userId]?['profileImageUrl'] ?? '';
                           final medalIcon = _getMedalIcon(index);
 
-                          return ListTile(
-                            leading: CircleAvatar(
-                              backgroundImage: profileImageUrl.isNotEmpty
-                                  ? NetworkImage(profileImageUrl)
-                                  : null,
-                              child: profileImageUrl.isEmpty
-                                  ? Icon(Icons.person)
-                                  : null,
+                          return Container(
+                            margin: const EdgeInsets.symmetric(vertical: 8),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.2),
+                                  spreadRadius: 2,
+                                  blurRadius: 4,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
                             ),
-                            title: Text(name),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
+                            child: Row(
                               children: [
-                                Text('$points points'),
-                                SizedBox(width: 8),
-                                medalIcon,
+                                // Ranking number
+                                Container(
+                                  alignment: Alignment.center,
+                                  width: 40,
+                                  child: Text(
+                                    '${index + 1}',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyLarge!
+                                        .copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: index == 0
+                                              ? Colors.amber
+                                              : index == 1
+                                                  ? Colors.grey
+                                                  : Colors.brown,
+                                        ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: ListTile(
+                                    contentPadding: EdgeInsets.zero,
+                                    leading: CircleAvatar(
+                                      backgroundImage:
+                                          profileImageUrl.isNotEmpty
+                                              ? NetworkImage(profileImageUrl)
+                                              : null,
+                                      child: profileImageUrl.isEmpty
+                                          ? Icon(Icons.person,
+                                              color: Colors.grey)
+                                          : null,
+                                    ),
+                                    title: Text(
+                                      name,
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.normal),
+                                    ),
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          '$points points',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        SizedBox(width: 8),
+                                        medalIcon,
+                                      ],
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           );
@@ -113,6 +249,7 @@ class LeaderboardPage extends StatelessWidget {
                       ),
                     ),
                   ),
+                  // All users below top 3
                   Expanded(
                     child: ListView.builder(
                       itemCount: sortedDocuments.length > 3
@@ -127,17 +264,55 @@ class LeaderboardPage extends StatelessWidget {
                         final profileImageUrl =
                             userDetails[userId]?['profileImageUrl'] ?? '';
 
-                        return ListTile(
-                          leading: CircleAvatar(
-                            backgroundImage: profileImageUrl.isNotEmpty
-                                ? NetworkImage(profileImageUrl)
-                                : null,
-                            child: profileImageUrl.isEmpty
-                                ? Icon(Icons.person)
-                                : null,
+                        return Container(
+                          margin: const EdgeInsets.symmetric(
+                              vertical: 8, horizontal: 16),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.2),
+                                spreadRadius: 2,
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
                           ),
-                          title: Text(name),
-                          trailing: Text('$points points'),
+                          child: Row(
+                            children: [
+                              // Ranking number
+                              Container(
+                                alignment: Alignment.center,
+                                width: 40,
+                                child: Text(
+                                  '${index + 4}', // Ranking starts from 4 for the rest
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyLarge!
+                                      .copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                ),
+                              ),
+                              Expanded(
+                                child: ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: CircleAvatar(
+                                    backgroundImage: profileImageUrl.isNotEmpty
+                                        ? NetworkImage(profileImageUrl)
+                                        : null,
+                                    child: profileImageUrl.isEmpty
+                                        ? Icon(Icons.person, color: Colors.grey)
+                                        : null,
+                                  ),
+                                  title: Text(name),
+                                  trailing: Text('$points points'),
+                                ),
+                              ),
+                            ],
+                          ),
                         );
                       },
                     ),
@@ -154,11 +329,11 @@ class LeaderboardPage extends StatelessWidget {
   Widget _getMedalIcon(int index) {
     switch (index) {
       case 0:
-        return Icon(Icons.star, color: Colors.amber); // Gold medal
+        return Icon(Icons.star, color: Colors.amber, size: 24); // Gold medal
       case 1:
-        return Icon(Icons.star, color: Colors.grey); // Silver medal
+        return Icon(Icons.star, color: Colors.grey, size: 24); // Silver medal
       case 2:
-        return Icon(Icons.star, color: Colors.brown); // Bronze medal
+        return Icon(Icons.star, color: Colors.brown, size: 24); // Bronze medal
       default:
         return SizedBox.shrink();
     }
