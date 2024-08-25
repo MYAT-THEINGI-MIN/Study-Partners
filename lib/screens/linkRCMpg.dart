@@ -32,14 +32,6 @@ class _LinkRecommendationPageState extends State<LinkRecommendationPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Popular Study Links'),
-        // actions: [
-        //   IconButton(
-        //     icon: Icon(Icons.refresh),
-        //     onPressed: () {
-        //       setState(() {}); // Refresh the page
-        //     },
-        //   ),
-        // ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {

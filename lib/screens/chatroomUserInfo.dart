@@ -10,6 +10,9 @@ class ChatroomUserInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Get the current user's UID
+    final String currentUserUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('User Info'),
@@ -72,28 +75,30 @@ class ChatroomUserInfo extends StatelessWidget {
                   style: const TextStyle(fontSize: 16),
                 ),
                 const SizedBox(height: 20),
-                // Chat Button
-                SizedBox(
-                  width: double.infinity, // Full width button
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ChatRoom(
-                            receiverUserName: userData['username'],
-                            receiverUserId: userId,
+                // Conditionally show the chat button
+                if (currentUserUid != userId)
+                  SizedBox(
+                    width: double.infinity, // Full width button
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ChatRoom(
+                              receiverUserName: userData['username'],
+                              receiverUserId: userId,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                    style:
-                        ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                    child: const Text('Chat',
-                        style:
-                            const TextStyle(fontSize: 16, color: Colors.white)),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue),
+                      child: const Text(
+                        'Chat',
+                        style: TextStyle(fontSize: 16, color: Colors.white),
+                      ),
+                    ),
                   ),
-                ),
               ],
             ),
           );

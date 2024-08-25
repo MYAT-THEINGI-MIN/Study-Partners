@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'correctAnsPg.dart'; // Adjust this import based on your file structure
 
 class QuizTestPage extends StatefulWidget {
   final String groupId;
@@ -16,6 +17,7 @@ class _QuizTestPageState extends State<QuizTestPage> {
   late Future<DocumentSnapshot> _quizData;
   final Map<int, int?> _userAnswers = {}; // Store answers for each question
   int? _previousScore;
+  bool _quizCompleted = false; // Track if the quiz was completed
 
   @override
   void initState() {
@@ -41,6 +43,8 @@ class _QuizTestPageState extends State<QuizTestPage> {
     if (marks.containsKey(userId)) {
       setState(() {
         _previousScore = marks[userId] as int?;
+        _quizCompleted =
+            true; // Mark quiz as completed if there's a previous score
       });
     }
   }
@@ -139,6 +143,10 @@ class _QuizTestPageState extends State<QuizTestPage> {
 
       await batch.commit();
 
+      setState(() {
+        _quizCompleted = true; // Mark quiz as completed
+      });
+
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -149,7 +157,6 @@ class _QuizTestPageState extends State<QuizTestPage> {
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                Navigator.pop(context); // Go back to the previous screen
               },
               child: Text('OK'),
             ),
@@ -187,6 +194,23 @@ class _QuizTestPageState extends State<QuizTestPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Quiz Test'),
+        actions: [
+          if (_previousScore != null)
+            IconButton(
+              icon: Icon(Icons.visibility),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CorrectAnswersPage(
+                      groupId: widget.groupId,
+                      quizId: widget.quizId,
+                    ),
+                  ),
+                );
+              },
+            ),
+        ],
       ),
       body: FutureBuilder<DocumentSnapshot>(
         future: _quizData,
@@ -202,25 +226,14 @@ class _QuizTestPageState extends State<QuizTestPage> {
           final quiz = snapshot.data!.data() as Map<String, dynamic>;
           final questions = quiz['questions'] as List<dynamic>;
 
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                if (_previousScore != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16.0),
-                    child: Text(
-                      'You have already taken this quiz. Your previous score is $_previousScore.',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(color: Colors.red),
-                    ),
-                  ),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: questions.length,
-                    itemBuilder: (context, index) {
+          return Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  itemCount:
+                      questions.length + 1, // Add one for the "Complete" button
+                  itemBuilder: (context, index) {
+                    if (index < questions.length) {
                       final question = questions[index] as Map<String, dynamic>;
                       final questionText =
                           question['questionText'] ?? 'No question';
@@ -262,23 +275,24 @@ class _QuizTestPageState extends State<QuizTestPage> {
                           ),
                         ),
                       );
-                    },
-                  ),
+                    } else {
+                      // This is the last item, which is the "Complete" button
+                      return Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: ElevatedButton(
+                          onPressed: _submitAnswers,
+                          child: Text('Complete'),
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: Size(double.infinity, 50),
+                            padding: EdgeInsets.symmetric(horizontal: 20),
+                          ),
+                        ),
+                      );
+                    }
+                  },
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: ElevatedButton(
-                    onPressed: _submitAnswers,
-                    child: Text('Complete'),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize:
-                          Size(double.infinity, 50), // Make button full width
-                      padding: EdgeInsets.symmetric(horizontal: 20),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           );
         },
       ),

@@ -6,7 +6,7 @@ import 'package:sp_test/screens/GpChat/EditGroup/EditGp.dart';
 import 'package:sp_test/screens/GpChat/FlashCard/FCpage.dart';
 import 'package:sp_test/screens/GpChat/GpChatroom.dart';
 import 'package:sp_test/screens/GpChat/GpPlans/GpPlans.dart';
-import 'package:sp_test/screens/GpChat/LeaderBoard.dart';
+import 'package:sp_test/screens/GpChat/LeaderBoard/LeaderBoard.dart';
 import 'package:sp_test/screens/GpChat/MemberList.dart';
 import 'package:sp_test/screens/GpChat/Notes/NotePg.dart';
 import 'package:sp_test/screens/GpChat/QuizSection/showQuizPg.dart';

@@ -167,7 +167,7 @@ class _GpChatRoomState extends State<GpChatRoom> {
           await widget._firestore.collection('users').doc(userId).get();
 
       if (userSnapshot.exists) {
-        String profileUrl = userSnapshot['profileUrl'] ?? '';
+        String profileUrl = userSnapshot['profileImageUrl'] ?? '';
         _profileCache[userId] = profileUrl;
         return profileUrl;
       } else {
@@ -325,6 +325,14 @@ class _GpChatRoomState extends State<GpChatRoom> {
         }
 
         final messages = snapshot.data!.docs;
+
+        // Sort messages by timestamp
+        messages.sort((a, b) {
+          Timestamp timestampA = a['timestamp'];
+          Timestamp timestampB = b['timestamp'];
+          return timestampA.compareTo(timestampB);
+        });
+
         List<Widget> messageWidgets = [];
         String? lastDate;
 
@@ -389,12 +397,9 @@ class _GpChatRoomState extends State<GpChatRoom> {
           );
         }
 
-        return Expanded(
-          child: ListView(
-            reverse: true, // Show latest messages at the bottom
-            controller: _scrollController,
-            children: messageWidgets.reversed.toList(),
-          ),
+        return ListView(
+          controller: _scrollController,
+          children: messageWidgets,
         );
       },
     );

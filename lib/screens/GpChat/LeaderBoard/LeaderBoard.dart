@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:sp_test/screens/GpChat/LeaderBoard/pointSystem.dart';
 
 class LeaderboardPage extends StatelessWidget {
   final String groupId;
@@ -28,6 +29,51 @@ class LeaderboardPage extends StatelessWidget {
         .doc(groupId)
         .get();
     return groupDoc.get('adminId') as String;
+  }
+
+  Future<void> _showOptionsMenu(BuildContext context) async {
+    final adminId = await _fetchAdminId();
+    final currentUserUid = FirebaseAuth.instance.currentUser?.uid;
+
+    if (adminId == currentUserUid) {
+      showModalBottomSheet(
+        context: context,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        builder: (context) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.system_update_alt),
+                title: Text('Reset Points'),
+                onTap: () {
+                  Navigator.of(context).pop(); // Close the bottom sheet
+                  _resetPoints(context);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.info),
+                title: Text('Point System'),
+                onTap: () {
+                  Navigator.of(context).pop(); // Close the bottom sheet
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => PointSystemPage(),
+                    ),
+                  );
+                },
+              ),
+            ],
+          );
+        },
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('You do not have permission to reset points.')),
+      );
+    }
   }
 
   Future<void> _resetPoints(BuildContext context) async {
@@ -74,30 +120,9 @@ class LeaderboardPage extends StatelessWidget {
         title: const Text('Leaderboard'),
         backgroundColor: Colors.deepPurple.shade100,
         actions: [
-          FutureBuilder<String>(
-            future: _fetchAdminId(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return SizedBox.shrink();
-              }
-
-              if (snapshot.hasError) {
-                return SizedBox.shrink();
-              }
-
-              final adminId = snapshot.data;
-
-              // Check if the current user is the admin
-              final currentUserUid = FirebaseAuth.instance.currentUser?.uid;
-              if (adminId == currentUserUid) {
-                return IconButton(
-                  icon: Icon(Icons.restore),
-                  onPressed: () => _resetPoints(context),
-                );
-              }
-
-              return SizedBox.shrink();
-            },
+          IconButton(
+            icon: Icon(Icons.more_vert),
+            onPressed: () => _showOptionsMenu(context),
           ),
         ],
       ),
@@ -280,38 +305,24 @@ class LeaderboardPage extends StatelessWidget {
                               ),
                             ],
                           ),
-                          child: Row(
-                            children: [
-                              // Ranking number
-                              Container(
-                                alignment: Alignment.center,
-                                width: 40,
-                                child: Text(
-                                  '${index + 4}', // Ranking starts from 4 for the rest
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyLarge!
-                                      .copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                ),
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: CircleAvatar(
+                              backgroundImage: profileImageUrl.isNotEmpty
+                                  ? NetworkImage(profileImageUrl)
+                                  : null,
+                              child: profileImageUrl.isEmpty
+                                  ? Icon(Icons.person, color: Colors.grey)
+                                  : null,
+                            ),
+                            title: Text(name),
+                            trailing: Text(
+                              '$points points',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
                               ),
-                              Expanded(
-                                child: ListTile(
-                                  contentPadding: EdgeInsets.zero,
-                                  leading: CircleAvatar(
-                                    backgroundImage: profileImageUrl.isNotEmpty
-                                        ? NetworkImage(profileImageUrl)
-                                        : null,
-                                    child: profileImageUrl.isEmpty
-                                        ? Icon(Icons.person, color: Colors.grey)
-                                        : null,
-                                  ),
-                                  title: Text(name),
-                                  trailing: Text('$points points'),
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                         );
                       },
@@ -326,16 +337,16 @@ class LeaderboardPage extends StatelessWidget {
     );
   }
 
-  Widget _getMedalIcon(int index) {
+  Icon _getMedalIcon(int index) {
     switch (index) {
       case 0:
-        return Icon(Icons.star, color: Colors.amber, size: 24); // Gold medal
+        return Icon(Icons.emoji_events, color: Colors.amber);
       case 1:
-        return Icon(Icons.star, color: Colors.grey, size: 24); // Silver medal
+        return Icon(Icons.emoji_events, color: Colors.grey);
       case 2:
-        return Icon(Icons.star, color: Colors.brown, size: 24); // Bronze medal
+        return Icon(Icons.emoji_events, color: Colors.brown);
       default:
-        return SizedBox.shrink();
+        return Icon(Icons.star_border);
     }
   }
 }

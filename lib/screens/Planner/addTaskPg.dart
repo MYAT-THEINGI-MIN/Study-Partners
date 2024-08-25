@@ -111,6 +111,7 @@ class _AddTaskPageState extends State<AddTaskPage> {
       final notificationIdBase =
           DateTime.now().millisecondsSinceEpoch % 2147483647;
 
+      // Handle different repeat cases
       switch (_selectedRepeat) {
         case 'Daily':
           for (int i = 0; i < 30; i++) {
@@ -136,7 +137,6 @@ class _AddTaskPageState extends State<AddTaskPage> {
 
         case 'Weekly':
           for (int i = 0; i < 4; i++) {
-            // Add 7 days for each iteration to create tasks for each week
             final taskDate = scheduledDateTime.add(Duration(days: 7 * i));
 
             await _firebaseService.saveTask(
@@ -204,7 +204,22 @@ class _AddTaskPageState extends State<AddTaskPage> {
           );
           break;
       }
-      Navigator.pop(context);
+
+      // Show success snack bar
+      TopSnackBarWiidget(context, 'Task Created Successfully');
+
+      // Clear the input fields
+      _titleController.clear();
+      _noteController.clear();
+      _dateController.clear();
+      _timeController.clear();
+      setState(() {
+        _selectedColor = Colors.blue; // Reset to default color
+        _selectedRepeat = 'None'; // Reset repeat option
+        _selectedRemind = '5 minutes before'; // Reset remind option
+      });
+
+      Navigator.pop(context); // Return to the previous screen
     } catch (e) {
       print('Error creating task: $e');
     }
