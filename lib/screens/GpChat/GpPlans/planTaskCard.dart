@@ -105,7 +105,11 @@ class PlanTaskCard extends StatelessWidget {
   }
 
   void _markAsCompleted(BuildContext context) {
-    if (deadline.isAfter(DateTime.now())) {
+    DateTime now = DateTime.now();
+    DateTime startOfToday = DateTime(now.year, now.month, now.day);
+
+    if (deadline.isAfter(startOfToday) ||
+        deadline.isAtSameMomentAs(startOfToday)) {
       Navigator.pop(context);
       Navigator.push(
         context,

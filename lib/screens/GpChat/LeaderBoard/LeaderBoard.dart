@@ -38,7 +38,7 @@ class LeaderboardPage extends StatelessWidget {
     if (adminId == currentUserUid) {
       showModalBottomSheet(
         context: context,
-        shape: RoundedRectangleBorder(
+        shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
         ),
         builder: (context) {
@@ -46,18 +46,18 @@ class LeaderboardPage extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: Icon(Icons.system_update_alt),
-                title: Text('Reset Points'),
+                leading: const Icon(Icons.system_update_alt),
+                title: const Text('Reset Points'),
                 onTap: () {
-                  Navigator.of(context).pop(); // Close the bottom sheet
+                  Navigator.of(context).pop();
                   _resetPoints(context);
                 },
               ),
               ListTile(
-                leading: Icon(Icons.info),
-                title: Text('Point System'),
+                leading: const Icon(Icons.info),
+                title: const Text('Point System'),
                 onTap: () {
-                  Navigator.of(context).pop(); // Close the bottom sheet
+                  Navigator.of(context).pop();
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => PointSystemPage(),
@@ -71,7 +71,8 @@ class LeaderboardPage extends StatelessWidget {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('You do not have permission to reset points.')),
+        const SnackBar(
+            content: Text('You do not have permission to reset points.')),
       );
     }
   }
@@ -80,23 +81,22 @@ class LeaderboardPage extends StatelessWidget {
     final confirmReset = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Confirm Reset'),
-        content: Text('Are you sure you want to reset all points to 0?'),
+        title: const Text('Confirm Reset'),
+        content: const Text('Are you sure you want to reset all points to 0?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text('Cancel'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: Text('Confirm'),
+            child: const Text('Confirm'),
           ),
         ],
       ),
     );
 
     if (confirmReset ?? false) {
-      // Reset all points to 0
       final groupCollection = FirebaseFirestore.instance.collection('groups');
       final leaderboardCollection =
           groupCollection.doc(groupId).collection('LeaderBoard');
@@ -108,7 +108,7 @@ class LeaderboardPage extends StatelessWidget {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Points have been reset.')),
+        const SnackBar(content: Text('Points have been reset.')),
       );
     }
   }
@@ -121,7 +121,7 @@ class LeaderboardPage extends StatelessWidget {
         backgroundColor: Colors.deepPurple.shade100,
         actions: [
           IconButton(
-            icon: Icon(Icons.more_vert),
+            icon: const Icon(Icons.more_vert),
             onPressed: () => _showOptionsMenu(context),
           ),
         ],
@@ -135,7 +135,7 @@ class LeaderboardPage extends StatelessWidget {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (snapshot.hasError) {
@@ -143,7 +143,7 @@ class LeaderboardPage extends StatelessWidget {
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(child: Text('No leaderboard data available.'));
+            return const Center(child: Text('No leaderboard data available.'));
           }
 
           final documents = snapshot.data!.docs;
@@ -153,7 +153,7 @@ class LeaderboardPage extends StatelessWidget {
             future: _fetchUserDetails(userIds),
             builder: (context, userSnapshot) {
               if (userSnapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CircularProgressIndicator());
+                return const Center(child: CircularProgressIndicator());
               }
 
               if (userSnapshot.hasError) {
@@ -161,7 +161,7 @@ class LeaderboardPage extends StatelessWidget {
               }
 
               if (!userSnapshot.hasData) {
-                return Center(child: Text('No user details available.'));
+                return const Center(child: Text('No user details available.'));
               }
 
               final userDetails = userSnapshot.data!;
@@ -169,109 +169,74 @@ class LeaderboardPage extends StatelessWidget {
                 ..sort((a, b) {
                   final pointsA = a.get('points') as int;
                   final pointsB = b.get('points') as int;
-
-                  if (pointsA == pointsB) {
-                    // Break ties by user ID
-                    return a.id.compareTo(b.id);
-                  }
                   return pointsB.compareTo(pointsA);
                 });
 
               return Column(
                 children: [
                   // Top 3 leaderboard
-                  Container(
+                  Padding(
                     padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      children: List.generate(
-                        3,
-                        (index) {
-                          if (index >= sortedDocuments.length)
-                            return SizedBox.shrink();
-                          final doc = sortedDocuments[index];
-                          final userId = doc.id;
-                          final points = doc.get('points') as int;
-                          final name =
-                              userDetails[userId]?['username'] ?? 'Unknown';
-                          final profileImageUrl =
-                              userDetails[userId]?['profileImageUrl'] ?? '';
-                          final medalIcon = _getMedalIcon(index);
-
-                          return Container(
-                            margin: const EdgeInsets.symmetric(vertical: 8),
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.grey.withOpacity(0.2),
-                                  spreadRadius: 2,
-                                  blurRadius: 4,
-                                  offset: Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                // Ranking number
-                                Container(
-                                  alignment: Alignment.center,
-                                  width: 40,
-                                  child: Text(
-                                    '${index + 1}',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyLarge!
-                                        .copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          color: index == 0
-                                              ? Colors.amber
-                                              : index == 1
-                                                  ? Colors.grey
-                                                  : Colors.brown,
-                                        ),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: ListTile(
-                                    contentPadding: EdgeInsets.zero,
-                                    leading: CircleAvatar(
-                                      backgroundImage:
-                                          profileImageUrl.isNotEmpty
-                                              ? NetworkImage(profileImageUrl)
-                                              : null,
-                                      child: profileImageUrl.isEmpty
-                                          ? Icon(Icons.person,
-                                              color: Colors.grey)
-                                          : null,
-                                    ),
-                                    title: Text(
-                                      name,
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.normal),
-                                    ),
-                                    trailing: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          '$points points',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        SizedBox(width: 8),
-                                        medalIcon,
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: List.generate(3, (index) {
+                        if (index >= sortedDocuments.length)
+                          return const SizedBox(
+                            height: 20,
                           );
-                        },
-                      ),
+                        final doc = sortedDocuments[index];
+                        final userId = doc.id;
+                        final points = doc.get('points') as int;
+                        final name =
+                            userDetails[userId]?['username'] ?? 'Unknown';
+                        final profileImageUrl =
+                            userDetails[userId]?['profileImageUrl'] ?? '';
+                        final medalIcon = _getMedalIcon(index);
+
+                        return Column(
+                          children: [
+                            // Medal icon below the profile
+                            medalIcon,
+                            // // Rank number above the profile
+                            // Text(
+                            //   '${index + 1}',
+                            //   style: Theme.of(context)
+                            //       .textTheme
+                            //       .bodyLarge!
+                            //       .copyWith(
+                            //         fontWeight: FontWeight.bold,
+                            //         color: Colors.black,
+                            //       ),
+                            // ),
+                            // Profile image
+                            CircleAvatar(
+                              radius: index == 0 ? 46 : (index == 1 ? 40 : 30),
+                              backgroundImage: profileImageUrl.isNotEmpty
+                                  ? NetworkImage(profileImageUrl)
+                                  : null,
+                              child: profileImageUrl.isEmpty
+                                  ? const Icon(Icons.person,
+                                      size: 40, color: Colors.grey)
+                                  : null,
+                            ),
+
+                            // Name and points below the profile
+                            Text(
+                              name,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                            Text(
+                              '$points points',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall!
+                                  .copyWith(
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                            ),
+                          ],
+                        );
+                      }),
                     ),
                   ),
                   // All users below top 3
@@ -301,24 +266,35 @@ class LeaderboardPage extends StatelessWidget {
                                 color: Colors.grey.withOpacity(0.2),
                                 spreadRadius: 2,
                                 blurRadius: 4,
-                                offset: Offset(0, 2),
+                                offset: const Offset(0, 2),
                               ),
                             ],
                           ),
                           child: ListTile(
                             contentPadding: EdgeInsets.zero,
-                            leading: CircleAvatar(
-                              backgroundImage: profileImageUrl.isNotEmpty
-                                  ? NetworkImage(profileImageUrl)
-                                  : null,
-                              child: profileImageUrl.isEmpty
-                                  ? Icon(Icons.person, color: Colors.grey)
-                                  : null,
+                            leading: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '${index + 4}', // Position number for ranks below top 3
+                                  style: Theme.of(context).textTheme.bodyLarge,
+                                ),
+                                const SizedBox(width: 10),
+                                CircleAvatar(
+                                  backgroundImage: profileImageUrl.isNotEmpty
+                                      ? NetworkImage(profileImageUrl)
+                                      : null,
+                                  child: profileImageUrl.isEmpty
+                                      ? const Icon(Icons.person,
+                                          color: Colors.grey)
+                                      : null,
+                                ),
+                              ],
                             ),
                             title: Text(name),
                             trailing: Text(
                               '$points points',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -340,13 +316,13 @@ class LeaderboardPage extends StatelessWidget {
   Icon _getMedalIcon(int index) {
     switch (index) {
       case 0:
-        return Icon(Icons.emoji_events, color: Colors.amber);
+        return const Icon(Icons.emoji_events, color: Colors.amber);
       case 1:
-        return Icon(Icons.emoji_events, color: Colors.grey);
+        return const Icon(Icons.emoji_events, color: Colors.grey);
       case 2:
-        return Icon(Icons.emoji_events, color: Colors.brown);
+        return const Icon(Icons.emoji_events, color: Colors.brown);
       default:
-        return Icon(Icons.star_border);
+        return const Icon(Icons.star_border);
     }
   }
 }

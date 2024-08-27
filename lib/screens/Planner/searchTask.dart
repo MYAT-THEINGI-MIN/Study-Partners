@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sp_test/screens/Planner/InputField.dart';
 import 'package:sp_test/screens/Planner/TaskManagement.dart';
 import 'package:sp_test/screens/Planner/taskCard.dart';
@@ -91,36 +90,45 @@ class _SearchTasksPageState extends State<SearchTasksPage> {
 
                   _groupTasksByDate();
 
-                  return _groupedTasks.isEmpty
-                      ? Center(child: Text('No tasks found'))
-                      : ListView.builder(
-                          itemCount: _groupedTasks.keys.length,
-                          itemBuilder: (context, index) {
-                            String date = _groupedTasks.keys.elementAt(index);
-                            List<Map<String, dynamic>> tasks =
-                                _groupedTasks[date]!;
-                            return ExpansionTile(
-                              title: Text(DateFormat.yMMMMd()
-                                  .format(DateTime.parse(date))),
-                              children: tasks.map((task) {
-                                return TaskCard(
-                                  id: task['id'],
-                                  title: task['title'],
-                                  note: task['note'],
-                                  time: task['time'],
-                                  color: task.containsKey('color') &&
-                                          task['color'] is String
-                                      ? int.parse(task['color'], radix: 16)
-                                      : task['color'],
-                                  onDelete: _taskManagement.deleteTask,
-                                  onDone: _taskManagement.markTaskAsDone,
-                                  onEdit: _editTask,
-                                  onUndone: _taskManagement.markTaskAsUndone,
-                                );
-                              }).toList(),
-                            );
-                          },
-                        );
+                  if (_groupedTasks.isEmpty) {
+                    return Center(child: Text('No tasks found'));
+                  }
+
+                  // Sort dates before displaying tasks
+                  List<String> sortedDates = _groupedTasks.keys.toList()
+                    ..sort((a, b) {
+                      DateTime dateA = DateTime.parse(a);
+                      DateTime dateB = DateTime.parse(b);
+                      return dateA.compareTo(dateB);
+                    });
+
+                  return ListView.builder(
+                    itemCount: sortedDates.length,
+                    itemBuilder: (context, index) {
+                      String date = sortedDates[index];
+                      List<Map<String, dynamic>> tasks = _groupedTasks[date]!;
+                      return ExpansionTile(
+                        title: Text(
+                            DateFormat.yMMMMd().format(DateTime.parse(date))),
+                        children: tasks.map((task) {
+                          return TaskCard(
+                            id: task['id'],
+                            title: task['title'],
+                            note: task['note'],
+                            time: task['time'],
+                            color: task.containsKey('color') &&
+                                    task['color'] is String
+                                ? int.parse(task['color'], radix: 16)
+                                : task['color'],
+                            onDelete: _taskManagement.deleteTask,
+                            onDone: _taskManagement.markTaskAsDone,
+                            onEdit: _editTask,
+                            onUndone: _taskManagement.markTaskAsUndone,
+                          );
+                        }).toList(),
+                      );
+                    },
+                  );
                 },
               ),
             ),

@@ -15,7 +15,7 @@ class _LinkRecommendationPageState extends State<LinkRecommendationPage> {
       final querySnapshot = await _firebaseFirestore
           .collection('LinksRecommendation')
           .orderBy('count', descending: true) // Sort by popularity
-          .limit(20) // Limit the number of results to 20
+          .limit(10) // Limit the number of results to 20
           .get();
 
       return querySnapshot.docs
