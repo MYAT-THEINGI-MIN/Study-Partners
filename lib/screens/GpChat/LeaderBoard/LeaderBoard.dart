@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:sp_test/screens/GpChat/LeaderBoard/DetectActivity.dart';
 import 'package:sp_test/screens/GpChat/LeaderBoard/pointSystem.dart';
 
 class LeaderboardPage extends StatelessWidget {
@@ -61,6 +62,20 @@ class LeaderboardPage extends StatelessWidget {
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => PointSystemPage(),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.group),
+                title: const Text('Member Activity'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => MemberActivityPage(
+                          groupId:
+                              groupId), // Pass groupId to the MemberActivityPage
                     ),
                   );
                 },
@@ -197,17 +212,6 @@ class LeaderboardPage extends StatelessWidget {
                           children: [
                             // Medal icon below the profile
                             medalIcon,
-                            // // Rank number above the profile
-                            // Text(
-                            //   '${index + 1}',
-                            //   style: Theme.of(context)
-                            //       .textTheme
-                            //       .bodyLarge!
-                            //       .copyWith(
-                            //         fontWeight: FontWeight.bold,
-                            //         color: Colors.black,
-                            //       ),
-                            // ),
                             // Profile image
                             CircleAvatar(
                               radius: index == 0 ? 46 : (index == 1 ? 40 : 30),
@@ -313,16 +317,16 @@ class LeaderboardPage extends StatelessWidget {
     );
   }
 
-  Icon _getMedalIcon(int index) {
+  Widget _getMedalIcon(int index) {
     switch (index) {
       case 0:
-        return const Icon(Icons.emoji_events, color: Colors.amber);
+        return const Icon(Icons.looks_one, color: Colors.amber, size: 30);
       case 1:
-        return const Icon(Icons.emoji_events, color: Colors.grey);
+        return const Icon(Icons.looks_two, color: Colors.grey, size: 30);
       case 2:
-        return const Icon(Icons.emoji_events, color: Colors.brown);
+        return const Icon(Icons.looks_3, color: Colors.brown, size: 30);
       default:
-        return const Icon(Icons.star_border);
+        return const SizedBox.shrink();
     }
   }
 }
