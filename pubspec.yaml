@@ -35,7 +35,13 @@ dependencies:
   path: ^1.8.0
   sensors_plus: ^2.0.1
   flutter_colorpicker: ^1.0.3
+  flutter_launcher_icons: ^0.10.0
  
+ 
+flutter_icons:
+  android: true
+  ios: true
+  image_path: assets/images/applogo.jpg
   
  
 
