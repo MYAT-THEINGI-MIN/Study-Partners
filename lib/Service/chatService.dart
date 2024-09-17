@@ -3,6 +3,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:sp_test/Service/GpLinkClass.dart';
 import 'package:sp_test/widgets/message.dart';
 import 'package:url_launcher/url_launcher.dart'; // Add dependency for URL detection
 
@@ -153,21 +154,51 @@ class Chatservice extends ChangeNotifier {
     final String currentUserEmail = _auth.currentUser!.email.toString();
     final Timestamp timestamp = Timestamp.now();
 
+    // Check if message contains any URL
+    final List<String> urls = _extractUrls(message);
+
+    // Create a message object
     Message newMessage = Message(
       senderId: currentUserId,
       senderEmail: currentUserEmail,
       receiverId: groupId,
       message: message,
       timestamp: timestamp,
-      isLink: _extractUrls(message)
-          .isNotEmpty, // Indicate if the message contains any URL
+      isLink: urls.isNotEmpty, // Indicate if the message contains any URL
     );
 
+    // Save message to Firestore
     await _firebaseFirestore
         .collection('group_chat_rooms')
         .doc(groupId)
         .collection('messages')
         .add(newMessage.toMap());
+
+    // If URLs are found, save them to the 'grouplinks' collection
+    if (urls.isNotEmpty) {
+      await _saveLinksForGroup(groupId, urls);
+    }
+  }
+
+// Function to save URLs to the 'grouplinks' collection
+  Future<void> _saveLinksForGroup(String groupId, List<String> urls) async {
+    final String currentUserId = _auth.currentUser!.uid;
+    final Timestamp timestamp = Timestamp.now();
+
+    for (String url in urls) {
+      GroupLink newLink = GroupLink(
+        groupId: groupId,
+        link: url,
+        addedBy: currentUserId,
+        timestamp: timestamp,
+      );
+
+      await _firebaseFirestore
+          .collection('groups')
+          .doc(groupId)
+          .collection('grouplinks')
+          .add(newLink.toMap());
+    }
   }
 
   // Function to send an image message in a group chat

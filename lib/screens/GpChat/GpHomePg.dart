@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:sp_test/screens/GpChat/EditGroup/EditGp.dart';
 import 'package:sp_test/screens/GpChat/FlashCard/FCpage.dart';
 import 'package:sp_test/screens/GpChat/GpChatroom.dart';
+import 'package:sp_test/screens/GpChat/GpLinkPage.dart';
 import 'package:sp_test/screens/GpChat/GpPlans/GpPlans.dart';
 import 'package:sp_test/screens/GpChat/LeaderBoard/LeaderBoard.dart';
 import 'package:sp_test/screens/GpChat/MemberList.dart';
@@ -276,6 +277,20 @@ class GroupHomePage extends StatelessWidget {
                             context,
                             MaterialPageRoute(
                               builder: (context) => TimerPage(groupId: groupId),
+                            ),
+                          );
+                        },
+                      ),
+                      CircularIcon(
+                        icon: Icons.link,
+                        label: 'Links',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => GroupLinksPage(
+                                groupId: groupId,
+                              ),
                             ),
                           );
                         },
